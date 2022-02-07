@@ -2,9 +2,14 @@
 name = "weath3rb0i"
 version = "0.1.0"
 edition = "2021"
+authors = ["Dimitar Rusev <mitikodev@gmail.com>"]
+description = "A lightweight-ish CM compressor"
+repository = "https://github.com/Mitiko/weath3rb0i/"
+license = "GPL-3.0"
+keywords = ["compressor", "context_mixing"]
+categories = ["compression"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
+# To be removed, used only by the PoC state table implementation (the one in paq8)
 [dependencies]
 fastrand = "1.7.0"
 
