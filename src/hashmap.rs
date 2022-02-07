@@ -66,6 +66,7 @@ impl<'a> Slot<'a> {
     }
 
     pub fn set_nth_bit(&mut self, bit_id: usize, nib_ctx: usize, new_state: u16) {
+        // TODO: optim
         let offset = 6 * ((7 >> (3 - bit_id)) + nib_ctx);
         let idx = (3 * self.index) << 1;
 

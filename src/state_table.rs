@@ -1,4 +1,4 @@
-
+// TODO: Make the state table a trait so we can have multiple state_tables for different models
 pub struct StateTable {
     // transitions
     tr: Vec<[u16; 3]>
