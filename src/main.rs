@@ -2,6 +2,7 @@
 
 // TODO: Remove these when all the models are implemented
 #![allow(dead_code)]
+#![allow(unused_imports)]
 
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
@@ -10,11 +11,14 @@ mod hashmap;
 mod state_table;
 mod range_coder;
 mod models;
+mod mixer;
 
 use range_coder::RangeCoder;
 use state_table::StateTable;
 use models::Model;
 use models::order0::Order0;
+use models::order1::Order1;
+use mixer::Mixer2;
 
 
 // TODO: Add decompress method
@@ -26,15 +30,19 @@ fn main() {
     let buf = fs::read(file).unwrap();
     let mut writer = BufWriter::new(File::create("book1.bin").unwrap());
 
-    let state_table = StateTable::new();
-    let mut model = Order0::init(&state_table);
+    let mut model0 = Order0::init();
+    let mut model1 = Order1::init();
+    let mut mixer = Mixer2::init();
     let mut coder = RangeCoder::new();
 
     writer.write_all(&buf.len().to_be_bytes()).unwrap();
     for byte in buf {
         for nib in [byte >> 4, byte % 15] {
-            coder.encode4(&mut writer, nib, model.predict4(nib));
-            model.update4(nib);
+            let p0 = model0.predict4(nib);
+            let p1 = model1.predict4(nib);
+            coder.encode4(&mut writer, nib, mixer.mix4(p0, p1, nib));
+            model0.update4(nib);
+            model1.update4(nib);
         }
     }
 

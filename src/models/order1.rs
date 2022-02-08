@@ -1,17 +1,17 @@
 use super::{Model, counter::Counter};
 
-pub struct Order0 {
-    ctx: u8,
+pub struct Order1 {
+    ctx: u16,
     ctx_cache: u8,
     bit_id: u8,
-    stats: [[Counter; 15]; 256]
+    stats: [[Counter; 15]; 1 << 16]
 }
 
-impl Order0 {
-    pub fn init() -> Self { Self { ctx: 0, ctx_cache: 0, bit_id: 0, stats: [[Counter::new(); 15]; 256] } }
+impl Order1 {
+    pub fn init() -> Self { Self { ctx: 0, ctx_cache: 0, bit_id: 0, stats: [[Counter::new(); 15]; 1 << 16] } }
 }
 
-impl Model for Order0 {
+impl Model for Order1 {
     fn predict(&self) -> u16 {
         let idx = (7 >> (3 - self.bit_id)) + self.ctx_cache as usize;
         return self.stats[self.ctx as usize][idx].p();
@@ -26,7 +26,7 @@ impl Model for Order0 {
 
         // TODO: Verify this is not a cmov, bc the branch predictor can easily see it's mod 4
         if self.bit_id == 0 {
-            self.ctx = ((self.ctx << 4) | self.ctx_cache) & 0xff;
+            self.ctx = ((self.ctx << 4) | self.ctx_cache as u16) & 0xff_ff;
             self.ctx_cache = 0;
         }
     }
@@ -45,6 +45,6 @@ impl Model for Order0 {
         self.stats[self.ctx as usize][1 + (nib >> 3) as usize].update((nib >> 2) & 1);
         self.stats[self.ctx as usize][3 + (nib >> 2) as usize].update((nib >> 1) & 1);
         self.stats[self.ctx as usize][7 + (nib >> 1) as usize].update( nib       & 1);
-        self.ctx = ((self.ctx << 4) | nib) & 0xff;
+        self.ctx = ((self.ctx << 4) | nib as u16) & 0xff_ff;
     }
 }
