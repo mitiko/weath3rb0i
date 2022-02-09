@@ -7,6 +7,7 @@
 use std::fs::{self, File};
 use std::io::{BufWriter, Write};
 
+mod analyzers;
 mod hashmap;
 mod state_table;
 mod range_coder;
@@ -19,6 +20,7 @@ use models::Model;
 use models::order0::Order0;
 use models::order1::Order1;
 use mixer::Mixer2;
+use analyzers::alphabet_reordering::AlphabetOrderManager;
 
 
 // TODO: Add decompress method
@@ -27,22 +29,22 @@ fn main() {
     let file = "/data/calgary/book1";
     println!("Compressing {file}");
 
-    let buf = fs::read(file).unwrap();
+    let mut buf = fs::read(file).unwrap();
     let mut writer = BufWriter::new(File::create("book1.bin").unwrap());
 
+    let mut ar = AlphabetOrderManager::<256>::init();
+    ar.analyze8(&buf);
+    ar.encode8(&mut buf);
+
     let mut model0 = Order0::init();
-    let mut model1 = Order1::init();
-    let mut mixer = Mixer2::init();
     let mut coder = RangeCoder::new();
 
     writer.write_all(&buf.len().to_be_bytes()).unwrap();
     for byte in buf {
         for nib in [byte >> 4, byte % 15] {
-            let p0 = model0.predict4(nib);
-            let p1 = model1.predict4(nib);
-            coder.encode4(&mut writer, nib, mixer.mix4(p0, p1, nib));
+            let p = model0.predict4(nib);
+            coder.encode4(&mut writer, nib, p);
             model0.update4(nib);
-            model1.update4(nib);
         }
     }
 
