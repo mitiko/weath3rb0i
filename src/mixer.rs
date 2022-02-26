@@ -1,5 +1,4 @@
 // Linear interpolation
-use crate::models::Model;
 
 pub struct Mixer2 {
     w: f64,

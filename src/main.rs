@@ -2,10 +2,8 @@
 
 // TODO: Remove these when all the models are implemented
 #![allow(dead_code)]
-#![allow(unused_imports)]
-
-use std::fs::{self, File};
-use std::io::{BufWriter, Write, BufReader, Read};
+// #![allow(unused_imports)]
+// #![deny(missing_docs)]
 
 mod analyzers;
 mod hashmap;
@@ -13,74 +11,55 @@ mod state_table;
 mod range_coder;
 mod models;
 mod mixer;
+mod runner;
 
-use range_coder::RangeCoder;
-use state_table::StateTable;
-use models::Model;
-use models::order0::Order0;
-use models::order1::Order1;
-use mixer::Mixer2;
-use analyzers::alphabet_reordering::AlphabetOrderManager;
+use std::path::PathBuf;
+use clap::Parser;
 
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Cli {
+    #[clap(short, long)]
+    compress: Option<PathBuf>,
+    #[clap(short, long)]
+    decompress: Option<PathBuf>
+}
 
-// TODO: Add decompress method
 fn main() {
-    let timer = std::time::Instant::now();
-    let file = "/data/calgary/book1";
-    println!("Compressing {file}");
+    let cli = Cli::parse();
+    if matches!(cli.compress, Some(ref file_path) if file_path.is_file()) {
+        let input_path = cli.compress.unwrap();
+        let mut output_path = std::env::current_dir().unwrap();
+        output_path.push(input_path.file_name().unwrap());
+        output_path.set_extension("bin");
 
-    let buf = fs::read(file).unwrap();
-    let mut writer = BufWriter::new(File::create("book1.bin").unwrap());
-
-    let mut model0 = Order0::init();
-    let mut coder = RangeCoder::new();
-
-    writer.write_all(&(buf.len() as u64).to_be_bytes()).unwrap();
-    for byte in buf {
-        for nib in [byte >> 4, byte & 15] {
-            let p = model0.predict4(nib);
-            coder.encode4(&mut writer, nib, p);
-            model0.update4(nib);
-        }
+        let timer = std::time::Instant::now();
+        println!("Compressing {input_path:?}");
+        runner::encode(&input_path, &output_path);
+        println!("Took: {:?} -> {}", timer.elapsed(), output_path.metadata().unwrap().len());
     }
+    else if matches!(cli.decompress, Some(ref file_path) if file_path.is_file()) {
+        let input_path = cli.decompress.unwrap();
+        let mut output_path = std::env::current_dir().unwrap();
+        output_path.push(input_path.file_name().unwrap());
+        output_path.set_extension("dec");
 
-    coder.flush(&mut writer);
-    println!("Took: {:?}", timer.elapsed());
-    decode();
+        let timer = std::time::Instant::now();
+        println!("Decompressing {input_path:?}");
+        runner::decode(&input_path, &output_path);
+        println!("Took: {:?} -> {}", timer.elapsed(), output_path.metadata().unwrap().len());
+    }
+    else if cli.compress.or(cli.decompress).is_none() {
+        let timer = std::time::Instant::now();
+        println!("Compressing default=book1");
+        runner::encode(&PathBuf::from("/data/calgary/book1"), &PathBuf::from("./book1.bin"));
+        println!("Took: {:?} -> {}", timer.elapsed(), std::fs::metadata("./book1.bin").unwrap().len());
+
+        let timer = std::time::Instant::now();
+        println!("Decompressing");
+        runner::decode(&PathBuf::from("./book1.bin"),         &PathBuf::from("./book1.dec"));
+        println!("Took: {:?} -> {}", timer.elapsed(), std::fs::metadata("./book1.dec").unwrap().len());
+    }
 }
 
-fn decode() {
-    let timer = std::time::Instant::now();
-    let file = "book1.bin";
-    println!("Decompressing {file}");
-
-    let mut reader = BufReader::new(File::open(file)         .unwrap());
-    let mut writer = BufWriter::new(File::create("book1.dec").unwrap());
-
-    let mut model0 = Order0::init();
-    let mut coder = RangeCoder::new();
-
-    let mut buf = [0; 256];
-    reader.read(&mut buf[..8]).unwrap();
-    let size = u64::from_be_bytes(buf[..8].try_into().unwrap());
-    reader.read(&mut buf[..4]).unwrap();
-    coder.init_decode(u32::from_be_bytes(buf[..4].try_into().unwrap()));
-    let mut written = 0;
-
-    loop {
-        let mut byte = 1;
-        let mut eof = false;
-        while byte < 256 {
-            let p = model0.predict();
-            let bit = coder.decode(p);
-            model0.update(bit);
-            eof = coder.renorm_dec(&mut reader);
-            byte = (byte * 2) + bit as usize;
-        }
-        byte -= 256;
-        writer.write(&[byte as u8]).unwrap(); written += 1;
-        if written == size || eof { break; }
-    }
-    writer.flush().unwrap();
-    println!("Took: {:?}", timer.elapsed());
-}
+// TODO: Add tests
