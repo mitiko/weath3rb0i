@@ -31,14 +31,12 @@ impl Model for Order0 {
         }
     }
 
-    fn predict4(&self, nib: u8) -> [u16; 4] {
-        [
-            self.stats[self.ctx as usize][0].p(),
-            self.stats[self.ctx as usize][1 + (nib >> 3) as usize].p(),
-            self.stats[self.ctx as usize][3 + (nib >> 2) as usize].p(),
-            self.stats[self.ctx as usize][7 + (nib >> 1) as usize].p()
-            ]
-        }
+    fn predict4(&self, nib: u8) -> [u16; 4] {[
+        self.stats[self.ctx as usize][0].p(),
+        self.stats[self.ctx as usize][1 + (nib >> 3) as usize].p(),
+        self.stats[self.ctx as usize][3 + (nib >> 2) as usize].p(),
+        self.stats[self.ctx as usize][7 + (nib >> 1) as usize].p()
+    ]}
 
     fn update4(&mut self, nib: u8) {
         self.stats[self.ctx as usize][0]                      .update( nib >> 3);
