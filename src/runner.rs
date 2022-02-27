@@ -1,6 +1,6 @@
 // (c) 2022 Dimitar Rusev <mitikodev@gmail.com> licensed under GPL-3.0
 
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{BufWriter, Write, BufReader, Read};
 use std::path::PathBuf;
 
@@ -12,15 +12,15 @@ use crate::range_coder::RangeCoder;
 // TODO: Use ANS as the primary entropy coder
 pub fn encode(input_path: &PathBuf, output_path: &PathBuf) {
     let size: u64 = input_path.metadata().unwrap().len();
-    // TODO: Use a BufReader instead
-    let buf = fs::read(input_path).unwrap();
+    let     reader = BufReader::new(File::open(input_path).unwrap());
     let mut writer = BufWriter::new(File::create(output_path).unwrap());
 
     let mut model0 = Order0::init();
     let mut coder = RangeCoder::new();
 
     writer.write_all(&size.to_be_bytes()).unwrap();
-    for byte in buf {
+    for byte_res in reader.bytes() {
+        let byte = byte_res.unwrap();
         for nib in [byte >> 4, byte & 15] {
             let p = model0.predict4(nib);
             coder.encode4(&mut writer, nib, p);

@@ -2,3 +2,4 @@
 *.bin
 *.dec
 TODO.md
+perf.data*
