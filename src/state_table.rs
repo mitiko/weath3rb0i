@@ -107,14 +107,14 @@ impl StateTable {
     pub fn p    (&self, state: u16)          -> u16 { self.tr[state as usize][2] }
     pub fn next (&self, state: u16, bit: u8) -> u16 {
         let new_state = self.tr[state as usize][bit as usize];
-        return if new_state >= 205 && new_state >= state + 4 {
+        if new_state >= 205 && new_state >= state + 4 {
             if fastrand::bool() { state     }
             else                { new_state }
         }
         else { new_state }
     }
 
-    pub fn p_nib(&self, states: &[u16; 4]) -> [u16; 4] {
+    pub fn p_nib(&self, states: [u16; 4]) -> [u16; 4] {
         [self.p(states[0]), self.p(states[1]), self.p(states[2]), self.p(states[3])]
     }
 

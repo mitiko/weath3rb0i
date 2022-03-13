@@ -23,9 +23,11 @@ impl Mixer2 {
         self.del_p = x1 - x2;
         self.p = self.del_p * self.st_w + x2;
         // "Denormalize" p
-        return ((1 << 16) as f64 * self.p) as u16;
+        // TODO: Remove 'as' statemnets bc they're evil
+        ((1 << 16) as f64 * self.p) as u16
     }
 
+    #[allow(clippy::assign_op_pattern)] /* The learning rate is adjusted more verbosely for clarity */
     pub fn update(&mut self, bit: u8) {
         let lr = 0.1; // learning rate
         let c = -std::f64::consts::LOG2_E;

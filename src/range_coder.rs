@@ -28,6 +28,7 @@ impl RangeCoder {
         self.renorm_enc(stream);
     }
 
+    #[allow(clippy::needless_return)] /* For execution path clairity */
     pub fn decode(&mut self, prob: u16) -> u8 {
         let mid = self.low + ((self.high - self.low) >> 12) * prob as u32;
         if self.x <= mid { self.high = mid;     return 1; }
@@ -36,7 +37,7 @@ impl RangeCoder {
 
     pub fn renorm_enc(&mut self, stream: &mut BufWriter<File>) {
         while (self.high ^ self.low) & 0xff00_0000 == 0 {
-            stream.write(&[(self.high >> 24) as u8]).unwrap();
+            let _ = stream.write(&[(self.high >> 24) as u8]).unwrap();
             self.low <<= 8;
             self.high = (self.high << 8) + 255;
         }
@@ -52,12 +53,12 @@ impl RangeCoder {
             self.x = (self.x << 8) + byte[0] as u32;
         }
 
-        return eof;
+        eof
     }
 
     pub fn flush(&mut self, stream: &mut BufWriter<File>) {
         self.renorm_enc(stream);
-        stream.write(&[(self.high >> 24) as u8]).unwrap();
+        let _ = stream.write(&[(self.high >> 24) as u8]).unwrap();
         stream.flush().unwrap();
     }
 }

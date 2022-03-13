@@ -14,7 +14,7 @@ impl Order1 {
 impl Model for Order1 {
     fn predict(&self) -> u16 {
         let idx = (7 >> (3 - self.bit_id)) + self.ctx_cache as usize;
-        return self.stats[self.ctx as usize][idx].p();
+        self.stats[self.ctx as usize][idx].p()
     }
 
     fn update(&mut self, bit: u8) {
@@ -25,8 +25,9 @@ impl Model for Order1 {
         self.bit_id = (self.bit_id + 1) & 3;
 
         // TODO: Verify this is not a cmov, bc the branch predictor can easily see it's mod 4
+        // TODO: Maybe (to avoid 'as') we need ctx_cache to be 16bit
         if self.bit_id == 0 {
-            self.ctx = ((self.ctx << 4) | self.ctx_cache as u16) & 0xff_ff;
+            self.ctx = (self.ctx << 4) | self.ctx_cache as u16;
             self.ctx_cache = 0;
         }
     }
@@ -45,6 +46,6 @@ impl Model for Order1 {
         self.stats[self.ctx as usize][1 + (nib >> 3) as usize].update((nib >> 2) & 1);
         self.stats[self.ctx as usize][3 + (nib >> 2) as usize].update((nib >> 1) & 1);
         self.stats[self.ctx as usize][7 + (nib >> 1) as usize].update( nib       & 1);
-        self.ctx = ((self.ctx << 4) | nib as u16) & 0xff_ff;
+        self.ctx = (self.ctx << 4) | nib as u16;
     }
 }

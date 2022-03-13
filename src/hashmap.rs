@@ -44,7 +44,7 @@ impl Cell {
                 0
             };
 
-        return Slot { index, cell: self };
+        Slot { index, cell: self }
     }
 }
 
@@ -74,7 +74,7 @@ impl<'a> Slot<'a> {
         if self.index & 1 == 0 {
             let bytes = (new_state << 4).to_be_bytes();
             self.cell.slots[offset+idx]   = bytes[0];
-            self.cell.slots[offset+idx+1] = bytes[1] | (self.cell.slots[offset+idx+1] & 15)
+            self.cell.slots[offset+idx+1] = bytes[1] | (self.cell.slots[offset+idx+1] & 15);
         }
         else {
             let bytes = new_state.to_be_bytes();

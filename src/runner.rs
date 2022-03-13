@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io::{BufWriter, Write, BufReader, Read};
-use std::path::PathBuf;
+use std::path::Path;
 
 use crate::models::*;
 use crate::range_coder::RangeCoder;
@@ -10,7 +10,7 @@ use crate::range_coder::RangeCoder;
 // TODO: Seperate modeling, prediction and coding
 // TODO: Only write modeling data to a file, when in debug mode? - or add a flag to output the model
 // TODO: Use ANS as the primary entropy coder
-pub fn encode(input_path: &PathBuf, output_path: &PathBuf) {
+pub fn encode(input_path: &Path, output_path: &Path) {
     let size: u64 = input_path.metadata().unwrap().len();
     let     reader = BufReader::new(File::open(input_path).unwrap());
     let mut writer = BufWriter::new(File::create(output_path).unwrap());
@@ -31,7 +31,7 @@ pub fn encode(input_path: &PathBuf, output_path: &PathBuf) {
     coder.flush(&mut writer);
 }
 
-pub fn decode(input_path: &PathBuf, output_path: &PathBuf) {
+pub fn decode(input_path: &Path, output_path: &Path) {
     let mut reader = BufReader::new(File::open(input_path).unwrap());
     let mut writer = BufWriter::new(File::create(output_path).unwrap());
 
@@ -39,9 +39,9 @@ pub fn decode(input_path: &PathBuf, output_path: &PathBuf) {
     let mut coder = RangeCoder::new();
 
     let mut buf = [0; 256];
-    reader.read(&mut buf[..8]).unwrap();
+    reader.read_exact(&mut buf[..8]).unwrap();
     let size = u64::from_be_bytes(buf[..8].try_into().unwrap());
-    reader.read(&mut buf[..4]).unwrap();
+    reader.read_exact(&mut buf[..4]).unwrap();
     coder.init_decode(u32::from_be_bytes(buf[..4].try_into().unwrap()));
     let mut written = 0;
 
@@ -56,7 +56,7 @@ pub fn decode(input_path: &PathBuf, output_path: &PathBuf) {
             byte = (byte * 2) + bit as usize;
         }
         byte -= 256;
-        writer.write(&[byte as u8]).unwrap(); written += 1;
+        written += writer.write(&[byte as u8]).unwrap() as u64;
         if written == size || eof { break; }
     }
     writer.flush().unwrap();

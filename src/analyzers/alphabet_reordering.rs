@@ -13,7 +13,7 @@ impl<const N: usize> AlphabetOrderManager<N> {
         Self { enc_table: [0; N], dec_table: [0; N], counts: [0; N], sorted_counts: [0; N] }
     }
 
-    pub fn analyze8(&mut self, buf: &Vec<u8>) {
+    pub fn analyze8(&mut self, buf: &[u8]) {
         // Count frequencies
         buf.iter().for_each(|&sym| self.counts[sym as usize] += 1);
 
@@ -24,7 +24,7 @@ impl<const N: usize> AlphabetOrderManager<N> {
         self.gen_tables();
     }
 
-    pub fn analyze12_16(&mut self, buf: &Vec<u8>) {
+    pub fn analyze12_16(&mut self, buf: &[u8]) {
         // Count frequencies
         buf.chunks_exact(2)
             .map(|sym| u16::from_be_bytes([sym[0], sym[1]]))
