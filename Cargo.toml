@@ -11,7 +11,6 @@ categories = ["compression"]
 
 [dependencies]
 fastrand = "1.7.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
-clap = { version = "3.1.2", features = ["derive", "wrap_help"] }
 
 [profile.release]
 debug = 1

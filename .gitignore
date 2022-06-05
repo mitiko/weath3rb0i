@@ -1,5 +1,6 @@
 /target
 *.bin
 *.dec
+*.orig
 TODO.md
 perf.data*

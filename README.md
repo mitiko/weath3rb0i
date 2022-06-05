@@ -26,10 +26,10 @@ Basically predictions are bitwise but updates are nibblewise. On decoding we emu
 ## Future
 
 v1.0 will feature:
-- bitwise entropy coding (ABS?) with nibblewise context updates
+- bitwise entropy coding (ABS?) with nibblewise context updates on encoding
 - 16-bit predictions
-- a 12-bit (tunable) state table
-- a 96 byte cell hashmap for cache-line optimization
+- a 12-bit (input) state table
+- a 96 byte (spanning 2 consecutive cache lines) cell hashmap for cache-line optimization
 - written in 100% safe rust
 - ability to outsource collected stats to a better NN for testing (and parameter tuning)
 - APM mixers
