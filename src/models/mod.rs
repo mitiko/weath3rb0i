@@ -2,7 +2,8 @@ pub mod order0;
 pub mod order1;
 pub mod counter;
 
-pub use crate::state_table::StateTable;
+pub use crate::state_table::*;
+pub use crate::smart_context::*;
 pub use self::{order0::*, order1::*, counter::*};
 
 // TODO: Rename to PrefixModel and use a context as parameter to predictions, no updates?

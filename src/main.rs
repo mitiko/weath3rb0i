@@ -5,12 +5,12 @@
 // #![allow(unused_imports)]
 // #![deny(missing_docs)]
 
-mod analyzers;
 mod hashmap;
 mod state_table;
 mod range_coder;
 mod models;
 mod mixer;
+mod smart_context;
 
 use std::io::{BufReader, BufWriter, Write, Read};
 use std::time::Instant;
