@@ -10,7 +10,7 @@ impl Counter {
     pub fn p(&self) -> u16 {
         let c0 = self.data[0] as u64;
         let c1 = self.data[1] as u64;
-        let p = (1 << 12) * (c1 + 1) / (c0 + c1 + 2);
+        let p = (1 << 16) * (c1 + 1) / (c0 + c1 + 2);
         // TODO: Remove 'as' statements, bc they're evil
         p as u16
     }

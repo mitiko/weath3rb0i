@@ -2,12 +2,12 @@
 
 // TODO: Remove these when all the models are implemented
 #![allow(dead_code)]
-// #![allow(unused_imports)]
+#![allow(unused_imports)]
 // #![deny(missing_docs)]
 
 mod hashmap;
 mod state_table;
-mod range_coder;
+mod arithmetic_coder;
 mod models;
 mod mixer;
 mod smart_context;
@@ -17,7 +17,7 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use models::{Model, Order0};
-use range_coder::RangeCoder;
+use arithmetic_coder::{ArithmeticCoder, BitWriter};
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -93,61 +93,51 @@ fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
 }
 
 fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
-    let size: u64 = input_file.metadata()?.len();
-    let     reader = BufReader::new(File::open(input_file)?);
-    let mut writer = BufWriter::new(File::create(output_file)?);
+    let reader = BufReader::new(File::open(input_file)?);
+    let writer = BufWriter::new(File::create(output_file)?);
 
     let mut model = init_model();
-    let mut coder = RangeCoder::new();
+    let mut ac = ArithmeticCoder::<_, BufReader<File>>::init_enc(writer);
 
-    writer.write_all(&size.to_be_bytes())?;
     for byte_res in reader.bytes() {
         let byte = byte_res?;
         for nib in [byte >> 4, byte & 15] {
-            let p = model.predict4(nib);
-            coder.encode4(&mut writer, nib, p);
-            model.update4(nib);
+            let p4 = model.predict4(nib);
+            model.update4(nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
+            ac.encode4(nib, p4);
         }
     }
 
-    coder.flush(&mut writer);
+    ac.flush();
     Ok(())
 }
 
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
-    let mut reader = BufReader::new(File::open(input_file).unwrap());
-    let mut writer = BufWriter::new(File::create(output_file).unwrap());
+    let reader = BufReader::new(File::open(input_file).unwrap());
+    let file_writer = BufWriter::new(File::create(output_file).unwrap());
+    let mut writer = BitWriter::new(file_writer);
 
     let mut model = init_model();
-    let mut coder = RangeCoder::new();
+    let mut ac = ArithmeticCoder::<BufWriter<File>, _>::init_dec(reader);
 
-    let mut buf = [0; 8];
-    reader.read_exact(&mut buf)?;
-    let size = u64::from_be_bytes(buf);
-    reader.read_exact(&mut buf[..4])?;
-    coder.init_decode(u32::from_be_bytes(buf[..4].try_into().unwrap()));
 
-    let mut written = 0;
+    // TODO: Refactor this loop
     loop {
-        let mut byte = 0;
-        let mut eof = false;
-
-        for _ in 0..8 {
-            let p = model.predict();
-            let bit = coder.decode(p);
-
-            model.update(bit);
-            eof = coder.renorm_dec(&mut reader);
-            byte = (byte << 1) | bit;
+        let p = model.predict();
+        match ac.decode(p) {
+            Ok(bit) => {
+                model.update(bit);
+                writer.bit_write_raw(bit);
+            },
+            _ => break
         }
-        written += writer.write(&[byte])? as u64;
-        if written == size || eof { break; }
     }
-    writer.flush()?;
+    writer.flush();
     Ok(())
 }
 
-fn init_model() -> impl Model {
+// fn init_model() -> impl Model { // FIXME: Just hardcoding this for now, so the rust-analyzer can pick up some metadata
+fn init_model() -> Order0 {
     Order0::init()
 }
 

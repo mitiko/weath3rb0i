@@ -4,6 +4,7 @@ use std::ops::{BitOr, Shl, Index, IndexMut};
 pub trait Context: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Output = Self> + Copy {}
 impl<T> Context for T where T: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Output = Self> + Copy {}
 
+#[derive(Clone, Copy, Debug)]
 pub struct SmartCtx<T: Context> {
     ctx: T, // just an (unsigned) integer
     bit_id: u8,
@@ -40,14 +41,20 @@ impl<T: Context> SmartCtx<T> {
     pub fn update4(&mut self, nib: u8) {
         // Do not use update and update4 interchangably
         // update4 should have the same effect as update executed on the bits of the nibble
-        // but update4 is an encode onl optimization, while update is for the decoder
-        assert!(self.bit_id == 0 && self.ctx_cache == 0);
+        // but update4 is an encode only optimization, while update is for the decoder
+        debug_assert!(self.bit_id == 0 && self.ctx_cache == 0);
         self.ctx = (self.ctx << 4) | T::from(nib);
+
+        // self.update(nib >> 3);
+        // self.update((nib >> 2) & 1);
+        // self.update((nib >> 1) & 1);
+        // self.update(nib & 1);
     }
 
     fn rel_idx(&self) -> usize {
         // See the docs on hashslot rel_idx calculation
-        usize::from((1 << self.bit_id) + (self.ctx_cache - 1))
+        // usize::from((1u8 << self.bit_id).wrapping_add(self.ctx_cache.wrapping_sub(1)))
+        usize::from((1u8 << self.bit_id) - 1 + self.ctx_cache)
     }
 }
 
