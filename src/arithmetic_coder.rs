@@ -90,10 +90,9 @@ impl<TW: Write, TR: Read> ArithmeticCoder<TW, TR> {
     pub fn flush(&mut self) {
         match &mut self.buf {
             Encode(w) => {
-                loop {
+                for _ in 0..32 {
                     w.bit_write((self.x1 >> PREC_SHIFT) as u8);
                     self.x1 <<= 1;
-                    if w.count == 0 { break; } // equiv of do-while loop
                 }
                 w.flush();
             }
