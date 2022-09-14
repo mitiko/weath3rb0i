@@ -10,9 +10,14 @@ keywords = ["compressor", "context_mixing"]
 categories = ["compression"]
 
 [dependencies]
-fastrand = "1.7.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
+fastrand = "1.8.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
+
+[profile.dev]
+opt-level = 1
 
 [profile.release]
-debug = 1
+# debug = 1
+strip = true
 lto = "fat"
 codegen-units = 1
+panic = "abort"
