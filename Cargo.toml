@@ -11,6 +11,7 @@ categories = ["compression"]
 
 [dependencies]
 fastrand = "1.8.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
+debug_unreachable = "0.1"
 
 [profile.dev]
 opt-level = 1

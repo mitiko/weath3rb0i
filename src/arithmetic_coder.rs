@@ -141,14 +141,14 @@ mod arithmetic_coder_io {
         pub fn as_dec(&mut self) -> &mut ACReader<TRead> {
             match self {
                 Decode(r) => r,
-                Encode(_) => unreachable!("[AC] Tried to use reader in encode mode")
+                Encode(_) => unsafe { debug_unreachable!("[AC] Tried to use reader in encode mode"); }
             }
         }
         
         pub fn as_enc(&mut self) -> &mut ACWriter<TWrite> {
             match self {
                 Encode(w) => w,
-                Decode(_) => unreachable!("[AC] Tried to use writer in decode mode"),
+                Decode(_) => unsafe { debug_unreachable!("[AC] Tried to use writer in decode mode") },
             }
         }
     }

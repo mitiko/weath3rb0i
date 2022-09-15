@@ -17,9 +17,15 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
+#[macro_use]
+extern crate debug_unreachable;
+
 use arithmetic_coder::ArithmeticCoder;
 use bit_helpers::BitWriter;
 use models::{Model, Order0};
+
+const MAGIC_STR: &[u8; 4] = b"0000";
+const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -40,7 +46,7 @@ fn main() -> std::io::Result<()> {
         "t" => Action::Test,
         _ => {
             print_usage_and_panic("Unrecognized option -> <action>!");
-            unreachable!();
+            unsafe { debug_unreachable!(); } // we've already panicked
         }
     };
 
@@ -65,29 +71,32 @@ fn main() -> std::io::Result<()> {
 fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
     assert!(file_path.is_file());
 
-    let mut out_path = std::env::current_dir()?;
-    out_path.push(file_path.file_name().expect("Invalid file!"));
+    let out_path = {
+        let mut out_path = std::env::current_dir()?;
+        out_path.push(file_path.file_name().unwrap());
 
-    let compress_path = out_path.with_extension("bin");
-    let decompress_path = out_path.with_extension("orig");
+        match action {
+            Action::Compress | Action::Test => out_path.set_extension("bin"),
+            Action::Decompress => out_path.set_extension("orig")
+        };
+
+        out_path
+    };
+
 
     let timer = Instant::now();
     match action {
         Action::Compress => {
-            compress(file_path, compress_path)?;
+            compress(file_path, out_path)?;
             println!("Compression took: {:?}", timer.elapsed());
         }
         Action::Decompress => {
-            decompress(file_path, decompress_path)?;
+            decompress(file_path, out_path)?;
             println!("Decompression took: {:?}", timer.elapsed());
         }
         Action::Test => {
-            compress(file_path, compress_path.clone())?;
-            println!("Compression took: {:?}", timer.elapsed());
-            println!("----");
-            let timer = Instant::now();
-            decompress(compress_path, decompress_path)?;
-            println!("Decompression took: {:?}", timer.elapsed());
+            run(file_path, Action::Compress)?;
+            run(out_path, Action::Decompress)?;
         }
     }
 
@@ -95,11 +104,15 @@ fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
 }
 
 fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
-    let f = File::open(input_file)?; let len = f.metadata()?.len();
-    let reader = BufReader::new(f);
     let mut writer = BufWriter::new(File::create(output_file)?);
+    let reader = {
+        let f = File::open(input_file)?;
+        let len = f.metadata()?.len();
 
-    writer.write_all(&len.to_be_bytes())?;
+        writer.write_all(MAGIC_STR)?;
+        writer.write_all(&len.to_be_bytes())?;
+        BufReader::new(f)
+    };
     let mut ac = ArithmeticCoder::<_, BufReader<File>>::init_enc(writer);
     let mut model = init_model();
     
@@ -118,22 +131,29 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut reader = BufReader::new(File::open(input_file).unwrap());
-    let file_writer = BufWriter::new(File::create(output_file).unwrap());
-    let mut len_buf = [0; std::mem::size_of::<u64>()]; reader.read_exact(&mut len_buf)?;
-    let mut writer = BitWriter::new(file_writer);
+    let mut writer = {
+        let buf_writer = BufWriter::new(File::create(output_file).unwrap());
+        BitWriter::new(buf_writer)
+    };
+    
+    let len = {
+        let mut len_buf = [0; std::mem::size_of::<u32>() + std::mem::size_of::<u64>()];
+        reader.read_exact(&mut len_buf)?;
 
-    let len = u64::from_be_bytes(len_buf);
+        let magic_num = u32::from_be_bytes(len_buf[..4].try_into().unwrap());
+        assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
+        u64::from_be_bytes(len_buf[4..].try_into().unwrap())
+    };
     let mut ac = ArithmeticCoder::<BufWriter<File>, _>::init_dec(reader);
     let mut model = init_model();
 
 
-    // TODO: Refactor this loop
     for _ in 0..len {
         for _ in 0..8 {
             let p = model.predict();
             let bit = ac.decode(p);
-            model.update(bit);
             writer.write_bit(bit);
+            model.update(bit);
         }
     }
 

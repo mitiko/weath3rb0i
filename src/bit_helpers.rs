@@ -70,7 +70,6 @@ impl<TRead: Read> BitReader<TRead> {
             self.bit_queue.fill(self.buf[0]);
         }
 
-        // TODO: Check if this is inlined well
         self.bit_queue.pop().ok_or(EOF)
     }
 }
@@ -95,7 +94,6 @@ impl<TWrite: Write> BitWriter<TWrite> {
 
     pub fn flush(&mut self, mut padding_byte: u8) {
         while !self.bit_queue.is_empty() {
-            // println!("Unrool");
             self.write_bit((padding_byte >> (u8::BITS - 1)) & 1);
             padding_byte <<= 1;
         }
