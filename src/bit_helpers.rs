@@ -4,7 +4,7 @@ Bit IO helper functions
 # Examples
 
 Using a BitReader
-```
+```ignore
 let reader = BufReader::new(File::open("input")?);
 let mut bit_reader = BitReader::new(reader);
 
@@ -41,7 +41,7 @@ impl BitQueue {
     /// - in release mode - discards old elements
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue = BitQueue::new();
     /// bit_queue.push(1);
     /// bit_queue.push(0);
@@ -58,7 +58,7 @@ impl BitQueue {
     /// Otherwise `Some(bit)`
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue: BitQueue::new();
     /// assert_eq!(bit_queue.pop(), None);
     /// bit_queue.push(0);
@@ -79,7 +79,7 @@ impl BitQueue {
     /// Otherwise `Some(byte)`
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue = BitQueue::new();
     /// assert_eq!(bit_queue.try_flush(), None);
     /// (0..u8::BITS).iter().for_each(|i| bit_queue.push(i & 1));
@@ -99,7 +99,7 @@ impl BitQueue {
     /// - in release mode: discards old elements
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue = BitQueue::new();
     /// bit_queue.fill(0x80);
     /// assert_eq!(bit_queue.pop(), Some(1));
@@ -114,7 +114,7 @@ impl BitQueue {
     /// Checks if the queue is full
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue = BitQueue::new();
     /// assert_eq!(bit_queue.is_full(), false);
     /// bit_queue.push(0);
@@ -130,7 +130,7 @@ impl BitQueue {
     /// Checks if the queue is empty
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let bit_queue = BitQueue::new();
     /// assert_eq!(bit_queue.is_empty(), true);
     /// bit_queue.push(1);
@@ -142,22 +142,23 @@ impl BitQueue {
 }
 
 // TODO: Examples for BitReader, BitWriter
+const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
 
 #[allow(clippy::upper_case_acronyms)]
 /// EOF symbol (for error handling)
 pub struct EOF;
 
-/// A BitReader reads bit from an internal `std::io::Read` stream
-pub struct BitReader<TRead: Read> {
+/// A BitBufReader reads bit from an internal `std::io::Read` stream
+pub struct BitBufReader<TRead: Read, const N: usize = DEFAULT_BUFFER_SIZE> {
     stream: TRead,
-    buf: [u8; 1],
+    buf: [u8; N],
     bit_queue: BitQueue
 }
 
-impl<TRead: Read> BitReader<TRead> {
-    /// Initializes a BitReader with a stream
+impl<TRead: Read, const N: usize> BitBufReader<TRead, N> {
+    /// Initializes a BitBufReader with a stream
     pub fn new(stream: TRead) -> Self {
-        Self { stream, buf: [0; 1], bit_queue: BitQueue::new() }
+        Self { stream, buf: [0; N], bit_queue: BitQueue::new() }
     }
 
     /// Reads bit from internal stream or returns `EOF`
@@ -174,24 +175,27 @@ impl<TRead: Read> BitReader<TRead> {
     }
 }
 
-/// A BitWriter writes bits to an internal `std::io::Write` stream
-pub struct BitWriter<TWrite: Write> {
+/// A BitBufWriter writes bits to an internal `std::io::Write` stream
+pub struct BitBufWriter<TWrite: Write, const N: usize = DEFAULT_BUFFER_SIZE> {
     stream: TWrite,
+    buf: [u8; N],
+    idx: usize,
     bit_queue: BitQueue
 }
 
-impl<TWrite: Write> BitWriter<TWrite> {
-    /// Initializes a BitWriter with a stream
+impl<TWrite: Write, const N: usize> BitBufWriter<TWrite, N> {
+    /// Initializes a BitBufWriter with a stream
     pub fn new(stream: TWrite) -> Self {
-        Self { stream, bit_queue: BitQueue::new() }
+        Self { stream, buf: [0; N], idx: 0, bit_queue: BitQueue::new() }
     }
 
     /// Writes a bit or panics if internal writer doesn't accept more bytes
     pub fn write_bit(&mut self, bit: u8) {
+        println!("WRITING BIT: {}", bit);
         self.bit_queue.push(bit);
         if let Some(byte) = self.bit_queue.try_flush() {
             let bytes_written = self.stream.write(&[byte]).unwrap_or(0);
-            assert!(bytes_written != 0, "BitWriter failed to write byte");
+            assert!(bytes_written != 0, "BitBufWriter failed to write byte");
         }
     }
 

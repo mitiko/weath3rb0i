@@ -8,7 +8,7 @@ Then they're shifted back to 32-bits
 # Examples
 
 Initialize and run encoder:
-```no_run
+```ignore
 let mut writer = BufWriter::new(File::create(output_file)?);
 let reader = {
     let f = File::open(input_file)?;
@@ -40,7 +40,7 @@ Ok(())
 ```
 
 Initialize and run the decoder:
-```no_run
+```ignore
 let mut writer = {
     let buf_writer = BufWriter::new(File::create(output_file)?);
     BitWriter::new(buf_writer)
@@ -110,7 +110,7 @@ where TWrite: Write, TRead: Read {
     /// Initialize an encoder with a stream to write to.
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let mut writer = BufWriter::new(File::create(out_file)?);
     /// let mut ac = ArithmeticCoder::<_, BufReader<File> /* any reader */>::init_enc(writer);
     pub fn init_enc(stream: TWrite) -> Self {
@@ -119,27 +119,28 @@ where TWrite: Write, TRead: Read {
             io: Encode(ACWriter::new(stream))
         }
     }
-    
+
     /// Initialize a decoder with a stream to read from.
     /// 
     /// Reads 4 bytes BE to fill the initial state.
     /// If the stream contains less than 4 bytes, the rest is assumed to be zeroes.
     ///
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// let mut reader = BufReader::new(File::open(input_file)?);
     /// let mut ac = ArithmeticCoder::<_, BufWriter<File> /* any writer */>::init_dec(reader);
     /// ```
-    pub fn init_dec(mut stream: TRead) -> Self {
-        let x = {
-            let mut buf = [0; std::mem::size_of::<u32>()];
-            stream.read_exact(&mut buf).unwrap(); // if we reach EOF, we're just padding with 0s anyway
-            u32::from_be_bytes(buf)
-        };
+    pub fn init_dec(stream: TRead) -> Self {
+        let mut reader = ACReader::new(stream);
+        // let x = reader.read_u32();
+        let mut x: u32 = 0;
+        for _ in 0..u32::BITS {
+            x = (x << 1) | reader.read_bit();
+        }
 
         Self {
             x1: 0, x2: u32::MAX, x,
-            io: Decode(ACReader::new(stream))
+            io: Decode(reader)
         }
     }
 
@@ -152,7 +153,7 @@ where TWrite: Write, TRead: Read {
     /// essentially eliminating a dependency chain with math and two more branches.
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// # let byte = 0xf0
     /// # let model: Model;
     /// # let ac: ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
@@ -201,7 +202,7 @@ where TWrite: Write, TRead: Read {
     /// This is intentional, the callers of decode must know in advance how long the decompressed stream must be.
     /// 
     /// Example:
-    /// ```no_run
+    /// ```ignore
     /// # let model: Model;
     /// # let writer: BufWriter<File>;
     /// # let ac: ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
@@ -260,6 +261,8 @@ where TWrite: Write, TRead: Read {
 
         w.write_bit(1);
         w.flush(self.x1 >> (u32::BITS - u8::BITS));
+        // w.write_bit(0);
+        // w.flush((self.x1 << 1) >> (u32::BITS - u8::BITS));
     }
 }
 
@@ -282,7 +285,7 @@ mod arithmetic_coder_io {
     #![deny(clippy::missing_docs_in_private_items)]
 
     use std::{io::{Write, Read}, convert::TryInto};
-    use crate::bit_helpers::{BitWriter, BitReader};
+    use crate::bit_helpers::{BitBufWriter, BitBufReader};
     pub use ArithmeticCoderIO::{Encode, Decode};
 
     /// ArithmeticCoderIO is an invariant of read or write.
@@ -326,25 +329,36 @@ mod arithmetic_coder_io {
     /// The `ACReader` is a wrapper around `bit_helpers::BitReader`
     pub struct ACReader<TRead: Read> {
         /// The internal (bit) reader
-        reader: BitReader<TRead>
+        reader: BitBufReader<TRead>
     }
     
     impl<TRead: Read> ACReader<TRead> {
         /// Initialize from a stream
         pub fn new(stream: TRead) -> Self {
-            Self { reader: BitReader::new(stream) }
+            Self { reader: BitBufReader::new(stream) }
         }
         
         /// Read bit (or 0 on EOF) and bit extend to u32 
         pub fn read_bit(&mut self) -> u32 {
             self.reader.read_bit().unwrap_or(0).into()
         }
+
+        /// Read 4 bytes BE as u32 and pad with 0s if EOF
+        pub fn read_u32(&mut self) -> u32 {
+            // TODO: also do nibbles or bytes?
+            // TODO: Don't call read_bit 32 times, because it messes with the inlining of encode
+            let mut res = 0;
+            for _ in 0..u32::BITS {
+                res = (res << 1) | self.read_bit();
+            }
+            res
+        }
     }
     
     /// The `ACWriter` is a wrapper around `bit_helpers::BitWriter`
     pub struct ACWriter<TWrite: Write> {
         /// The internal (bit) writer
-        writer: BitWriter<TWrite>,
+        writer: BitBufWriter<TWrite>,
         /// Parity bits to write - from E3 mappings
         rev_bits: u64
     }
@@ -352,7 +366,7 @@ mod arithmetic_coder_io {
     impl<TWrite: Write> ACWriter<TWrite> {
         /// Initialize from a stream
         pub fn new(stream: TWrite) -> Self {
-            Self { writer: BitWriter::new(stream), rev_bits: 0 }
+            Self { writer: BitBufWriter::new(stream), rev_bits: 0 }
         }
 
         /// Write bit and potentially parity (reverse) bits
@@ -376,5 +390,72 @@ mod arithmetic_coder_io {
             let pad_byte = pad_byte.try_into().unwrap();
             self.writer.flush(pad_byte);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::{Write, Read};
+
+    use crate::{models::{Order0, Model}, bit_helpers::BitBufWriter};
+    type ArithmeticCoder<'a> = crate::arithmetic_coder::ArithmeticCoder::<&'a mut [u8], &'a [u8]>;
+
+    #[test]
+    fn it_works() {
+        let zeroes16 = vec![0x00; 16];
+        let mut compressed = vec![0x00; 11]; // output must be less than 16 bytes
+
+        let res = encode(compressed.as_mut_slice(), zeroes16.as_slice(), zeroes16.len());
+        assert!(res.is_ok());
+        println!("{:?}", compressed);
+        
+        let mut decompressed = vec![0x11; 18];
+        let res = decode(decompressed.as_mut_slice(), compressed.as_slice());
+        assert!(res.is_ok());
+        println!("{:?}", decompressed);
+
+        // let ac = 
+        // assert_eq!(result, 4);
+    }
+
+    use std::io::Result;
+
+    fn encode(mut writer: &mut [u8], reader: &[u8], len: usize) -> Result<()> {
+        writer.write_all(&len.to_be_bytes())?;
+        let mut ac = ArithmeticCoder::init_enc(writer);
+        let mut model = Order0::init();
+
+        for byte_res in reader.bytes() {
+            let byte = byte_res?;
+            for nib in [byte >> 4, byte & 15] {
+                let p = model.predict4(nib);
+                ac.encode4(nib, p);
+                model.update4(nib);
+            }
+        }
+        ac.flush();
+        Ok(())
+    }
+
+    fn decode(writer: &mut [u8], mut reader: &[u8]) -> Result<()> {
+        let len = {
+            let mut len_buf = [0; std::mem::size_of::<usize>()];
+            reader.read_exact(&mut len_buf)?;
+            usize::from_be_bytes(len_buf)
+        };
+        let mut writer = <BitBufWriter<&mut [u8]>>::new(writer);
+        let mut ac = ArithmeticCoder::init_dec(reader);
+        let mut model = Order0::init();
+
+        for _ in 0..len {
+            for _ in 0..u8::BITS {
+                let p = model.predict();
+                let bit = ac.decode(p);
+                writer.write_bit(bit);
+                model.update(bit);
+            }
+        }
+        writer.try_flush();
+        Ok(())
     }
 }
