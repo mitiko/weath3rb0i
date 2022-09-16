@@ -24,7 +24,7 @@ use arithmetic_coder::ArithmeticCoder;
 use bit_helpers::BitWriter;
 use models::{Model, Order0};
 
-const MAGIC_STR: &[u8; 4] = b"0000";
+const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
 
 #[derive(Clone, Copy)]
