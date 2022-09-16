@@ -1,31 +1,17 @@
 // (c) 2022 Dimitar Rusev <mitikodev@gmail.com> licensed under GPL-3.0
-
-// TODO: Remove these when all the models are implemented
-#![allow(dead_code)]
-#![allow(unused_imports)]
-// #![deny(missing_docs)]
-
-mod arithmetic_coder;
-mod bit_helpers;
-mod hashmap;
-mod mixer;
-mod models;
-mod smart_context;
-mod state_table;
-
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-#[macro_use]
-extern crate debug_unreachable;
-
-use arithmetic_coder::ArithmeticCoder;
-use bit_helpers::BitWriter;
-use models::{Model, Order0};
+// use weath3rb0i::arithmetic_coder::ArithmeticCoder;
+use weath3rb0i::bit_helpers::BitWriter;
+use weath3rb0i::models::{Model, Order0};
+use weath3rb0i::debug_unreachable::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
+
+type ArithmeticCoder = weath3rb0i::arithmetic_coder::ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -113,7 +99,7 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         writer.write_all(&len.to_be_bytes())?;
         BufReader::new(f)
     };
-    let mut ac = ArithmeticCoder::<_, BufReader<File>>::init_enc(writer);
+    let mut ac = ArithmeticCoder::init_enc(writer);
     let mut model = init_model();
     
     for byte_res in reader.bytes() {
@@ -130,9 +116,9 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 }
 
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
-    let mut reader = BufReader::new(File::open(input_file).unwrap());
+    let mut reader = BufReader::new(File::open(input_file)?);
     let mut writer = {
-        let buf_writer = BufWriter::new(File::create(output_file).unwrap());
+        let buf_writer = BufWriter::new(File::create(output_file)?);
         BitWriter::new(buf_writer)
     };
     
@@ -144,12 +130,11 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
-    let mut ac = ArithmeticCoder::<BufWriter<File>, _>::init_dec(reader);
+    let mut ac = ArithmeticCoder::init_dec(reader);
     let mut model = init_model();
 
-
     for _ in 0..len {
-        for _ in 0..8 {
+        for _ in 0..u8::BITS {
             let p = model.predict();
             let bit = ac.decode(p);
             writer.write_bit(bit);
