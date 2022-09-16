@@ -8,7 +8,7 @@ Then they're shifted back to 32-bits
 # Examples
 
 Initialize and run encoder:
-```
+```no_run
 let mut writer = BufWriter::new(File::create(output_file)?);
 let reader = {
     let f = File::open(input_file)?;
@@ -40,7 +40,7 @@ Ok(())
 ```
 
 Initialize and run the decoder:
-```
+```no_run
 let mut writer = {
     let buf_writer = BufWriter::new(File::create(output_file)?);
     BitWriter::new(buf_writer)
@@ -105,12 +105,12 @@ pub struct ArithmeticCoder<TWrite: Write, TRead: Read> {
     io: ArithmeticCoderIO<TWrite, TRead>
 }
 
-impl<TWrite, TRead> ArithmeticCoder<TWrite, TRead>
+impl<TWrite, TRead> ArithmeticCoder<TWrite, TRead> 
 where TWrite: Write, TRead: Read {
     /// Initialize an encoder with a stream to write to.
     /// 
     /// Example:
-    /// ```
+    /// ```no_run
     /// let mut writer = BufWriter::new(File::create(out_file)?);
     /// let mut ac = ArithmeticCoder::<_, BufReader<File> /* any reader */>::init_enc(writer);
     pub fn init_enc(stream: TWrite) -> Self {
@@ -126,7 +126,7 @@ where TWrite: Write, TRead: Read {
     /// If the stream contains less than 4 bytes, the rest is assumed to be zeroes.
     ///
     /// Example:
-    /// ```
+    /// ```no_run
     /// let mut reader = BufReader::new(File::open(input_file)?);
     /// let mut ac = ArithmeticCoder::<_, BufWriter<File> /* any writer */>::init_dec(reader);
     /// ```
@@ -152,15 +152,16 @@ where TWrite: Write, TRead: Read {
     /// essentially eliminating a dependency chain with math and two more branches.
     /// 
     /// Example:
-    /// ```
+    /// ```no_run
+    /// # let byte = 0xf0
+    /// # let model: Model;
+    /// # let ac: ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
     /// for nib in [byte >> 4, byte & 15] {
     ///     let probs4 = model.predict4(nib); // [u8; 4] 
     ///     model.update4(nib);
     ///     ac.encode4(nib, probs4);
     /// }
     /// ```
-    /// 
-    /// 
     #[inline(never)]
     pub fn encode4(&mut self, nib: u8, probs: [u16; 4]) {
         // TODO: Optimize to a single update of ranges?
@@ -200,7 +201,10 @@ where TWrite: Write, TRead: Read {
     /// This is intentional, the callers of decode must know in advance how long the decompressed stream must be.
     /// 
     /// Example:
-    /// ```
+    /// ```no_run
+    /// # let model: Model;
+    /// # let writer: BufWriter<File>;
+    /// # let ac: ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
     /// for _ in 0..len {
     ///     for _ in 0..u8::BITS {
     ///         let p = model.predict();
