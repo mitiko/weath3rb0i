@@ -13,6 +13,12 @@ categories = ["compression"]
 fastrand = "1.7.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
 
 [profile.release]
-debug = 1
+strip = true
 lto = "fat"
 codegen-units = 1
+panic = "abort"
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = "none"
