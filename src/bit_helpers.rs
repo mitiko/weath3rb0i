@@ -16,7 +16,7 @@ let bit = bit_reader.read_bit().unwrap_or(0);
 
 #![deny(missing_docs)]
 
-use std::{io::{Read, Write}, convert::TryInto};
+use std::{io::{Read, Write, ErrorKind}, convert::TryInto};
 
 /// An 8 element bit queue (with internal store u8)
 /// Handling overflow: panics in debug and discards elements in release
@@ -144,31 +144,80 @@ impl BitQueue {
 // TODO: Examples for BitReader, BitWriter
 const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
 
+struct ReadBuf<TRead: Read, const N: usize = DEFAULT_BUFFER_SIZE> {
+    data: [u8; N],
+    inner: TRead,
+    consumed: usize,
+    filled: usize,
+    accepts_more: bool
+}
+
+impl<TRead: Read, const N: usize> ReadBuf<TRead, N> {
+    fn new(inner: TRead) -> Self {
+        Self { data: [0; N], inner, consumed: 0, filled: 0, accepts_more: true }
+    }
+
+    fn try_fill(&mut self) {
+        if !self.accepts_more { return; }
+
+        let mut data = &mut self.data[self.filled..];
+        while !data.is_empty() {
+            match self.inner.read(data) {
+                Err(ref e) if e.kind() == ErrorKind::Interrupted => {},
+                Ok(0) | Err(_) => {
+                    self.accepts_more = false;
+                    break
+                },
+                Ok(n) => {
+                    self.filled += n;
+                    data = &mut data[n..];
+                }
+            }
+        }
+    }
+
+    fn pop(&mut self) -> Option<u8> {
+        if self.consumed == self.filled {
+            self.consumed = 0; self.filled = 0;
+            return None;
+        }
+
+        let byte = self.data[self.consumed];
+        self.consumed += 1;
+        Some(byte)
+    }
+}
+
+
 #[allow(clippy::upper_case_acronyms)]
 /// EOF symbol (for error handling)
 pub struct EOF;
 
 /// A BitBufReader reads bit from an internal `std::io::Read` stream
 pub struct BitBufReader<TRead: Read, const N: usize = DEFAULT_BUFFER_SIZE> {
-    stream: TRead,
-    buf: [u8; N],
-    bit_queue: BitQueue
+    bit_queue: BitQueue,
+    byte_queue: ReadBuf<TRead>
 }
 
 impl<TRead: Read, const N: usize> BitBufReader<TRead, N> {
     /// Initializes a BitBufReader with a stream
-    pub fn new(stream: TRead) -> Self {
-        Self { stream, buf: [0; N], bit_queue: BitQueue::new() }
+    pub fn new(inner: TRead) -> Self {
+        Self { bit_queue: BitQueue::new(), byte_queue: ReadBuf::new(inner) }
     }
 
     /// Reads bit from internal stream or returns `EOF`
     pub fn read_bit(&mut self) -> Result<u8, EOF> {
-        if let Some(bit) = self.bit_queue.pop() {
-            return Ok(bit);
+        if let Some(bit) = self.bit_queue.pop() { return Ok(bit); }
+
+        if let Some(byte) = self.byte_queue.pop() {
+            self.bit_queue.fill(byte);
+            return self.bit_queue.pop().ok_or(EOF);
         }
 
-        if matches!(self.stream.read(&mut self.buf), Ok(n) if n == 1) { // if-let chains are unstable yet
-            self.bit_queue.fill(self.buf[0]);
+        self.byte_queue.try_fill();
+
+        if let Some(byte) = self.byte_queue.pop() {
+            self.bit_queue.fill(byte);
         }
 
         self.bit_queue.pop().ok_or(EOF)
@@ -191,7 +240,6 @@ impl<TWrite: Write, const N: usize> BitBufWriter<TWrite, N> {
 
     /// Writes a bit or panics if internal writer doesn't accept more bytes
     pub fn write_bit(&mut self, bit: u8) {
-        println!("WRITING BIT: {}", bit);
         self.bit_queue.push(bit);
         if let Some(byte) = self.bit_queue.try_flush() {
             let bytes_written = self.stream.write(&[byte]).unwrap_or(0);
