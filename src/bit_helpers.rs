@@ -227,23 +227,23 @@ impl<TRead: Read, const N: usize> BitBufReader<TRead, N> {
 /// A BitBufWriter writes bits to an internal `std::io::Write` stream
 pub struct BitBufWriter<TWrite: Write, const N: usize = DEFAULT_BUFFER_SIZE> {
     stream: TWrite,
-    buf: [u8; N],
-    idx: usize,
+    // buf: [u8; N],
+    // idx: usize,
     bit_queue: BitQueue
 }
 
 impl<TWrite: Write, const N: usize> BitBufWriter<TWrite, N> {
     /// Initializes a BitBufWriter with a stream
     pub fn new(stream: TWrite) -> Self {
-        Self { stream, buf: [0; N], idx: 0, bit_queue: BitQueue::new() }
+        // Self { stream, buf: [0; N], idx: 0, bit_queue: BitQueue::new() }
+        Self { stream, bit_queue: BitQueue::new() }
     }
 
     /// Writes a bit or panics if internal writer doesn't accept more bytes
     pub fn write_bit(&mut self, bit: u8) {
         self.bit_queue.push(bit);
         if let Some(byte) = self.bit_queue.try_flush() {
-            let bytes_written = self.stream.write(&[byte]).unwrap_or(0);
-            assert!(bytes_written != 0, "BitBufWriter failed to write byte");
+            self.stream.write_all(&[byte]).expect("BitBufWriter failed to write byte");
         }
     }
 
@@ -255,12 +255,12 @@ impl<TWrite: Write, const N: usize> BitBufWriter<TWrite, N> {
             padding_byte <<= 1;
         }
         debug_assert!(self.bit_queue.is_empty());
-        self.stream.flush().unwrap();
+        self.stream.flush().expect("BitBufWriter.inner couldn't flush");
     }
 
     /// Tries to flush the internal writer with no padding byte
     pub fn try_flush(&mut self) {
         assert!(self.bit_queue.is_empty(), "BitQueue wasn't empty");
-        self.stream.flush().unwrap();
+        self.stream.flush().expect("BitBufWriter.inner couldn't flush");
     }
 }

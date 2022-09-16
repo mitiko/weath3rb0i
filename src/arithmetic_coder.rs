@@ -261,6 +261,7 @@ where TWrite: Write, TRead: Read {
 
         w.write_bit(1);
         w.flush(self.x1 >> (u32::BITS - u8::BITS));
+        // TODO: - this is more accurate
         // w.write_bit(0);
         // w.flush((self.x1 << 1) >> (u32::BITS - u8::BITS));
     }
@@ -395,38 +396,51 @@ mod arithmetic_coder_io {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Write, Read};
+    use std::io::{Write, Read, Result};
+    use crate::models::{Order0, Model};
+    use crate::bit_helpers::BitBufWriter;
 
-    use crate::{models::{Order0, Model}, bit_helpers::BitBufWriter};
     type ArithmeticCoder<'a> = crate::arithmetic_coder::ArithmeticCoder::<&'a mut [u8], &'a [u8]>;
 
     #[test]
-    fn it_works() {
-        let zeroes16 = vec![0x00; 16];
-        let mut compressed = vec![0x00; 11]; // output must be less than 16 bytes
-
-        let res = encode(compressed.as_mut_slice(), zeroes16.as_slice(), zeroes16.len());
-        assert!(res.is_ok());
-        println!("{:?}", compressed);
-        
-        let mut decompressed = vec![0x11; 18];
-        let res = decode(decompressed.as_mut_slice(), compressed.as_slice());
-        assert!(res.is_ok());
-        println!("{:?}", decompressed);
-
-        // let ac = 
-        // assert_eq!(result, 4);
+    fn zeroes16() {
+        assert_compresses(vec![0; 16], vec![
+            0, 0, 0, 16, // len: u32 = 16
+            0xff, 0xff, 0xf8 // compressed data
+        ]);
+    }
+    
+    #[test]
+    fn ones16() {
+        assert_compresses(vec![0xff; 16], vec![
+            0, 0, 0, 16, // len: u32 = 16
+            0x00, 0x00, 0x00, 0x10 // compressed data
+        ]);
     }
 
-    use std::io::Result;
+    fn assert_compresses(in_data: Vec<u8>, out_data: Vec<u8>) {
+        let mut compressed = copy_different(&out_data);
+        encode(compressed.as_mut_slice(), in_data.as_slice(), in_data.len() as u32);
+        assert_eq!(compressed, out_data);
 
-    fn encode(mut writer: &mut [u8], reader: &[u8], len: usize) -> Result<()> {
-        writer.write_all(&len.to_be_bytes())?;
+        let mut decompressed = copy_different(&in_data);
+        decode(decompressed.as_mut_slice(), compressed.as_slice());        
+        assert_eq!(decompressed, in_data);
+    }
+
+    fn copy_different(vec: &Vec<u8>) -> Vec<u8> {
+        vec.iter()
+            .map(|byte| byte.wrapping_add(1))
+            .collect()
+    }
+
+    fn encode(mut writer: &mut [u8], reader: &[u8], len: u32) {
+        writer.write_all(&len.to_be_bytes()).expect("Decompression buffer to small");
         let mut ac = ArithmeticCoder::init_enc(writer);
         let mut model = Order0::init();
 
         for byte_res in reader.bytes() {
-            let byte = byte_res?;
+            let byte = byte_res.unwrap();
             for nib in [byte >> 4, byte & 15] {
                 let p = model.predict4(nib);
                 ac.encode4(nib, p);
@@ -434,14 +448,13 @@ mod tests {
             }
         }
         ac.flush();
-        Ok(())
     }
 
-    fn decode(writer: &mut [u8], mut reader: &[u8]) -> Result<()> {
+    fn decode(writer: &mut [u8], mut reader: &[u8]) {
         let len = {
-            let mut len_buf = [0; std::mem::size_of::<usize>()];
-            reader.read_exact(&mut len_buf)?;
-            usize::from_be_bytes(len_buf)
+            let mut len_buf = [0; std::mem::size_of::<u32>()];
+            reader.read_exact(&mut len_buf).unwrap();
+            u32::from_be_bytes(len_buf)
         };
         let mut writer = <BitBufWriter<&mut [u8]>>::new(writer);
         let mut ac = ArithmeticCoder::init_dec(reader);
@@ -456,6 +469,5 @@ mod tests {
             }
         }
         writer.try_flush();
-        Ok(())
     }
 }
