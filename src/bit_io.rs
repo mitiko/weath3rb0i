@@ -15,19 +15,21 @@ let bit = bit_reader.read_bit().unwrap_or(0);
 */
 #![deny(missing_docs)]
 
-use std::io::{Read, Write};
-use self::buffers::{BitQueue, ReadBuf, Nibbles, DEFAULT_BUFFER_SIZE, EOF};
+use core::slice;
+use std::io::{BufRead, Write};
+use self::bit_helpers::{BitQueue, DEFAULT_BUFFER_SIZE, EOF};
+pub use bit_helpers::NibbleRead;
 
-/// A BitBufReader reads bit from an internal `std::io::Read` stream
-pub struct BitBufReader<R, const N: usize = DEFAULT_BUFFER_SIZE> {
+/// A BitReader reads bit from an internal `std::io::BufRead` stream
+pub struct BitReader<R, const N: usize = DEFAULT_BUFFER_SIZE> {
     bit_queue: BitQueue,
-    byte_buf: ReadBuf<R>
+    inner: R
 }
 
-impl<R: Read, const N: usize> BitBufReader<R, N> {
-    /// Initializes a BitBufReader with a stream
+impl<R: BufRead, const N: usize> BitReader<R, N> {
+    /// Initializes a BitReader with a stream
     pub fn new(inner: R) -> Self {
-        Self { bit_queue: BitQueue::new(), byte_buf: ReadBuf::new(inner) }
+        Self { bit_queue: BitQueue::new(), inner }
     }
 
     /// Reads bit from internal stream or returns `EOF`
@@ -36,27 +38,24 @@ impl<R: Read, const N: usize> BitBufReader<R, N> {
             return Ok(bit);
         }
 
-        self.byte_buf.pop().map(|byte| {
+        let mut byte: u8 = 0;
+        self.inner.read_exact(slice::from_mut(&mut byte)).map(|_| {
             self.bit_queue.fill(byte);
             self.bit_queue.pop().unwrap()
         })
-    }
-
-    /// Transforms this BitBufReader instance to an Iterator over its nibbles.
-    pub fn nibbles(self) -> Nibbles<R> {
-        Nibbles::new(self.byte_buf)
+        .map_err(|_| EOF)
     }
 }
 
 /// A BitBufWriter writes bits to an internal `std::io::Write` stream
-pub struct BitBufWriter<W, const N: usize = DEFAULT_BUFFER_SIZE> {
+pub struct BitWriter<W, const N: usize = DEFAULT_BUFFER_SIZE> {
     stream: W,
     // buf: [u8; N],
     // idx: usize,
     bit_queue: BitQueue
 }
 
-impl<W: Write, const N: usize> BitBufWriter<W, N> {
+impl<W: Write, const N: usize> BitWriter<W, N> {
     /// Initializes a BitBufWriter with a stream
     pub fn new(stream: W) -> Self {
         // Self { stream, buf: [0; N], idx: 0, bit_queue: BitQueue::new() }
@@ -89,8 +88,8 @@ impl<W: Write, const N: usize> BitBufWriter<W, N> {
     }
 }
 
-mod buffers {
-    use std::io::{Read, ErrorKind, Write};
+mod bit_helpers {
+    use std::io::{Read, Bytes};
 
     // TODO: Examples for BitReader, BitWriter
     pub const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
@@ -223,63 +222,10 @@ mod buffers {
         }
     }
 
-    pub struct ReadBuf<T, const N: usize = DEFAULT_BUFFER_SIZE> {
-        data: [u8; N],
-        inner: T,
-        idx: usize,
-        filled: usize,
-        accepts_more: bool
-    }
-
-    impl<T, const N: usize> ReadBuf<T, N> {
-        pub fn new(inner: T) -> Self {
-            Self { data: [0; N], inner, idx: 0, filled: 0, accepts_more: true }
-        }
-    }
-
-    impl<W: Write, const N: usize> ReadBuf<W, N> {
-    }
-
-    impl<R: Read, const N: usize> ReadBuf<R, N> {
-        fn try_fill(&mut self) -> Result<(), EOF> {
-            if !self.accepts_more { return Err(EOF); }
-
-            let mut data = self.data.as_mut_slice();
-            while !data.is_empty() {
-                match self.inner.read(data) {
-                    Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
-                    Ok(0) | Err(_) => { self.accepts_more = false; break },
-                    Ok(n) => { self.filled += n; data = &mut data[n..]; }
-                }
-            }
-            Ok(())
-        }
-
-        pub fn pop(&mut self) -> Result<u8, EOF> {
-            if self.idx == self.filled {
-                self.idx = 0; self.filled = 0;
-
-                if self.try_fill().is_err() {
-                    return Err(EOF);
-                }
-            }
-
-            let byte = self.data[self.idx];
-            self.idx += 1;
-            Ok(byte)
-        }
-    }
-
     /// An iterator over the nibbles of u8 values of a Read instance
     pub struct Nibbles<R> {
-        inner: ReadBuf<R>,
+        bytes: Bytes<R>,
         nib_buf: Option<u8>
-    }
-
-    impl<R: Read> Nibbles<R> {
-        pub fn new(inner: ReadBuf<R>) -> Self {
-            Self { inner, nib_buf: None }
-        }
     }
 
     impl<R: Read> Iterator for Nibbles<R> {
@@ -290,12 +236,25 @@ mod buffers {
             if self.nib_buf.is_some() {
                 return self.nib_buf.take();
             }
-
+            
             // Otherwise, read a new byte, store the low nibble and return the high nibble
-            self.inner.pop().map(|byte| {
+            self.bytes.next().map(|byte_res| {
+                let byte = byte_res.unwrap();
                 self.nib_buf = Some(byte & 15);
                 byte >> 4
-            }).ok()
+            })
+        }
+    }
+
+    /// TODO:
+    pub trait NibbleRead<R: Read> {
+        /// TODO:
+        fn nibbles(self) -> Nibbles<R>; 
+    }
+
+    impl<R: Read> NibbleRead<R> for R {
+        fn nibbles(self) -> Nibbles<R> {
+            Nibbles { bytes: self.bytes(), nib_buf: None }
         }
     }
 }

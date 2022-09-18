@@ -3,8 +3,7 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-// use weath3rb0i::arithmetic_coder::ArithmeticCoder;
-use weath3rb0i::bit_helpers::{BitBufWriter, BitBufReader};
+use weath3rb0i::bit_io::{NibbleRead, BitWriter};
 use weath3rb0i::models::{Model, Order0};
 use weath3rb0i::debug_unreachable::debug_unreachable;
 
@@ -97,9 +96,7 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 
         writer.write_all(MAGIC_STR)?;
         writer.write_all(&len.to_be_bytes())?;
-        // BufReader::new(f)
-        <BitBufReader<_>>::new(f)
-        // f
+        BufReader::new(f)
     };
     let mut ac = ArithmeticCoder::init_enc(writer);
     let mut model = init_model();
@@ -117,7 +114,7 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut reader = BufReader::new(File::open(input_file)?);
     let buf_writer = BufWriter::new(File::create(output_file)?);
-    let mut writer = <BitBufWriter<BufWriter<_>>>::new(buf_writer);
+    let mut writer = <BitWriter<_>>::new(buf_writer);
     
     let len = {
         let mut len_buf = [0; std::mem::size_of::<u32>() + std::mem::size_of::<u64>()];

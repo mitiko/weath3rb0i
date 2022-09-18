@@ -76,7 +76,7 @@ Ok(())
 #![deny(missing_docs)]
 
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Write, BufRead};
 use std::ops::Deref;
 
 use arithmetic_coder_io::*;
@@ -94,7 +94,7 @@ const RHIGH_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, OR with, set high b
 /// Allows encoding bits with non-uniform 16-bit probability.  
 /// It uses the `std::io::{Read, Write}` traits to be as generic as possible,
 /// and until #48331 gets merged, it relies on std.
-pub struct ArithmeticCoder<TWrite: Write, TRead: Read> {
+pub struct ArithmeticCoder<W, R> {
     /// Low of range
     x1: u32,
     /// High of range
@@ -102,18 +102,18 @@ pub struct ArithmeticCoder<TWrite: Write, TRead: Read> {
     /// State (decode only)
     x: u32,
     /// Arithmetic coding specific IO
-    io: ArithmeticCoderIO<TWrite, TRead>
+    io: ArithmeticCoderIO<W, R>
 }
 
-impl<TWrite, TRead> ArithmeticCoder<TWrite, TRead> 
-where TWrite: Write, TRead: Read {
+impl<W, R> ArithmeticCoder<W, R> 
+where W: Write, R: BufRead {
     /// Initialize an encoder with a stream to write to.
     /// 
     /// Example:
     /// ```ignore
     /// let mut writer = BufWriter::new(File::create(out_file)?);
-    /// let mut ac = ArithmeticCoder::<_, BufReader<File> /* any reader */>::init_enc(writer);
-    pub fn init_enc(stream: TWrite) -> Self {
+    /// let mut ac = ArithmeticCoder::<_, BufReader<File> /* any buffered reader */>::init_enc(writer);
+    pub fn init_enc(stream: W) -> Self {
         Self {
             x1: 0, x2: u32::MAX, x: u32::default(),
             io: Encode(ACWriter::new(stream))
@@ -130,7 +130,7 @@ where TWrite: Write, TRead: Read {
     /// let mut reader = BufReader::new(File::open(input_file)?);
     /// let mut ac = ArithmeticCoder::<_, BufWriter<File> /* any writer */>::init_dec(reader);
     /// ```
-    pub fn init_dec(stream: TRead) -> Self {
+    pub fn init_dec(stream: R) -> Self {
         let mut reader = ACReader::new(stream);
         // let x = reader.read_u32();
         let mut x: u32 = 0;
@@ -280,33 +280,33 @@ fn renorm_prob(prob: u16) -> u64 {
 
 /// Arithmetic coder specific IO
 /// 
-/// Contains wrappers around `bit_helpers::{BitReader, BitWriter}`
+/// Contains wrappers around `bit_io::{BitReader, BitWriter}`
 // TODO: Add BufferedBit{Reader,Writer}
 mod arithmetic_coder_io {
     #![deny(clippy::missing_docs_in_private_items)]
 
-    use std::{io::{Write, Read}, convert::TryInto};
-    use crate::bit_helpers::{BitBufWriter, BitBufReader};
+    use std::{io::{Write, Read, BufRead}, convert::TryInto};
+    use crate::bit_io::{BitReader, BitWriter};
     pub use ArithmeticCoderIO::{Encode, Decode};
 
     /// ArithmeticCoderIO is an invariant of read or write.
     /// The coder is either in encode mode (writing to stream) or decode mode (reading from stream).
-    pub enum ArithmeticCoderIO<TWrite: Write, TRead: Read> {
+    pub enum ArithmeticCoderIO<W, R> {
         /// In encode mode we write bits
-        Encode(ACWriter<TWrite>),
+        Encode(ACWriter<W>),
         /// In decode mode we read bits
-        Decode(ACReader<TRead>)
+        Decode(ACReader<R>)
     }
 
-    impl<TWrite, TRead> ArithmeticCoderIO<TWrite, TRead>
-    where TWrite: Write, TRead: Read {
+    impl<W, R> ArithmeticCoderIO<W, R>
+    where W: Write, R: Read {
         /// Returns the contained [`Decode`] value, consuming the `self` value.
         /// 
         /// The encoder should not try to decode in encode mode.
         /// The `debug_unreachable!` macro is called when the wrong mode is used
         /// It panics in debug mode and inserts an intrinsic for the compiler to optimize in release
         /// If the wrong mode is used in release, this is Undefined Behaviour
-        pub fn as_dec(&mut self) -> &mut ACReader<TRead> {
+        pub fn as_dec(&mut self) -> &mut ACReader<R> {
             match self {
                 Decode(r) => r,
                 Encode(_) => unsafe { debug_unreachable!("[AC] Tried to use reader in encode mode"); }
@@ -319,7 +319,7 @@ mod arithmetic_coder_io {
         /// The `debug_unreachable!` macro is called when the wrong mode is used
         /// It panics in debug mode and inserts an intrinsic for the compiler to optimize in release
         /// If the wrong mode is used in release, this is Undefined Behaviour
-        pub fn as_enc(&mut self) -> &mut ACWriter<TWrite> {
+        pub fn as_enc(&mut self) -> &mut ACWriter<W> {
             match self {
                 Encode(w) => w,
                 Decode(_) => unsafe { debug_unreachable!("[AC] Tried to use writer in decode mode") },
@@ -327,16 +327,16 @@ mod arithmetic_coder_io {
         }
     }
 
-    /// The `ACReader` is a wrapper around `bit_helpers::BitReader`
-    pub struct ACReader<TRead: Read> {
+    /// The `ACReader` is a wrapper around `bit_io::BitReader`
+    pub struct ACReader<R> {
         /// The internal (bit) reader
-        reader: BitBufReader<TRead>
+        reader: BitReader<R>
     }
     
-    impl<TRead: Read> ACReader<TRead> {
+    impl<R: BufRead> ACReader<R> {
         /// Initialize from a stream
-        pub fn new(stream: TRead) -> Self {
-            Self { reader: BitBufReader::new(stream) }
+        pub fn new(stream: R) -> Self {
+            Self { reader: BitReader::new(stream) }
         }
         
         /// Read bit (or 0 on EOF) and bit extend to u32 
@@ -356,10 +356,10 @@ mod arithmetic_coder_io {
         }
     }
     
-    /// The `ACWriter` is a wrapper around `bit_helpers::BitWriter`
-    pub struct ACWriter<TWrite: Write> {
+    /// The `ACWriter` is a wrapper around `bit_io::BitWriter`
+    pub struct ACWriter<W> {
         /// The internal (bit) writer
-        writer: BitBufWriter<TWrite>,
+        writer: BitWriter<W>,
         /// Parity bits to write - from E3 mappings
         rev_bits: u64
     }
@@ -367,7 +367,7 @@ mod arithmetic_coder_io {
     impl<TWrite: Write> ACWriter<TWrite> {
         /// Initialize from a stream
         pub fn new(stream: TWrite) -> Self {
-            Self { writer: BitBufWriter::new(stream), rev_bits: 0 }
+            Self { writer: BitWriter::new(stream), rev_bits: 0 }
         }
 
         /// Write bit and potentially parity (reverse) bits
@@ -396,9 +396,9 @@ mod arithmetic_coder_io {
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Write, Read, Result};
-    use crate::models::{Order0, Model};
-    use crate::bit_helpers::BitBufWriter;
+    use std::io::{Write, Read};
+    use crate::models::{Order0, Model}; // TODO: remove model
+    use crate::bit_io::{BitReader, BitWriter, NibbleRead};
 
     type ArithmeticCoder<'a> = crate::arithmetic_coder::ArithmeticCoder::<&'a mut [u8], &'a [u8]>;
 
@@ -439,13 +439,10 @@ mod tests {
         let mut ac = ArithmeticCoder::init_enc(writer);
         let mut model = Order0::init();
 
-        for byte_res in reader.bytes() {
-            let byte = byte_res.unwrap();
-            for nib in [byte >> 4, byte & 15] {
-                let p = model.predict4(nib);
-                ac.encode4(nib, p);
-                model.update4(nib);
-            }
+        for nib in reader.nibbles() {
+            let p = model.predict4(nib);
+            ac.encode4(nib, p);
+            model.update4(nib);
         }
         ac.flush();
     }
@@ -456,7 +453,7 @@ mod tests {
             reader.read_exact(&mut len_buf).unwrap();
             u32::from_be_bytes(len_buf)
         };
-        let mut writer = <BitBufWriter<&mut [u8]>>::new(writer);
+        let mut writer = <BitWriter<_>>::new(writer);
         let mut ac = ArithmeticCoder::init_dec(reader);
         let mut model = Order0::init();
 

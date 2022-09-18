@@ -7,7 +7,7 @@
 // TODO: #![deny(missing_docs)] on all submodules
 
 pub mod arithmetic_coder;
-pub mod bit_helpers;
+pub mod bit_io;
 pub mod models;
 
 mod hashmap;
