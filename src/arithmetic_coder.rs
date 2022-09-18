@@ -23,15 +23,11 @@ let reader = {
 let mut ac = ArithmeticCoder::<_, BufReader<File>>::init_enc(writer);
 let mut model = init_model();
 
-for byte_res in reader.bytes() {
-    let byte = byte_res?;
-    // For each nibble in byte
-    for nib in [byte >> 4, byte & 15] {
-        let probabilities = model.predict4(nib); // [u8; 4]
-        model.update4(nib);
-        // Encode a nibble with 4 probabilities for each bit
-        ac.encode4(nib, probabilities);
-    }
+for nib in reader.nibbles() {
+    let probabilities = model.predict4(nib); // [u8; 4]
+    model.update4(nib);
+    // Encode a nibble with 4 probabilities for each bit
+    ac.encode4(nib, probabilities);
 }
 
 // Don't forget to flush the encoder!
@@ -397,7 +393,7 @@ mod arithmetic_coder_io {
 #[cfg(test)]
 mod tests {
     use std::io::{Write, Read};
-    use crate::models::{Order0, Model}; // TODO: remove model
+    use crate::models::{SmartCtx, Model}; // TODO: remove model
     use crate::bit_io::{BitReader, BitWriter, NibbleRead};
 
     type ArithmeticCoder<'a> = crate::arithmetic_coder::ArithmeticCoder::<&'a mut [u8], &'a [u8]>;
@@ -418,6 +414,34 @@ mod tests {
         ]);
     }
 
+    #[test]
+    fn up_down() {
+        let in_data: Vec<u8> = vec![0xff, 0].into_iter()
+            .cycle()
+            .take(16)
+            .collect();
+
+        assert_compresses(in_data, vec![
+            0, 0, 0, 16, // len: u32 = 16
+            0x00, 0xff, 0x09, 0xa2, 0x2a, 0x49, 0x80 // compressed data
+        ]);
+    }
+    
+    #[test]
+    fn down_up() {
+        let in_data: Vec<u8> = vec![0, 0xff].into_iter()
+            .cycle()
+            .take(16)
+            .collect();
+
+        assert_compresses(in_data, vec![
+            0, 0, 0, 16, // len: u32 = 16
+            0xfc, 0xd8, 0x76, 0x90, 0xfa, 0x21, 0xc0, 0x74 // compressed data
+        ]);
+    }
+
+    // TODO: More tests
+
     fn assert_compresses(in_data: Vec<u8>, out_data: Vec<u8>) {
         let mut compressed = copy_different(&out_data);
         encode(compressed.as_mut_slice(), in_data.as_slice(), in_data.len() as u32);
@@ -434,10 +458,17 @@ mod tests {
             .collect()
     }
 
-    fn encode(mut writer: &mut [u8], reader: &[u8], len: u32) {
+    fn encode(writer: &mut [u8], reader: &[u8], len: u32) {
+        encode_with_model(writer, reader, len, MockModel::init());
+    }
+
+    fn decode(writer: &mut [u8], reader: &[u8]) {
+        decode_with_model(writer, reader, MockModel::init());
+    }
+
+    fn encode_with_model(mut writer: &mut [u8], reader: &[u8], len: u32, mut model: impl Model) {
         writer.write_all(&len.to_be_bytes()).expect("Decompression buffer to small");
         let mut ac = ArithmeticCoder::init_enc(writer);
-        let mut model = Order0::init();
 
         for nib in reader.nibbles() {
             let p = model.predict4(nib);
@@ -447,7 +478,7 @@ mod tests {
         ac.flush();
     }
 
-    fn decode(writer: &mut [u8], mut reader: &[u8]) {
+    fn decode_with_model(writer: &mut [u8], mut reader: &[u8], mut model: impl Model) {
         let len = {
             let mut len_buf = [0; std::mem::size_of::<u32>()];
             reader.read_exact(&mut len_buf).unwrap();
@@ -455,7 +486,6 @@ mod tests {
         };
         let mut writer = <BitWriter<_>>::new(writer);
         let mut ac = ArithmeticCoder::init_dec(reader);
-        let mut model = Order0::init();
 
         for _ in 0..len {
             for _ in 0..u8::BITS {
@@ -466,5 +496,53 @@ mod tests {
             }
         }
         writer.try_flush();
+    }
+
+    #[derive(Copy, Clone, Default)]
+    struct MockCounter {
+        data: [u16; 2]
+    }
+
+    impl MockCounter {
+        pub fn p(&self) -> u16 {
+            let c0 = self.data[0] as u64; let c1 = self.data[1] as u64;
+            let p = (1 << 16) * (c1 + 1) / (c0 + c1 + 2);
+            p as u16
+        }
+
+        pub fn update(&mut self, bit: u8) {
+            self.data[bit as usize] += 1;
+            if self.data[bit as usize] == u16::MAX { self.data[0] >>= 1; self.data[1] >>= 1; }
+        }
+    }
+
+    struct MockModel {
+        ctx: SmartCtx<u8>,
+        stats: [[MockCounter; 15]; 256]
+    }
+
+    impl MockModel { fn init() -> Self { Self { ctx: SmartCtx::new(0), stats: [[MockCounter::default(); 15]; 256] } } }
+
+    impl Model for MockModel {
+        fn predict(&self) -> u16 {
+            self.stats[self.ctx.get()].p()
+        }
+
+        fn predict4(&self, nib: u8) -> [u16; 4] {
+            let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
+            [self.stats[idx1].p(), self.stats[idx2].p(), self.stats[idx3].p(), self.stats[idx4].p()]
+        }
+
+        fn update(&mut self, bit: u8) {
+            self.stats[self.ctx.get()].update(bit);
+            self.ctx.update(bit);
+        }
+
+        fn update4(&mut self, nib: u8) {
+            let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
+            self.stats[idx1].update(nib >> 3); self.stats[idx2].update((nib >> 2) & 1);
+            self.stats[idx4].update(nib & 1);  self.stats[idx3].update((nib >> 1) & 1);
+            self.ctx.update4(nib);
+        }
     }
 }

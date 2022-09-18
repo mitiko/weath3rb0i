@@ -5,7 +5,7 @@ pub trait Context: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Outp
 impl<T> Context for T where T: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Output = Self> + Copy {}
 
 #[derive(Clone, Copy, Debug)]
-pub struct SmartCtx<T: Context> {
+pub struct SmartCtx<T> {
     ctx: T, // just an (unsigned) integer
     bit_id: u8,
     ctx_cache: u8
