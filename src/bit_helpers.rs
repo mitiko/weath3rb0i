@@ -16,45 +16,35 @@ let bit = bit_reader.read_bit().unwrap_or(0);
 #![deny(missing_docs)]
 
 use std::io::{Read, Write};
-use self::buffers::{BitQueue, DEFAULT_BUFFER_SIZE, ReadBuf, Nibbles};
-
-/// EOF symbol (for error handling)
-#[allow(clippy::upper_case_acronyms)]
-pub struct EOF;
+use self::buffers::{BitQueue, ReadBuf, Nibbles, DEFAULT_BUFFER_SIZE, EOF};
 
 /// A BitBufReader reads bit from an internal `std::io::Read` stream
 pub struct BitBufReader<R, const N: usize = DEFAULT_BUFFER_SIZE> {
     bit_queue: BitQueue,
-    byte_queue: ReadBuf<R>
+    byte_buf: ReadBuf<R>
 }
 
 impl<R: Read, const N: usize> BitBufReader<R, N> {
     /// Initializes a BitBufReader with a stream
     pub fn new(inner: R) -> Self {
-        Self { bit_queue: BitQueue::new(), byte_queue: ReadBuf::new(inner) }
+        Self { bit_queue: BitQueue::new(), byte_buf: ReadBuf::new(inner) }
     }
 
     /// Reads bit from internal stream or returns `EOF`
     pub fn read_bit(&mut self) -> Result<u8, EOF> {
-        if let Some(bit) = self.bit_queue.pop() { return Ok(bit); }
-
-        if let Some(byte) = self.byte_queue.pop() {
-            self.bit_queue.fill(byte);
-            return self.bit_queue.pop().ok_or(EOF);
+        if let Some(bit) = self.bit_queue.pop() {
+            return Ok(bit);
         }
 
-        self.byte_queue.try_fill();
-
-        if let Some(byte) = self.byte_queue.pop() {
+        self.byte_buf.pop().map(|byte| {
             self.bit_queue.fill(byte);
-        }
-
-        self.bit_queue.pop().ok_or(EOF)
+            self.bit_queue.pop().unwrap()
+        })
     }
 
     /// Transforms this BitBufReader instance to an Iterator over its nibbles.
     pub fn nibbles(self) -> Nibbles<R> {
-        Nibbles::new(self.byte_queue)
+        Nibbles::new(self.byte_buf)
     }
 }
 
@@ -104,6 +94,10 @@ mod buffers {
 
     // TODO: Examples for BitReader, BitWriter
     pub const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
+
+    /// EOF symbol (for error handling)
+    #[allow(clippy::upper_case_acronyms)]
+    pub struct EOF;
 
     /// An 8 element bit queue (with internal store u8)
     /// Handling overflow: panics in debug and discards elements in release
@@ -232,14 +226,13 @@ mod buffers {
     pub struct ReadBuf<T, const N: usize = DEFAULT_BUFFER_SIZE> {
         data: [u8; N],
         inner: T,
-        consumed: usize,
-        filled: usize,
+        idx: usize,
         accepts_more: bool
     }
 
     impl<T, const N: usize> ReadBuf<T, N> {
         pub fn new(inner: T) -> Self {
-            Self { data: [0; N], inner, consumed: 0, filled: 0, accepts_more: true }
+            Self { data: [0; N], inner, idx: 0, accepts_more: true }
         }
     }
 
@@ -247,34 +240,32 @@ mod buffers {
     }
 
     impl<R: Read, const N: usize> ReadBuf<R, N> {
-        pub fn try_fill(&mut self) {
-            if !self.accepts_more { return; }
+        fn try_fill(&mut self) -> Result<(), EOF> {
+            if !self.accepts_more { return Err(EOF); }
 
-            let mut data = &mut self.data[self.filled..];
+            let mut data = self.data.as_mut_slice();
             while !data.is_empty() {
                 match self.inner.read(data) {
-                    Err(ref e) if e.kind() == ErrorKind::Interrupted => {},
-                    Ok(0) | Err(_) => {
-                        self.accepts_more = false;
-                        break
-                    },
-                    Ok(n) => {
-                        self.filled += n;
-                        data = &mut data[n..];
-                    }
+                    Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
+                    Ok(0) | Err(_) => { self.accepts_more = false; break },
+                    Ok(n) => { data = &mut data[n..]; }
                 }
             }
+            Ok(())
         }
 
-        pub fn pop(&mut self) -> Option<u8> {
-            if self.consumed == self.filled {
-                self.consumed = 0; self.filled = 0;
-                return None;
+        pub fn pop(&mut self) -> Result<u8, EOF> {
+            if self.idx == self.data.len() {
+                self.idx = 0;
+
+                if self.try_fill().is_err() {
+                    return Err(EOF);
+                }
             }
 
-            let byte = self.data[self.consumed];
-            self.consumed += 1;
-            Some(byte)
+            let byte = self.data[self.idx];
+            self.idx += 1;
+            Ok(byte)
         }
     }
 
@@ -293,19 +284,17 @@ mod buffers {
     impl<R: Read> Iterator for Nibbles<R> {
         type Item = u8;
 
-        fn next(&mut self) -> Option<Self::Item> {        
-            if let Some(byte) = self.nib_buf.take() {
-                return Some(byte & 15);
+        fn next(&mut self) -> Option<Self::Item> {
+            // If we've stored the low nibble, we return it
+            if self.nib_buf.is_some() {
+                return self.nib_buf.take();
             }
 
-            if let Some(byte) = self.inner.pop() {
-                self.nib_buf = Some(byte);
-                return Some(byte >> 4)
-            }
-
-            self.inner.try_fill();
-            self.inner.pop()
-                .map(|byte| { self.nib_buf = Some(byte); byte >> 4 })
+            // Otherwise, read a new byte, store the low nibble and return the high nibble
+            self.inner.pop().map(|byte| {
+                self.nib_buf = Some(byte & 15);
+                byte >> 4
+            }).ok()
         }
     }
 }
