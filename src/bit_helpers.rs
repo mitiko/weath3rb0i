@@ -188,9 +188,33 @@ impl<TRead: Read, const N: usize> ReadBuf<TRead, N> {
     }
 }
 
+/// An iterator over the nibbles of u8 values of a Read instance
+pub struct Nibbles<TRead: Read> {
+    inner: ReadBuf<TRead>,
+    nib_buf: Option<u8>
+}
 
-#[allow(clippy::upper_case_acronyms)]
+impl<TRead: Read> Iterator for Nibbles<TRead> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {        
+        if let Some(byte) = self.nib_buf.take() {
+            return Some(byte & 15);
+        }
+
+        if let Some(byte) = self.inner.pop() {
+            self.nib_buf = Some(byte);
+            return Some(byte >> 4)
+        }
+
+        self.inner.try_fill();
+        self.inner.pop()
+            .map(|byte| { self.nib_buf = Some(byte); byte >> 4 })
+    }
+}
+
 /// EOF symbol (for error handling)
+#[allow(clippy::upper_case_acronyms)]
 pub struct EOF;
 
 /// A BitBufReader reads bit from an internal `std::io::Read` stream
@@ -221,6 +245,11 @@ impl<TRead: Read, const N: usize> BitBufReader<TRead, N> {
         }
 
         self.bit_queue.pop().ok_or(EOF)
+    }
+
+    /// Transforms this BitBufReader instance to an Iterator over its nibbles.
+    pub fn nibbles(self) -> Nibbles<TRead> {
+        Nibbles { inner: self.byte_queue, nib_buf: None }
     }
 }
 

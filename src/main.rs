@@ -4,7 +4,7 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 // use weath3rb0i::arithmetic_coder::ArithmeticCoder;
-use weath3rb0i::bit_helpers::BitBufWriter;
+use weath3rb0i::bit_helpers::{BitBufWriter, BitBufReader};
 use weath3rb0i::models::{Model, Order0};
 use weath3rb0i::debug_unreachable::debug_unreachable;
 
@@ -97,18 +97,17 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 
         writer.write_all(MAGIC_STR)?;
         writer.write_all(&len.to_be_bytes())?;
-        BufReader::new(f)
+        // BufReader::new(f)
+        <BitBufReader<_>>::new(f)
+        // f
     };
     let mut ac = ArithmeticCoder::init_enc(writer);
     let mut model = init_model();
     
-    for byte_res in reader.bytes() {
-        let byte = byte_res?;
-        for nib in [byte >> 4, byte & 15] {
-            let p4 = model.predict4(nib);
-            model.update4(nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
-            ac.encode4(nib, p4);
-        }
+    for nib in reader.nibbles() {
+        let p4 = model.predict4(nib);
+        model.update4(nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
+        ac.encode4(nib, p4);
     }
 
     ac.flush();
