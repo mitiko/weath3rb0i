@@ -17,8 +17,12 @@ debug_unreachable = "0.1"
 opt-level = 1
 
 [profile.release]
-# debug = 1
 strip = true
 lto = "fat"
 codegen-units = 1
 panic = "abort"
+
+[profile.profiling]
+inherits = "release"
+debug = true
+strip = "none"
