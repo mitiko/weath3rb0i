@@ -227,12 +227,13 @@ mod buffers {
         data: [u8; N],
         inner: T,
         idx: usize,
+        filled: usize,
         accepts_more: bool
     }
 
     impl<T, const N: usize> ReadBuf<T, N> {
         pub fn new(inner: T) -> Self {
-            Self { data: [0; N], inner, idx: 0, accepts_more: true }
+            Self { data: [0; N], inner, idx: 0, filled: 0, accepts_more: true }
         }
     }
 
@@ -248,15 +249,15 @@ mod buffers {
                 match self.inner.read(data) {
                     Err(ref e) if e.kind() == ErrorKind::Interrupted => continue,
                     Ok(0) | Err(_) => { self.accepts_more = false; break },
-                    Ok(n) => { data = &mut data[n..]; }
+                    Ok(n) => { self.filled += n; data = &mut data[n..]; }
                 }
             }
             Ok(())
         }
 
         pub fn pop(&mut self) -> Result<u8, EOF> {
-            if self.idx == self.data.len() {
-                self.idx = 0;
+            if self.idx == self.filled {
+                self.idx = 0; self.filled = 0;
 
                 if self.try_fill().is_err() {
                     return Err(EOF);
