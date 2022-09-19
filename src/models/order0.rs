@@ -1,31 +1,28 @@
-use super::{Model, counter::Counter, SmartCtx};
+use super::{Model, SharedCtx, SmartCtx, counter::Counter};
 
 pub struct Order0 {
-    ctx: SmartCtx<u8>,
     stats: [[Counter; 15]; 256]
 }
 
 impl Order0 {
     pub fn init() -> Self {
-        Self {
-            ctx: SmartCtx::new(0),
-            stats: [[Counter::new(); 15]; 256]
-        }
+        Self { stats: [[Counter::new(); 15]; 256] }
     }
 }
 
-impl Model for Order0 {
-    fn predict(&self) -> u16 {
-        self.stats[self.ctx.get()].p()
+const MASK: u64 = u8::MAX as u64;
+
+impl Model<SmartCtx> for Order0 {
+    fn predict(&self, ctx: &SmartCtx) -> u16 {
+        self.stats[ctx.get(MASK)].p()
     }
 
-    fn update(&mut self, bit: u8) {
-        self.stats[self.ctx.get()].update(bit);
-        self.ctx.update(bit);
+    fn update(&mut self, ctx: &SmartCtx, bit: u8) {
+        self.stats[ctx.get(MASK)].update(bit);
     }
 
-    fn predict4(&self, nib: u8) -> [u16; 4] {
-        let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
+    fn predict4(&self, ctx: &SmartCtx, nib: u8) -> [u16; 4] {
+        let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         [
             self.stats[idx1].p(),
             self.stats[idx2].p(),
@@ -34,12 +31,11 @@ impl Model for Order0 {
         ]
     }
 
-    fn update4(&mut self, nib: u8) {
-        let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
+    fn update4(&mut self, ctx: &SmartCtx, nib: u8) {
+        let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         self.stats[idx1].update(nib >> 3);
         self.stats[idx2].update((nib >> 2) & 1);
         self.stats[idx3].update((nib >> 1) & 1);
         self.stats[idx4].update(nib & 1);
-        self.ctx.update4(nib);
     }
 }

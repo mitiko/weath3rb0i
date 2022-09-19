@@ -130,6 +130,7 @@ where W: Write, R: BufRead {
         let mut reader = ACReader::new(stream);
         // let x = reader.read_u32();
         let mut x: u32 = 0;
+        // TODO: Do better
         for _ in 0..u32::BITS {
             x = (x << 1) | reader.read_bit();
         }
@@ -170,6 +171,7 @@ where W: Write, R: BufRead {
     }
 
     /// Encodes a bit to the stream
+    #[inline(always)]
     fn encode(&mut self, bit: u8, prob: u16) {
         let xmid = self.get_mid(prob);
         let w = self.io.as_enc();
@@ -239,6 +241,7 @@ where W: Write, R: BufRead {
     }
 
     /// Return the lerp-ed middle of the range.
+    #[inline(always)]
     fn get_mid(&self, prob: u16) -> u32 {
         let range = u64::from(self.x2 - self.x1);
         let prob = renorm_prob(prob);
@@ -264,6 +267,7 @@ where W: Write, R: BufRead {
 }
 
 /// Renormalizes the probability to a 64-bit representation.
+#[inline(always)]
 fn renorm_prob(prob: u16) -> u64 {
     let mut prob = u64::from(prob) << (u32::BITS - u16::BITS);
     if prob == 0 {
@@ -341,14 +345,15 @@ mod arithmetic_coder_io {
         }
 
         /// Read 4 bytes BE as u32 and pad with 0s if EOF
-        pub fn read_u32(&mut self) -> u32 {
+        pub fn read_u32(_stream: R) -> u32 {
             // TODO: also do nibbles or bytes?
             // TODO: Don't call read_bit 32 times, because it messes with the inlining of encode
-            let mut res = 0;
-            for _ in 0..u32::BITS {
-                res = (res << 1) | self.read_bit();
-            }
-            res
+            // let mut res = 0;
+            // for _ in 0..u32::BITS {
+            //     res = (res << 1) | self.read_bit();
+            // }
+            // res
+            todo!()
         }
     }
     
@@ -393,7 +398,7 @@ mod arithmetic_coder_io {
 #[cfg(test)]
 mod tests {
     use std::io::{Write, Read};
-    use crate::models::{SmartCtx, Model}; // TODO: remove model
+    use crate::models::{SmartCtx, Model, Order0, SharedCtx}; // TODO: remove model
     use crate::bit_io::{BitReader, BitWriter, NibbleRead};
 
     type ArithmeticCoder<'a> = crate::arithmetic_coder::ArithmeticCoder::<&'a mut [u8], &'a [u8]>;
@@ -459,90 +464,46 @@ mod tests {
     }
 
     fn encode(writer: &mut [u8], reader: &[u8], len: u32) {
-        encode_with_model(writer, reader, len, MockModel::init());
+        encode_with_model(writer, reader, len, Order0::init());
     }
 
     fn decode(writer: &mut [u8], reader: &[u8]) {
-        decode_with_model(writer, reader, MockModel::init());
+        decode_with_model(writer, reader, Order0::init());
     }
 
-    fn encode_with_model(mut writer: &mut [u8], reader: &[u8], len: u32, mut model: impl Model) {
+    fn encode_with_model<C: SharedCtx>(mut writer: &mut [u8], reader: &[u8], len: u32, mut model: impl Model<C>) {
         writer.write_all(&len.to_be_bytes()).expect("Decompression buffer to small");
         let mut ac = ArithmeticCoder::init_enc(writer);
+        let mut ctx = C::new();
 
         for nib in reader.nibbles() {
-            let p = model.predict4(nib);
+            let p = model.predict4(&ctx, nib);
             ac.encode4(nib, p);
-            model.update4(nib);
+            model.update4(&ctx, nib);
+            ctx.update4(nib);
         }
         ac.flush();
     }
 
-    fn decode_with_model(writer: &mut [u8], mut reader: &[u8], mut model: impl Model) {
+    fn decode_with_model<C: SharedCtx>(writer: &mut [u8], mut reader: &[u8], mut model: impl Model<C>) {
         let len = {
             let mut len_buf = [0; std::mem::size_of::<u32>()];
             reader.read_exact(&mut len_buf).unwrap();
             u32::from_be_bytes(len_buf)
         };
         let mut writer = <BitWriter<_>>::new(writer);
+        let mut ctx = C::new();
         let mut ac = ArithmeticCoder::init_dec(reader);
 
         for _ in 0..len {
             for _ in 0..u8::BITS {
-                let p = model.predict();
+                let p = model.predict(&ctx);
                 let bit = ac.decode(p);
+                model.update(&ctx, bit);
+                ctx.update(bit);
                 writer.write_bit(bit);
-                model.update(bit);
             }
         }
         writer.try_flush();
-    }
-
-    #[derive(Copy, Clone, Default)]
-    struct MockCounter {
-        data: [u16; 2]
-    }
-
-    impl MockCounter {
-        pub fn p(&self) -> u16 {
-            let c0 = self.data[0] as u64; let c1 = self.data[1] as u64;
-            let p = (1 << 16) * (c1 + 1) / (c0 + c1 + 2);
-            p as u16
-        }
-
-        pub fn update(&mut self, bit: u8) {
-            self.data[bit as usize] += 1;
-            if self.data[bit as usize] == u16::MAX { self.data[0] >>= 1; self.data[1] >>= 1; }
-        }
-    }
-
-    struct MockModel {
-        ctx: SmartCtx<u8>,
-        stats: [[MockCounter; 15]; 256]
-    }
-
-    impl MockModel { fn init() -> Self { Self { ctx: SmartCtx::new(0), stats: [[MockCounter::default(); 15]; 256] } } }
-
-    impl Model for MockModel {
-        fn predict(&self) -> u16 {
-            self.stats[self.ctx.get()].p()
-        }
-
-        fn predict4(&self, nib: u8) -> [u16; 4] {
-            let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
-            [self.stats[idx1].p(), self.stats[idx2].p(), self.stats[idx3].p(), self.stats[idx4].p()]
-        }
-
-        fn update(&mut self, bit: u8) {
-            self.stats[self.ctx.get()].update(bit);
-            self.ctx.update(bit);
-        }
-
-        fn update4(&mut self, nib: u8) {
-            let [idx1, idx2, idx3, idx4] = self.ctx.get4(nib);
-            self.stats[idx1].update(nib >> 3); self.stats[idx2].update((nib >> 2) & 1);
-            self.stats[idx4].update(nib & 1);  self.stats[idx3].update((nib >> 1) & 1);
-            self.ctx.update4(nib);
-        }
     }
 }

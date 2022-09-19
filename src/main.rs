@@ -4,7 +4,7 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::bit_io::{NibbleRead, BitWriter};
-use weath3rb0i::models::{Model, Order0};
+use weath3rb0i::models::{Model, Order0, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
@@ -99,11 +99,13 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         BufReader::new(f)
     };
     let mut ac = ArithmeticCoder::init_enc(writer);
+    let mut ctx = SmartCtx::new();
     let mut model = init_model();
     
     for nib in reader.nibbles() {
-        let p4 = model.predict4(nib);
-        model.update4(nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
+        let p4 = model.predict4(&ctx, nib);
+        model.update4(&ctx, nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
+        ctx.update4(nib);
         ac.encode4(nib, p4);
     }
 
@@ -125,14 +127,16 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
     let mut ac = ArithmeticCoder::init_dec(reader);
+    let mut ctx = SmartCtx::new();
     let mut model = init_model();
 
     for _ in 0..len {
         for _ in 0..u8::BITS {
-            let p = model.predict();
+            let p = model.predict(&ctx);
             let bit = ac.decode(p);
+            model.update(&ctx, bit);
+            ctx.update(bit);
             writer.write_bit(bit);
-            model.update(bit);
         }
     }
 

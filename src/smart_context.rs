@@ -1,76 +1,73 @@
-use std::ops::{BitOr, Shl, Index, IndexMut};
+use std::ops::{Index, IndexMut};
 
-// Could be any of u8, u16, u32, u64, u128, and more!
-pub trait Context: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Output = Self> + Copy {}
-impl<T> Context for T where T: From<u8> + Into<usize> + BitOr<Output = Self> + Shl<i32, Output = Self> + Copy {}
+use crate::models::SharedCtx;
 
-#[derive(Clone, Copy, Debug)]
-pub struct SmartCtx<T> {
-    ctx: T, // just an (unsigned) integer
+#[derive(Clone, Copy, Debug, Default)]
+pub struct SmartCtx {
+    ctx: u64,
     bit_id: u8,
     ctx_cache: u8
 }
 
-impl<T: Context> SmartCtx<T> {
-    pub fn new(ctx: T) -> Self {
-        Self { ctx, bit_id: 0, ctx_cache: 0 }
-    }
-
-    pub fn get(&self) -> SmartCtxIdx<T> {
-        SmartCtxIdx(self.ctx, self.rel_idx())
-    }
-
-    pub fn get4(&self, nib: u8) -> [SmartCtxIdx<T>; 4] {[
-        SmartCtxIdx(self.ctx, 0),
-        SmartCtxIdx(self.ctx, 1 + (nib >> 3) as usize),
-        SmartCtxIdx(self.ctx, 3 + (nib >> 2) as usize),
-        SmartCtxIdx(self.ctx, 7 + (nib >> 1) as usize)
-    ]}
-
-    pub fn update(&mut self, bit: u8) {
-        self.ctx_cache = (self.ctx_cache << 1) | bit;
-        self.bit_id = (self.bit_id + 1) & 3;
-
-        // TODO: Verify this is not a cmov, bc the branch predictor can easily see it's mod 4
-        if self.bit_id == 0 {
-            self.ctx = (self.ctx << 4) | T::from(self.ctx_cache);
-            self.ctx_cache = 0;
-        }
-    }
-
-    pub fn update4(&mut self, nib: u8) {
-        // Do not use update and update4 interchangably
-        // update4 should have the same effect as update executed on the bits of the nibble
-        // but update4 is an encode only optimization, while update is for the decoder
-        debug_assert!(self.bit_id == 0 && self.ctx_cache == 0);
-        self.ctx = (self.ctx << 4) | T::from(nib);
-
-        // self.update(nib >> 3);
-        // self.update((nib >> 2) & 1);
-        // self.update((nib >> 1) & 1);
-        // self.update(nib & 1);
-    }
-
+impl SmartCtx {
+    /// See the docs on hashslot rel_idx calculation
     fn rel_idx(&self) -> usize {
-        // See the docs on hashslot rel_idx calculation
         // usize::from((1u8 << self.bit_id).wrapping_add(self.ctx_cache.wrapping_sub(1)))
         usize::from((1u8 << self.bit_id) - 1 + self.ctx_cache)
     }
 }
 
-pub struct SmartCtxIdx<T: Context>(T, usize);
+impl SharedCtx for SmartCtx {
+    type Idx = SmartCtxIdx;
 
-impl<T: Context, C, const N: usize, const M: usize> Index<SmartCtxIdx<T>> for [[C; M]; N] {
-    type Output = C;
+    fn new() -> Self { Self::default() }
 
-    fn index(&self, index: SmartCtxIdx<T>) -> &Self::Output {
-        &self[index.0.into()][index.1]
+    fn get(&self, mask: u64) -> SmartCtxIdx {
+        SmartCtxIdx((self.ctx & mask).try_into().unwrap(), self.rel_idx())
+    }
+    
+    fn get4(&self, mask: u64, nib: u8) -> [SmartCtxIdx; 4] {
+        let ctx = (self.ctx & mask).try_into().unwrap();
+        [
+            SmartCtxIdx(ctx, 0),
+            SmartCtxIdx(ctx, usize::from(1 + (nib >> 3))),
+            SmartCtxIdx(ctx, usize::from(3 + (nib >> 2))),
+            SmartCtxIdx(ctx, usize::from(7 + (nib >> 1)))
+        ]
+    }
+
+    fn update(&mut self, bit: u8) {
+        self.ctx_cache = (self.ctx_cache << 1) | bit;
+        self.bit_id = (self.bit_id + 1) & 3;
+
+        if self.bit_id == 0 {
+            self.ctx = (self.ctx << 4) | u64::from(self.ctx_cache);
+            self.ctx_cache = 0;
+        }
+    }
+
+    /// Do not use update and `update4` interchangably
+    /// `update4` should have the same effect as update executed on the bits of the nibble
+    /// but `update4` is an encode only optimization, while `update` is for the decoder
+    fn update4(&mut self, nib: u8) {
+        debug_assert!(self.bit_id == 0 && self.ctx_cache == 0);
+        self.ctx = (self.ctx << 4) | u64::from(nib);
     }
 }
 
-impl<T: Context, C, const N: usize, const M: usize> IndexMut<SmartCtxIdx<T>> for [[C; M]; N] {
-    fn index_mut(&mut self, index: SmartCtxIdx<T>) -> &mut Self::Output {
-        &mut self[index.0.into()][index.1]
+pub struct SmartCtxIdx(usize, usize);
+
+impl<C, const N: usize, const M: usize> Index<SmartCtxIdx> for [[C; M]; N] {
+    type Output = C;
+
+    fn index(&self, index: SmartCtxIdx) -> &Self::Output {
+        &self[index.0][index.1]
+    }
+}
+
+impl<C, const N: usize, const M: usize> IndexMut<SmartCtxIdx> for [[C; M]; N] {
+    fn index_mut(&mut self, index: SmartCtxIdx) -> &mut Self::Output {
+        &mut self[index.0][index.1]
     }
 }
 
