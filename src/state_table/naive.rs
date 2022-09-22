@@ -4,7 +4,7 @@ use super::{StateTable, StateEntry, impl_state_table_from};
 
 // TODO: Docs
 // notes are from 22.09.2022
-struct NaiveStateTable;
+pub struct NaiveStateTable;
 
 const MAX_LEVEL: usize = 44;
 const SUBTABLE_SIZE: usize = MAX_LEVEL * (MAX_LEVEL + 1) / 2; // 990

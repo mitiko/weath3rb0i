@@ -4,7 +4,7 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::bit_io::{NibbleRead, BitWriter};
-use weath3rb0i::models::{Model, Order0, SmartCtx, SharedCtx};
+use weath3rb0i::models::{Model, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
@@ -145,8 +145,15 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
 }
 
 // fn init_model() -> impl Model { // FIXME: Just hardcoding this for now, so the rust-analyzer can pick up some metadata
-fn init_model() -> Order0 {
-    Order0::init()
+
+// use weath3rb0i::models::Order0;
+// fn init_model() -> Order0 {
+//     Order0::init()
+// }
+
+use weath3rb0i::models::TinyOrder0;
+fn init_model() -> TinyOrder0 {
+    TinyOrder0::init()
 }
 
 fn print_usage_and_panic(panic_msg: &str) {

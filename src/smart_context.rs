@@ -55,6 +55,7 @@ impl SharedCtx for SmartCtx {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct SmartCtxIdx(usize, usize);
 
 impl<C, const N: usize, const M: usize> Index<SmartCtxIdx> for [[C; M]; N] {
