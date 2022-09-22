@@ -3,5 +3,6 @@
 *.bin
 *.dec
 *.orig
+data/
 TODO.md
 perf.data*

@@ -24,5 +24,10 @@ pub trait SharedCtx {
     fn get4(&self, mask: u64, nib: u8) -> [Self::Idx; 4];
 
     fn update(&mut self, bit: u8);
-    fn update4(&mut self, nib: u8);
+    fn update4(&mut self, nib: u8) {
+        self.update(nib >> 3);
+        self.update((nib >> 2) & 1);
+        self.update((nib >> 1) & 1);
+        self.update(nib & 1);
+    }
 }

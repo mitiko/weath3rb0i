@@ -5,7 +5,7 @@ use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::bit_io::{NibbleRead, BitWriter};
 use weath3rb0i::models::{Model, Order0, SmartCtx, SharedCtx};
-use weath3rb0i::debug_unreachable::debug_unreachable;
+use weath3rb0i::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);

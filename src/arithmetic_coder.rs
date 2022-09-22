@@ -287,6 +287,7 @@ mod arithmetic_coder_io {
 
     use std::{io::{Write, Read, BufRead}, convert::TryInto};
     use crate::bit_io::{BitReader, BitWriter};
+    use crate::debug_unreachable;
     pub use ArithmeticCoderIO::{Encode, Decode};
 
     /// ArithmeticCoderIO is an invariant of read or write.

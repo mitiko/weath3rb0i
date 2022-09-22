@@ -15,7 +15,4 @@ mod mixer;
 mod smart_context;
 mod state_table;
 
-#[macro_use]
-pub extern crate debug_unreachable;
-
-
+pub use debug_unreachable::debug_unreachable;
