@@ -27,6 +27,7 @@ impl StateEntry {
     }
 }
 
+// TODO: Derive macro for trait StateTable, with params - TABLE
 macro_rules! impl_state_table_from {
     ($state_table_name:ident, $table:ident) => {
         // struct $state_table_name;
