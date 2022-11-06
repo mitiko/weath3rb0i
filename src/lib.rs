@@ -6,7 +6,9 @@
 
 // TODO: #![deny(missing_docs)] on all submodules
 
-pub mod arithmetic_coder;
+// TODO: make this private, then reexport the correct ac implementation from the config
+pub mod entropy_coders;
+
 pub mod bit_io;
 pub mod models;
 

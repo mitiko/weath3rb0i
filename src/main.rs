@@ -1,16 +1,18 @@
 // (c) 2022 Dimitar Rusev <mitikodev@gmail.com> licensed under GPL-3.0
-use std::io::{BufReader, BufWriter, Read, Write};
+use std::io::{BufReader, BufWriter, Read, Write, self};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-use weath3rb0i::bit_io::{NibbleRead, BitWriter};
+use weath3rb0i::bit_io::{NibbleRead, BitWriter, WriteError};
+use weath3rb0i::entropy_coders::{ACEncoder, ACDecoder, ac32};
 use weath3rb0i::models::{Model, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
 
-type ArithmeticCoder = weath3rb0i::arithmetic_coder::ArithmeticCoder::<BufWriter<File>, BufReader<File>>;
+type ArithmeticCoder = ac32::ArithmeticCoder<BufWriter<File>>;
+type ArithmeticDecoder = ac32::ArithmeticDecoder<BufReader<File>>;
 
 #[derive(Clone, Copy)]
 enum Action {
@@ -98,19 +100,18 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         writer.write_all(&len.to_be_bytes())?;
         BufReader::new(f)
     };
-    let mut ac = ArithmeticCoder::init_enc(writer);
+    let mut ac = ArithmeticCoder::new(writer);
     let mut ctx = SmartCtx::new();
     let mut model = init_model();
     
     for nib in reader.nibbles() {
         let p4 = model.predict4(&ctx, nib);
-        model.update4(&ctx, nib); // TODO: ctx.update4(nib) and model holds ref to ctx // FIXME:
+        model.update4(&ctx, nib);
         ctx.update4(nib);
-        ac.encode4(nib, p4);
+        ac.encode4(nib, p4)?;
     }
 
-    ac.flush();
-    Ok(())
+    ac.flush()
 }
 
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
@@ -126,21 +127,24 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
-    let mut ac = ArithmeticCoder::init_dec(reader);
+    let mut ac = ArithmeticDecoder::new(reader)?;
     let mut ctx = SmartCtx::new();
     let mut model = init_model();
 
     for _ in 0..len {
         for _ in 0..u8::BITS {
             let p = model.predict(&ctx);
-            let bit = ac.decode(p);
+            let bit = ac.decode(p)?;
             model.update(&ctx, bit);
             ctx.update(bit);
-            writer.write_bit(bit);
+            writer.write(bit)?;
         }
     }
 
-    writer.try_flush();
+    if let Err(WriteError::Other(kind)) = writer.flush() {
+        // we only care about IO errors
+        return Err(io::Error::from(kind))
+    }
     Ok(())
 }
 

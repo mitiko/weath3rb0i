@@ -13,27 +13,48 @@ let bit = bit_reader.read_bit().unwrap_or(0);
 // TODO: Add BitReader, BitWriter examples
 // TODO: Don't document BitQueue if not public
 */
-#![deny(missing_docs)]
+#![warn(missing_docs)]
 
 use core::slice;
-use std::io::{BufRead, Write};
-use self::bit_helpers::{BitQueue, DEFAULT_BUFFER_SIZE, EOF};
+use std::io::{Read, Write, ErrorKind, self};
+use self::bit_helpers::BitQueue;
 pub use bit_helpers::NibbleRead;
 
+pub enum ReadError {
+    Eof,
+    Other(ErrorKind)
+}
+
+impl From<io::Error> for ReadError {
+    fn from(err: io::Error) -> Self {
+        match err.kind() {
+            ErrorKind::UnexpectedEof => Self::Eof,
+            kind => Self::Other(kind)
+        }
+    }
+}
+
+#[derive(Debug)]
+pub enum WriteError {
+    NonemptyBitQueueOnFlush,
+    Other(ErrorKind)
+}
+
 /// A BitReader reads bit from an internal `std::io::BufRead` stream
-pub struct BitReader<R, const N: usize = DEFAULT_BUFFER_SIZE> {
+#[derive(Debug)]
+pub struct BitReader<R> {
     bit_queue: BitQueue,
     inner: R
 }
 
-impl<R: BufRead, const N: usize> BitReader<R, N> {
+impl<R: Read> BitReader<R> {
     /// Initializes a BitReader with a stream
     pub fn new(inner: R) -> Self {
         Self { bit_queue: BitQueue::new(), inner }
     }
 
     /// Reads bit from internal stream or returns `EOF`
-    pub fn read_bit(&mut self) -> Result<u8, EOF> {
+    pub fn read_bit(&mut self) -> Result<u8, ReadError> {
         if let Some(bit) = self.bit_queue.pop() {
             return Ok(bit);
         }
@@ -43,48 +64,50 @@ impl<R: BufRead, const N: usize> BitReader<R, N> {
             self.bit_queue.fill(byte);
             self.bit_queue.pop().unwrap()
         })
-        .map_err(|_| EOF)
+        .map_err(ReadError::from)
+    }
+
+    /// Reads a byte from internal stream or returns EOF
+    pub fn read_byte(&mut self) -> Result<u8, ReadError> {
+        debug_assert!(self.bit_queue.is_empty()); // not implementing the cold path (as it's not used) for now
+        let mut byte: u8 = 0;
+        self.inner.read_exact(slice::from_mut(&mut byte))
+            .map(|_| byte)
+            .map_err(ReadError::from)
     }
 }
 
 /// A BitBufWriter writes bits to an internal `std::io::Write` stream
-pub struct BitWriter<W, const N: usize = DEFAULT_BUFFER_SIZE> {
-    stream: W,
-    // buf: [u8; N],
-    // idx: usize,
-    bit_queue: BitQueue
+#[derive(Debug)]
+pub struct BitWriter<W> {
+    inner: W,
+    pub bit_queue: BitQueue // FIXME: pub for just debug for now
 }
 
-impl<W: Write, const N: usize> BitWriter<W, N> {
+impl<W: Write> BitWriter<W> {
     /// Initializes a BitBufWriter with a stream
-    pub fn new(stream: W) -> Self {
-        // Self { stream, buf: [0; N], idx: 0, bit_queue: BitQueue::new() }
-        Self { stream, bit_queue: BitQueue::new() }
+    pub fn new(inner: W) -> Self {
+        Self { inner, bit_queue: BitQueue::new() }
     }
 
     /// Writes a bit or panics if internal writer doesn't accept more bytes
-    pub fn write_bit(&mut self, bit: u8) {
+    pub fn write(&mut self, bit: u8) -> io::Result<()> {
         self.bit_queue.push(bit);
-        if let Some(byte) = self.bit_queue.try_flush() {
-            self.stream.write_all(&[byte]).expect("BitBufWriter failed to write byte");
+        match self.bit_queue.try_flush() {
+            Some(byte) => self.inner.write_all(&[byte]),
+            None => Ok(()) // we've pushed the bit to the queue, we've successfully "written" it
         }
     }
 
-    /// Pads the remaining bits with a byte and flushes the internal writer
-    pub fn flush(&mut self, mut padding_byte: u8) {
-        while !self.bit_queue.is_empty() {
-            // TODO: Do a single shift?
-            self.write_bit((padding_byte >> (u8::BITS - 1)) & 1);
-            padding_byte <<= 1;
+    /// Flushes the queue and internal writer
+    pub fn flush(&mut self) -> Result<(), WriteError> {
+        // It's the caller's responsibility to fill the queue before flushing
+        if !self.bit_queue.is_empty() { return Err(WriteError::NonemptyBitQueueOnFlush); }
+        if let Some(byte) = self.bit_queue.try_flush() { // cold path, unlikely
+            self.inner.write_all(&[byte])
+                .map_err(|err| WriteError::Other(err.kind()))?;
         }
-        debug_assert!(self.bit_queue.is_empty());
-        self.stream.flush().expect("BitBufWriter.inner couldn't flush");
-    }
-
-    /// Tries to flush the internal writer with no padding byte
-    pub fn try_flush(&mut self) {
-        assert!(self.bit_queue.is_empty(), "BitQueue wasn't empty");
-        self.stream.flush().expect("BitBufWriter.inner couldn't flush");
+        self.inner.flush().map_err(|err| WriteError::Other(err.kind()))
     }
 }
 
@@ -94,16 +117,13 @@ mod bit_helpers {
     // TODO: Examples for BitReader, BitWriter
     pub const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
 
-    /// EOF symbol (for error handling)
-    #[allow(clippy::upper_case_acronyms)]
-    pub struct EOF;
-
     /// An 8 element bit queue (with internal store u8)
     /// Handling overflow: panics in debug and discards elements in release
+    #[derive(Debug)]
     pub struct BitQueue {
         /// Byte buffer
         t: u8,
-        /// Bits being held
+        /// Number of bits being held
         count: u8
     }
 
@@ -128,7 +148,7 @@ mod bit_helpers {
         /// bit_queue.push(0);
         /// ```
         pub fn push(&mut self, bit: u8) {
-            debug_assert!(!self.is_full());
+            debug_assert!(!self.is_full()); // looses bits
             self.t = (self.t << 1) | bit;
             self.count += 1;
         }
@@ -246,9 +266,7 @@ mod bit_helpers {
         }
     }
 
-    /// TODO:
     pub trait NibbleRead<R: Read> {
-        /// TODO:
         fn nibbles(self) -> Nibbles<R>; 
     }
 
