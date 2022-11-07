@@ -6,3 +6,6 @@
 data/
 TODO.md
 perf.data*
+
+# PGO builds and others
+builds/

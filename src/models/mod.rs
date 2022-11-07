@@ -10,9 +10,11 @@ pub use self::{order0::*, order1::*, tiny_order0::*, counter::*};
 // TODO: Rename to PrefixModel and use a context as parameter to predictions, no updates?
 pub trait Model<Ctx: SharedCtx> {
     fn predict(&self, ctx: &Ctx) -> u16;
+    #[cfg(feature = "nib-ops")]
     fn predict4(&self, ctx: &Ctx, nib: u8) -> [u16; 4];
 
     fn update(&mut self, ctx: &Ctx, bit: u8);
+    #[cfg(feature = "nib-ops")]
     fn update4(&mut self, ctx: &Ctx, nib: u8);
 }
 
@@ -22,9 +24,11 @@ pub trait SharedCtx {
     fn new() -> Self;
 
     fn get(&self, mask: u64) -> Self::Idx;
+    #[cfg(feature = "nib-ops")]
     fn get4(&self, mask: u64, nib: u8) -> [Self::Idx; 4];
 
     fn update(&mut self, bit: u8);
+    #[cfg(feature = "nib-ops")]
     fn update4(&mut self, nib: u8) {
         self.update(nib >> 3);
         self.update((nib >> 2) & 1);

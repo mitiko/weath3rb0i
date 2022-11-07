@@ -25,12 +25,14 @@ impl Model<SmartCtx> for TinyOrder0 {
         self.stats[ctx] = NaiveStateTable::next(state, bit);
     }
 
+    #[cfg(feature = "nib-ops")]
     fn predict4(&self, ctx: &SmartCtx, nib: u8) -> [u16; 4] {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         let states = [self.stats[idx1], self.stats[idx2], self.stats[idx3], self.stats[idx4]];
         NaiveStateTable::p4(states)
     }
     
+    #[cfg(feature = "nib-ops")]
     fn update4(&mut self, ctx: &SmartCtx, nib: u8) {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         let states = [self.stats[idx1], self.stats[idx2], self.stats[idx3], self.stats[idx4]];

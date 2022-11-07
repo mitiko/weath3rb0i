@@ -2,6 +2,7 @@ pub mod naive;
 
 pub trait StateTable {    
     fn next(state: u16, bit: u8) -> u16;
+    #[cfg(feature = "nib-ops")]
     fn next4(states: [u16; 4], nib: u8) -> [u16; 4] {[
         Self::next(states[0], nib >> 3),
         Self::next(states[1], (nib >> 2) & 1),
@@ -10,6 +11,7 @@ pub trait StateTable {
     ]}
 
     fn p(state: u16) -> u16;
+    #[cfg(feature = "nib-ops")]
     fn p4(states: [u16; 4]) -> [u16; 4] {
         [Self::p(states[0]), Self::p(states[1]), Self::p(states[2]), Self::p(states[3])]
     }

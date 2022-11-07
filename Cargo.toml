@@ -9,6 +9,10 @@ license = "GPL-3.0"
 keywords = ["compressor", "context_mixing"]
 categories = ["compression"]
 
+[[bin]]
+name = "weath3rb0i"
+required-features = ["nib-ops"]
+
 [dependencies]
 fastrand = "1.8.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
 debug_unreachable = "0.1"
@@ -18,7 +22,7 @@ default = ["ac48"]
 ac64 = []
 ac48 = []
 ac32 = []
-# nib-ops -> does 4 ops, includes encode4, p4, update4, etc
+nib-ops = [] # does 4 ops, includes encode4, p4, update4, etc
 
 [profile.dev]
 opt-level = 1

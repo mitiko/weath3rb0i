@@ -25,7 +25,8 @@ impl SharedCtx for SmartCtx {
     fn get(&self, mask: u64) -> SmartCtxIdx {
         SmartCtxIdx((self.ctx & mask).try_into().unwrap(), self.rel_idx())
     }
-    
+
+    #[cfg(feature = "nib-ops")]
     fn get4(&self, mask: u64, nib: u8) -> [SmartCtxIdx; 4] {
         let ctx = (self.ctx & mask).try_into().unwrap();
         [
@@ -49,6 +50,7 @@ impl SharedCtx for SmartCtx {
     /// Do not use update and `update4` interchangably
     /// `update4` should have the same effect as update executed on the bits of the nibble
     /// but `update4` is an encode only optimization, while `update` is for the decoder
+    #[cfg(feature = "nib-ops")]
     fn update4(&mut self, nib: u8) {
         debug_assert!(self.bit_id == 0 && self.ctx_cache == 0);
         self.ctx = (self.ctx << 4) | u64::from(nib);
