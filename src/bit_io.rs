@@ -55,14 +55,14 @@ impl<R: Read> BitReader<R> {
 
     /// Reads bit from internal stream or returns `EOF`
     pub fn read_bit(&mut self) -> Result<u8, ReadError> {
-        if let Some(bit) = self.bit_queue.pop() {
+        if let Some(bit) = self.bit_queue.try_pop() {
             return Ok(bit);
         }
 
         let mut byte: u8 = 0;
         self.inner.read_exact(slice::from_mut(&mut byte)).map(|_| {
             self.bit_queue.fill(byte);
-            self.bit_queue.pop().unwrap()
+            self.bit_queue.try_pop().unwrap()
         })
         .map_err(ReadError::from)
     }
@@ -81,7 +81,7 @@ impl<R: Read> BitReader<R> {
 #[derive(Debug)]
 pub struct BitWriter<W> {
     inner: W,
-    pub bit_queue: BitQueue // FIXME: pub for just debug for now
+    bit_queue: BitQueue
 }
 
 impl<W: Write> BitWriter<W> {
@@ -94,10 +94,7 @@ impl<W: Write> BitWriter<W> {
     pub fn write(&mut self, bit: u8) -> io::Result<()> {
         self.bit_queue.push(bit);
         match self.bit_queue.try_flush() {
-            Some(byte) => {
-                println!("Wrote byte to stream: {byte}");
-                self.inner.write_all(&[byte])
-            },
+            Some(byte) => self.inner.write_all(&[byte]),
             None => Ok(()) // we've pushed the bit to the queue, we've successfully "written" it
         }
     }
@@ -117,9 +114,6 @@ impl<W: Write> BitWriter<W> {
 mod bit_helpers {
     use std::io::{Read, Bytes};
 
-    // TODO: Examples for BitReader, BitWriter
-    pub const DEFAULT_BUFFER_SIZE: usize = 1 << 13; // 8KiB
-
     /// An 8 element bit queue (with internal store u8)
     /// Handling overflow: panics in debug and discards elements in release
     #[derive(Debug)]
@@ -131,7 +125,7 @@ mod bit_helpers {
     }
 
     impl BitQueue {
-        // TODO: Use default
+        // TODO: Use default?
         /// Creates a new empty bit queue
         pub fn new() -> Self {
             Self { t: 0, count: 0 }
@@ -152,10 +146,8 @@ mod bit_helpers {
         /// ```
         pub fn push(&mut self, bit: u8) {
             debug_assert!(!self.is_full()); // looses bits
-            let (cnt, tt) = (self.count, self.t);
             self.t = (self.t << 1) | bit;
             self.count += 1;
-            println!("=> bq push -> (cnt={cnt}, t={tt}) + bit={bit} -> ({}, {})", self.count, self.t);
         }
 
         /// Pop a bit from the queue
@@ -170,13 +162,10 @@ mod bit_helpers {
         /// bit_queue.push(0);
         /// assert_eq!(bit_queue.pop(), Some(0));
         /// ```
-        pub fn pop(&mut self) -> Option<u8> {
-            if self.is_empty() {
-                return None;
-            }
+        pub fn try_pop(&mut self) -> Option<u8> {
+            if self.is_empty() { return None; }
 
             self.count -= 1;
-            println!("=> bq pop -> {}, cnt={}", (self.t >> self.count) & 1, self.count);
             Some((self.t >> self.count) & 1)
         }
 
@@ -216,7 +205,6 @@ mod bit_helpers {
             debug_assert!(self.is_empty()); // we shouldn't skip bits
             self.count = u8::BITS.try_into().unwrap();
             self.t = byte;
-            println!("=> bq fill (cnt=8, t={byte})");
         }
 
         /// Checks if the queue is full
@@ -231,6 +219,7 @@ mod bit_helpers {
         /// bit_queue.fill(0x80);
         /// assert_eq!(bit_queue.is_full(), true);
         /// ```
+        #[inline(always)]
         fn is_full(&self) -> bool {
             self.count == u8::BITS.try_into().unwrap()
         }
@@ -244,6 +233,7 @@ mod bit_helpers {
         /// bit_queue.push(1);
         /// assert_eq!(bit_queue.is_empty(), false);
         /// ```
+        #[inline(always)]
         pub fn is_empty(&self) -> bool {
             self.count == 0
         }
