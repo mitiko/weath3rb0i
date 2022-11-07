@@ -94,7 +94,10 @@ impl<W: Write> BitWriter<W> {
     pub fn write(&mut self, bit: u8) -> io::Result<()> {
         self.bit_queue.push(bit);
         match self.bit_queue.try_flush() {
-            Some(byte) => self.inner.write_all(&[byte]),
+            Some(byte) => {
+                println!("Wrote byte to stream: {byte}");
+                self.inner.write_all(&[byte])
+            },
             None => Ok(()) // we've pushed the bit to the queue, we've successfully "written" it
         }
     }
@@ -149,8 +152,10 @@ mod bit_helpers {
         /// ```
         pub fn push(&mut self, bit: u8) {
             debug_assert!(!self.is_full()); // looses bits
+            let (cnt, tt) = (self.count, self.t);
             self.t = (self.t << 1) | bit;
             self.count += 1;
+            println!("=> bq push -> (cnt={cnt}, t={tt}) + bit={bit} -> ({}, {})", self.count, self.t);
         }
 
         /// Pop a bit from the queue
@@ -171,6 +176,7 @@ mod bit_helpers {
             }
 
             self.count -= 1;
+            println!("=> bq pop -> {}, cnt={}", (self.t >> self.count) & 1, self.count);
             Some((self.t >> self.count) & 1)
         }
 
@@ -190,7 +196,7 @@ mod bit_helpers {
             if !self.is_full() { return None; }
 
             self.count = 0;
-            Some(self.t)
+            Some(self.t) // we could zero t, but there's no need to
         }
 
         /// Fills the bit_queue with a byte
@@ -210,6 +216,7 @@ mod bit_helpers {
             debug_assert!(self.is_empty()); // we shouldn't skip bits
             self.count = u8::BITS.try_into().unwrap();
             self.t = byte;
+            println!("=> bq fill (cnt=8, t={byte})");
         }
 
         /// Checks if the queue is full

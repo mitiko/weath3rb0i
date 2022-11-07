@@ -35,8 +35,10 @@ impl<W: Write> ArithmeticCoder<W> {
 impl<W: Write> ACEncoder for ArithmeticCoder<W> {
     #[inline(never)]
     fn encode(&mut self, bit: u8, prob: u16) -> io::Result<()> {
+        println!("\n-------------------------------------------------------------------------------------------------");
         let xmid = lerp(self.x1, self.x2, prob);
 
+        let (x1, x2) = (self.x1, self.x2);
         // Update range (kinda like binary search)
         match bit {
             1 => self.x2 = xmid,
@@ -45,24 +47,36 @@ impl<W: Write> ACEncoder for ArithmeticCoder<W> {
 
         // Renormalize range -> write matching bits to stream
         while ((self.x1 ^ self.x2) >> PREC_SHIFT) == 0 {
-            self.io.write_bit(self.x2 >> PREC_SHIFT)?;
+            // self.io.write_bitx(self.x1 >> PREC_SHIFT)?;
+            let (sx1, sx2) = (self.x1, self.x2);
             self.x1 <<= 1;
             self.x2 = (self.x2 << 1) | 1;
+            println!("++senc: ({sx1}, {sx2}) -> ({}, {}), writing -> {}", self.x1, self.x2, self.x2 >> PREC_SHIFT);
+            self.io.write_bitx(sx1 >> PREC_SHIFT)?;
         }
-
+        
         // E3 renorm (special case) -> increase parity bits but don't write anything to stream
         while self.x1 >= Q1 && self.x2 < Q3 {
+            println!("E3");
             self.io.inc_parity();
+            let (sx1, sx2) = (self.x1, self.x2);
             self.x1 = (self.x1 << 1) & RLOW_MOD;
             self.x2 = (self.x2 << 1) | RHIGH_MOD;
+            println!("--senc: ({sx1}, {sx2}) -> ({}, {})", self.x1, self.x2);
         }
 
+        println!("--p={prob}, p_bit={}", if bit == 1 { prob } else { u16::MAX - prob });
+        println!("enc: ({}, {}) -> ({}, {}), xmid={}, bit={}", x1, x2, self.x1, self.x2, xmid, bit);
+        // println!("bq is now -> {:?}", self.io.bit_writer.bit_queue);
         Ok(())
     }
 
     fn flush(&mut self) -> io::Result<()> {
         debug_assert!(self.x1 >> PREC_SHIFT == 0 && self.x2 >> PREC_SHIFT == 1); // state is normalized
-        self.io.flush(self.x1)
+        // println!("flushing... x1={}", self.x1);
+        // self.io.flush(self.x1)
+        // Fixes things... but WHY?
+        self.io.flush(self.x2)
     }
 }
 
@@ -83,9 +97,11 @@ impl<R: Read> ArithmeticDecoder<R> {
 
 impl<R: Read> ACDecoder for ArithmeticDecoder<R> {
     fn decode(&mut self, prob: u16) -> io::Result<u8> {
+        println!("\n-------------------------------------------------------------------------------------------------");
         let xmid = lerp(self.x1, self.x2, prob);
         let bit = (self.x <= xmid).into();
 
+        let (x1, x2, x) = (self.x1, self.x2, self.x);
         // Update range (kinda like binary search)
         match bit {
             1 => self.x2 = xmid,
@@ -94,18 +110,27 @@ impl<R: Read> ACDecoder for ArithmeticDecoder<R> {
 
         // Renormalize range -> write matching bits to stream
         while ((self.x1 ^ self.x2) >> PREC_SHIFT) == 0 {
-            self.x = (self.x << 1) | u32::from(self.io.read_bit()?);
+            let (x1, x2, x) = (self.x1, self.x2, self.x);
+            let bit = u32::from(self.io.read_bit()?);
+            self.x = (self.x << 1) | bit;
             self.x1 <<= 1;
             self.x2 = (self.x2 << 1) | 1;
+            println!("++dec: ({x1}, {x2}, {x}) -> ({}, {}, {}), read -> {bit}", self.x1, self.x2, self.x);
         }
 
         // E3 renorm (special case) -> increase parity bits but don't write anything to stream
         while self.x1 >= Q1 && self.x2 < Q3 {
+            println!("E3");
+            let (x1, x2, x) = (self.x1, self.x2, self.x);
             self.x1 = (self.x1 << 1) & RLOW_MOD;
             self.x2 = (self.x2 << 1) | RHIGH_MOD;
-            self.x = ((self.x << 1) ^ RMID) | u32::from(self.io.read_bit()?);
+            let bit = u32::from(self.io.read_bit()?);
+            self.x = ((self.x << 1) ^ RMID) | bit;
+            println!("--dec: ({x1}, {x2}, {x}) -> ({}, {}, {}), read -> {bit}", self.x1, self.x2, self.x);
         }
 
+        println!("--p={prob}, p_bit={}", if bit == 1 { prob } else { u16::MAX - prob });
+        println!("dec: ({x1}, {x2}, {x}) -> ({}, {}, {}), xmid={xmid}, bit={bit}", self.x1, self.x2, self.x);
         Ok(bit)
     }
 }
