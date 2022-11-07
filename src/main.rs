@@ -4,15 +4,15 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::bit_io::{NibbleRead, BitWriter, WriteError};
-use weath3rb0i::entropy_coders::{ACEncoder, ACDecoder, ac32};
+use weath3rb0i::entropy_coders::{ACEncoder, ACDecoder, arithmetic_coding};
 use weath3rb0i::models::{Model, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
 
-type ArithmeticCoder = ac32::ArithmeticCoder<BufWriter<File>>;
-type ArithmeticDecoder = ac32::ArithmeticDecoder<BufReader<File>>;
+type ArithmeticCoder = arithmetic_coding::ArithmeticCoder<BufWriter<File>>;
+type ArithmeticDecoder = arithmetic_coding::ArithmeticDecoder<BufReader<File>>;
 
 #[derive(Clone, Copy)]
 enum Action {

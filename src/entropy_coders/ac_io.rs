@@ -8,6 +8,7 @@ pub struct ACReader<R> {
 }
 
 impl<R: Read> ACReader<R> {
+    /// Creates a new `ACReader` from a `Read` instance
     pub fn new(inner: R) -> Self {
         Self { bit_reader: BitReader::new(inner) }
     }
@@ -36,6 +37,7 @@ impl<R: Read> ACReader<R> {
         Ok((u64::from(upper) << u32::BITS) | u64::from(lower))
     }
 
+    /// Transforms [`crate::bit_io::ReadError`] to [`io::Error`] by zeroing the byte on EOF
     #[inline]
     fn zero(res: Result<u8, ReadError>) -> io::Result<u8> {
         match res {
@@ -48,14 +50,16 @@ impl<R: Read> ACReader<R> {
 
 pub struct ACWriter<W> {
     bit_writer: BitWriter<W>,
-    rev_bits: u64
+    rev_bits: u64 // it is theoretically possible that the whole stream uses E3 mapping
 }
 
 impl <W: Write> ACWriter<W> {
+    /// Creates a new `ACWriter` from a `Write` instance
     pub fn new(inner: W) -> Self {
         Self { bit_writer: BitWriter::new(inner), rev_bits: 0 }
     }
 
+    /// Writes a bit and mantains E3 mapping logic
     pub fn write_bit<T>(&mut self, possib_bit: T) -> io::Result<()>
     where T: TryInto<u8>, T::Error: Debug {
         let bit = possib_bit.try_into().expect("Provided value wasn't a valid bit");
@@ -70,11 +74,13 @@ impl <W: Write> ACWriter<W> {
         Ok(())
     }
 
+    /// Increases the number of reverse bits to write (called on E3 mapping)
     #[inline(always)]
     pub fn inc_parity(&mut self) {
         self.rev_bits += 1;
     }
 
+    /// Flushes the internal `Write` instance and pads with bits from the state if necessary
     pub fn flush(&mut self, mut x: u32) -> io::Result<()> {
         loop {
             self.write_bit(x >> (u32::BITS - 1))?;

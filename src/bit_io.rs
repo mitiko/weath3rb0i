@@ -20,8 +20,12 @@ use std::io::{Read, Write, ErrorKind, self};
 use self::bit_helpers::BitQueue;
 pub use bit_helpers::NibbleRead;
 
+/// The error type for bit read IO operations
+#[derive(Debug)]
 pub enum ReadError {
+    /// End of file error (usually asssume 0s after receiving)
     Eof,
+    /// Other `std::io` errors of kind [`std::io::ErrorKind`]
     Other(ErrorKind)
 }
 
@@ -34,9 +38,12 @@ impl From<io::Error> for ReadError {
     }
 }
 
+/// The error type for bit write IO operations
 #[derive(Debug)]
 pub enum WriteError {
+    /// Tried to flush the writer but the bit queue wasn't full yet (not 8-bit aligned)
     NonemptyBitQueueOnFlush,
+    /// Other `std::io` errors of kind [`std::io::ErrorKind`]
     Other(ErrorKind)
 }
 
@@ -239,7 +246,7 @@ mod bit_helpers {
         }
     }
 
-    /// An iterator over the nibbles of u8 values of a Read instance
+    /// An `Iterator` over the nibbles of `u8` values of a `Read` instance
     pub struct Nibbles<R> {
         bytes: Bytes<R>,
         nib_buf: Option<u8>
@@ -263,7 +270,9 @@ mod bit_helpers {
         }
     }
 
+    /// The `NibbleRead` trait allows reading nibbles from a [`std::io::Read`] instance
     pub trait NibbleRead<R: Read> {
+        /// Transforms this `Read` instance to an `Iterator` over the nibbles of it's `u8` values
         fn nibbles(self) -> Nibbles<R>; 
     }
 

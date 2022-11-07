@@ -7,6 +7,7 @@ use std::io;
 
 mod ac_io;
 pub mod ac32;
+pub use ac32 as arithmetic_coding;
 
 pub trait ACEncoder {
     fn encode(&mut self, bit: u8, prob: u16) -> io::Result<()>;
