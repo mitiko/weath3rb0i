@@ -47,7 +47,7 @@ impl SharedCtx for SmartCtx {
         }
     }
 
-    /// Do not use update and `update4` interchangably
+    /// Do not use `update` and `update4` interchangably
     /// `update4` should have the same effect as update executed on the bits of the nibble
     /// but `update4` is an encode only optimization, while `update` is for the decoder
     #[cfg(feature = "nib-ops")]

@@ -8,26 +8,27 @@ use std::io::{Read, Write, self};
 use super::{ACEncoder, ACDecoder};
 use super::ac_io::{ACReader, ACWriter};
 
-const PRECISION:  u32 = u32::BITS;            // 32
-const PREC_SHIFT: u32 = PRECISION - 1;        // 31
-const Q1:   u32 = 1 << (PRECISION - 2);       // 0x40000000, 1 = 0b01, quarter 1
-const RMID: u32 = 2 << (PRECISION - 2);       // 0x80000000, 2 = 0b10, range mid
-const Q3:   u32 = 3 << (PRECISION - 2);       // 0xC0000000, 3 = 0b11, quarter 3
-const RLOW_MOD:  u32 = (1 << PREC_SHIFT) - 1; // 0x7FFFFFFF, range low modifier, AND with -> sets high bit to 0, keeps low bit (to 0 after shift)
-const RHIGH_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, range high modifier, OR with -> sets high bit to 1, sets low bit to 1
+const PRECISION:  u32 = u64::BITS - u16::BITS; // 48
+const PREC_SHIFT: u32 = PRECISION - 1;         // 47
+const Q1:   u64 = 1 << (PRECISION - 2);        // 0x40000000..., 1 = 0b01, quarter 1
+const RMID: u64 = 2 << (PRECISION - 2);        // 0x80000000..., 2 = 0b10, range mid
+const Q3:   u64 = 3 << (PRECISION - 2);        // 0xC0000000..., 3 = 0b11, quarter 3
+const RLOW_MOD:  u64 = (1 << PREC_SHIFT) - 1;  // 0x7FFFFFFF..., range low modifier, AND with -> sets high bit to 0, keeps low bit (to 0 after shift)
+const RHIGH_MOD: u64 = (1 << PREC_SHIFT) + 1;  // 0x8000000...1, range high modifier, OR with -> sets high bit to 1, sets low bit to 1
+const RNORM:     u64 = (1 << PRECISION)  - 1;  // 0xFFFFFFFF..., normalizes range to 48 bits
 
 /// The `ArithmeticCoder` compresses bits given a probability and writes fractional bits to an internal `Write` instance
 /// See https://en.wikipedia.org/wiki/Arithmetic_coding
 pub struct ArithmeticCoder<W> {
-    x1: u32, // low
-    x2: u32, // high
+    x1: u64, // low
+    x2: u64, // high
     io: ACWriter<W>
 }
 
 impl<W: Write> ArithmeticCoder<W> {
     /// Initializes a new `ArithmeticCoder`
     pub fn new(writer: W) -> Self {
-        Self { io: ACWriter::new(writer), x1: 0, x2: u32::MAX }
+        Self { io: ACWriter::new(writer), x1: 0, x2: u64::MAX & RNORM }
     }
 
     /// Encodes 4-bits (a nibble) at once. This method is available when the "nib-ops" feature is enabled
@@ -56,15 +57,15 @@ impl<W: Write> ACEncoder for ArithmeticCoder<W> {
         // Renormalize range -> write matching bits to stream
         while ((self.x1 ^ self.x2) >> PREC_SHIFT) == 0 {
             self.io.write_bit(self.x1 >> PREC_SHIFT)?;
-            self.x1 <<= 1;
-            self.x2 = (self.x2 << 1) | 1;
+            self.x1 = (self.x1 << 1) & RNORM;
+            self.x2 = ((self.x2 << 1) | 1) & RNORM;
         }
         
         // E3 renorm (special case) -> increase parity bits but don't write anything to stream
         while self.x1 >= Q1 && self.x2 < Q3 {
             self.io.inc_parity();
-            self.x1 = (self.x1 << 1) & RLOW_MOD;
-            self.x2 = (self.x2 << 1) | RHIGH_MOD;
+            self.x1 = ((self.x1 << 1) & RLOW_MOD) & RNORM;
+            self.x2 = ((self.x2 << 1) | RHIGH_MOD) & RNORM;
         }
 
         Ok(())
@@ -79,9 +80,9 @@ impl<W: Write> ACEncoder for ArithmeticCoder<W> {
 /// The `ArithmeticDecoder` decodes compressed fractional bits with probability from a `Read` instance and outputs bits
 /// See https://en.wikipedia.org/wiki/Arithmetic_coding
 pub struct ArithmeticDecoder<R> {
-    x1: u32, // low
-    x2: u32, // range
-    x:  u32, // state
+    x1: u64, // low
+    x2: u64, // range
+    x:  u64, // state
     io: ACReader<R>
 }
 
@@ -89,8 +90,8 @@ impl<R: Read> ArithmeticDecoder<R> {
     /// Initializes a new `ArithmeticDecoder`
     pub fn new(reader: R) -> io::Result<Self> {
         let mut io = ACReader::new(reader);
-        let x = io.read_u32()?;
-        Ok(Self { io, x, x1: 0, x2: u32::MAX })
+        let x = io.read_u48()?;
+        Ok(Self { io, x, x1: 0, x2: u64::MAX & RNORM })
     }
 }
 
@@ -108,16 +109,16 @@ impl<R: Read> ACDecoder for ArithmeticDecoder<R> {
 
         // Renormalize range -> write matching bits to stream
         while ((self.x1 ^ self.x2) >> PREC_SHIFT) == 0 {
-            self.x1 <<= 1;
-            self.x2 = (self.x2 << 1) | 1;
-            self.x = (self.x << 1) | u32::from(self.io.read_bit()?);
+            self.x1 = (self.x1 << 1) & RNORM;
+            self.x2 = ((self.x2 << 1) | 1) & RNORM;
+            self.x = ((self.x << 1) | u64::from(self.io.read_bit()?)) & RNORM;
         }
 
         // E3 renorm (special case) -> increase parity bits but don't write anything to stream
         while self.x1 >= Q1 && self.x2 < Q3 {
-            self.x1 = (self.x1 << 1) & RLOW_MOD;
-            self.x2 = (self.x2 << 1) | RHIGH_MOD;
-            self.x = ((self.x << 1) ^ RMID) | u32::from(self.io.read_bit()?);
+            self.x1 = ((self.x1 << 1) & RLOW_MOD) & RNORM;
+            self.x2 = ((self.x2 << 1) | RHIGH_MOD) & RNORM;
+            self.x = (((self.x << 1) ^ RMID) | u64::from(self.io.read_bit()?)) & RNORM;
         }
 
         Ok(bit)
@@ -125,15 +126,13 @@ impl<R: Read> ACDecoder for ArithmeticDecoder<R> {
 }
 
 #[inline(always)]
-fn lerp(x1: u32, x2: u32, prob: u16) -> u32 {
-    const P_SHIFT: u32 = u32::BITS - u16::BITS; // scale 16-bit "float" to 32-bit "float"
-    const RANGE_SHIFT: u32 = P_SHIFT + u16::BITS; // scale p back to 16-bit "float", and apply the division (by 2^16)
-    let mut p = u64::from(prob) << P_SHIFT;
+fn lerp(x1: u64, x2: u64, prob: u16) -> u64 {
+    let mut p = u64::from(prob);
     if p == 0 { p = 1; }
 
-    let range = u64::from(x2 - x1);
-    let lerped_range = (range * p) >> RANGE_SHIFT;
-    let xmid = x1 + u32::try_from(lerped_range).unwrap(); // should never fail, as both range and p < 2^32
+    let range = x2 - x1;
+    let lerped_range = (range * p) >> u16::BITS; // should never overflow, as range < 2^48 and p < 2^16 => range * p < 2^64
+    let xmid = x1 + lerped_range;
     debug_assert!(xmid >= x1 && xmid < x2);
     xmid
 }

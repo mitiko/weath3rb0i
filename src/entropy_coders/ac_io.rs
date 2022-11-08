@@ -30,6 +30,16 @@ impl<R: Read> ACReader<R> {
         Ok(u32::from_be_bytes(bytes))
     }
 
+    pub fn read_u48(&mut self) -> io::Result<u64> {
+        let upper = self.read_u32()?;
+        let lower_bytes = [
+            Self::zero(self.bit_reader.read_byte())?,
+            Self::zero(self.bit_reader.read_byte())?
+        ];
+        let lower = u16::from_be_bytes(lower_bytes);
+        Ok((u64::from(upper) << u16::BITS) | u64::from(lower))
+    }
+
     /// Read 8 bytes BE as u64 and pad with 0s if EOF
     pub fn read_u64(&mut self) -> io::Result<u64> {
         let upper = self.read_u32()?;
@@ -75,15 +85,16 @@ impl <W: Write> ACWriter<W> {
     }
 
     /// Increases the number of reverse bits to write (called on E3 mapping)
-    #[inline(always)]
     pub fn inc_parity(&mut self) {
         self.rev_bits += 1;
     }
 
     /// Flushes the internal `Write` instance and pads with bits from the state if necessary
-    pub fn flush(&mut self, mut x: u32) -> io::Result<()> {
+    pub fn flush<T>(&mut self, possib_64: T, shift: u32) -> io::Result<()>
+    where T: TryInto<u64>, T::Error: Debug {
+        let mut x: u64 = possib_64.try_into().expect("Provided value doesn't fit in 64-bits");
         loop {
-            self.write_bit(x >> (u32::BITS - 1))?;
+            self.write_bit((x >> shift) & 1)?;
             x <<= 1;
             if self.rev_bits > 0 { continue; } // TODO: we could probably do without this line
             match self.bit_writer.flush() {
