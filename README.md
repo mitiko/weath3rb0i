@@ -1,41 +1,15 @@
-# weath3rb0i - a lightweight-ish CM compressor
+# weath3rb0i - lightweight CM text compressor
 
-<code>// TODO: general info about the compressor. </code>
+weath3rb0i is a CM single-file text compressor aimed at delivering high compression ratios
+with novel modeling approaches.
 
-## Architecture
-
-> The Predictor is Models + Mixer.
-
-The idea here is that the predictor shouldn't be tied to the specific implementations of models or a mixer and just operate on the interfaces they provide (the traits they implement).
-
-> A Model is stats + context.
-
-Each model has its own seperate statistics _"database"_ and a context to _query_ it.
-
-Bigger prefix models may use a shared hashtable in the future.
-
-## Prediction vs Updates + Asymmetric operation
-
-Inspired by the hashtable implementation, models have 2 seperate interfaces for encoding and decoding.
-
-When compressing we can take advantage of the fact that the next bits are known and get 4 predictions for the cost of 1.  
-On decompression we also group stats into nibble trees (and the memory call cost is the same) but there's a dependency on the bits.
-
-Basically predictions are bitwise but updates are nibblewise. On decoding we emulate nibblewise updates by 4 bitwise updates with no extra memory calls.
-
-## Future
-
-v1.0 will feature:
-- bitwise entropy coding (ABS?) with nibblewise context updates on encoding
-- 16-bit predictions
-- a 12-bit (input) state table
-- a 96 byte (spanning 2 consecutive cache lines) cell hashmap for cache-line optimization
+The goal for v1.0:
+- 12-bit state table
 - written in 100% safe rust
-- ability to outsource collected stats to a better NN for testing (and parameter tuning)
+- output stats from contexts for use by external neural nets
 - APM mixers
 
 Wishing to futher experiment with:
 - entropy based hashing
-- asymmetric compression (not just ANS)
-- MT
 - CM parsing optimization
+- MT
