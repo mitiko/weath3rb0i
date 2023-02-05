@@ -4,10 +4,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-// TODO: #![deny(missing_docs)] on all submodules
-
-pub mod arithmetic_coder;
-pub mod bit_io;
+pub mod entropy_coding;
 pub mod models;
 
 mod hashmap;

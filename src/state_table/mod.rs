@@ -36,7 +36,7 @@ macro_rules! impl_state_table_from {
             fn next(state: u16, bit: u8) -> u16 {
                 $table[usize::from(state)].next[usize::from(bit)]
             }
-        
+
             fn p(state: u16) -> u16 {
                 $table[usize::from(state)].prob
             }

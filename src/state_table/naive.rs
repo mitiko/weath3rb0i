@@ -32,7 +32,7 @@ const fn gen_table() -> [StateEntry; SIZE] {
 
     // Get auxiliary table
     let at = gen_auxiliary_table();
-    
+
     // Connect nodes as the auxiliary dictates
     let mut i = 0;
     while i < SUBTABLE_SIZE {
@@ -66,13 +66,13 @@ const fn gen_auxiliary_table() -> [StateEntry; SUBTABLE_SIZE] {
             at[filled + node] = StateEntry::new(prob, next);
             node += 1;
         }
-        
+
         filled += level;
         level += 1;
     }
     // TODO: Hmm, why doesn't the debug_assert_eq macro work in const?
     // Print auxiliary table as nodes?
-    
+
     at
 }
 
