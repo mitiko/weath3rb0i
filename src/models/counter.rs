@@ -10,16 +10,15 @@ impl Counter {
     pub fn p(&self) -> u16 {
         let c0 = self.data[0] as u64;
         let c1 = self.data[1] as u64;
-        let p = (1 << 16) * (c1 + 1) / (c0 + c1 + 2);
-        // TODO: Remove 'as' statements, bc they're evil
-        p as u16
+        let p = (1 << 17) * (c1 + 1) / (c0 + c1 + 2);
+        u16::try_from((p >> 1) + (p & 1)).unwrap() // rounding
     }
 
     pub fn update(&mut self, bit: u8) {
         self.data[bit as usize] += 1;
         if self.data[bit as usize] == u16::MAX {
-            self.data[0] >>= 1;
-            self.data[1] >>= 1;
+            self.data[0] = (self.data[0] >> 1) + (self.data[0] & 1);
+            self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
         }
     }
 }
