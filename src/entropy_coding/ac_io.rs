@@ -59,13 +59,13 @@ impl<R: Read> ACRead for ACReader<R> {
             if self.mask == 1 { // last bit
                 self.buf = None;
             }
-            return Ok(val & self.mask);
+            return Ok((val & self.mask > 0).into());
         }
 
         self.read_byte().map(|byte| {
             self.buf = Some(byte);
             self.mask = 1 << 7;
-            byte & self.mask
+            (byte & self.mask > 0).into()
         }).zero_eof()
     }
 
@@ -125,18 +125,12 @@ impl<W: Write> ACWrite for ACWriter<W> {
     }
 
     fn flush(&mut self, mut state: u32) -> io::Result<()> {
-        // while self.idx != 8 { // ensures we write at least one bit
-        loop {
-            // let bit = u8::try_from(state >> 31).unwrap();
-            // state <<= 1;
-            // self.buf = (self.buf << 1) | bit;
-            // self.idx += 1;
+        loop { // ensure we write at least one bit
             self.write_bit(state >> 31)?;
             state <<= 1;
             if self.idx == 0 { break; }
         }
 
-        // self.inner.write_all(&[self.buf])?;
         self.inner.flush()?;
         Ok(())
     }
