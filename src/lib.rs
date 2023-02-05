@@ -4,12 +4,7 @@
 #![allow(dead_code)]
 #![allow(unused_imports)]
 
-// TODO: #![deny(missing_docs)] on all submodules
-
-// TODO: make this private, then reexport the correct ac implementation from the config
-pub mod entropy_coders;
-
-pub mod bit_io;
+pub mod entropy_coding;
 pub mod models;
 
 mod hashmap;

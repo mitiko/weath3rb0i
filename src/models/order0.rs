@@ -21,7 +21,6 @@ impl Model<SmartCtx> for Order0 {
         self.stats[ctx.get(MASK)].update(bit);
     }
 
-    #[cfg(feature = "nib-ops")]
     fn predict4(&self, ctx: &SmartCtx, nib: u8) -> [u16; 4] {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         [
@@ -32,7 +31,6 @@ impl Model<SmartCtx> for Order0 {
         ]
     }
 
-    #[cfg(feature = "nib-ops")]
     fn update4(&mut self, ctx: &SmartCtx, nib: u8) {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
         self.stats[idx1].update(nib >> 3);
