@@ -1,12 +1,12 @@
 pub struct NibTree {
     /// Bit id in nibble 0-3
     pub bit_id: u8,
-    ctx_cache: u8
+    pub cache: u8
 }
 
 impl NibTree {
     pub fn new() -> Self {
-        Self { bit_id: 0, ctx_cache: 0 }
+        Self { bit_id: 0, cache: 0 }
     }
 
     pub fn get4(&self, nib: u8) -> [usize; 4] {[
@@ -17,12 +17,12 @@ impl NibTree {
     ]}
 
     pub fn get(&self) -> usize {
-        usize::from((1u8 << self.bit_id) - 1 + self.ctx_cache)
+        usize::from((1u8 << self.bit_id) - 1 + self.cache)
     }
 
     pub fn update(&mut self, bit: u8) {
-        self.ctx_cache = (self.ctx_cache << 1) | bit;
+        self.cache = (self.cache << 1) | bit;
         self.bit_id = (self.bit_id + 1) & 3;
-        if self.bit_id == 0 { self.ctx_cache = 0; }
+        if self.bit_id == 0 { self.cache = 0; }
     }
 }

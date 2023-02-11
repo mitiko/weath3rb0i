@@ -4,21 +4,17 @@ pub struct Order0 {
     stats: [[Counter; 15]; 512],
     nt: NibTree,
     ctx: u16,
-    vbit: u16,
-    bits: u16
 }
 
 impl Order0 {
     pub fn new() -> Self {
         Self {
-            stats: [[Counter::new(); 15]; 512],
-            nt: NibTree::new(),
-            ctx: 0, vbit: 0, bits: 0
+            stats: [[Counter::new(); 15]; 512], nt: NibTree::new(), ctx: 0
         }
     }
 }
 
-const MASK: u16 = (1 << 9) - 1; // takes last 9 bits
+const MASK5: u16 = 15 << 5;  // takes 4 bits and sets last 5 to 0
 
 impl Model4 for Order0 {
     fn predict4(&self, nib: u8) -> [u16; 4] {
@@ -28,15 +24,12 @@ impl Model4 for Order0 {
 
     fn update4(&mut self, nib: u8) {
         let ctx = usize::from(self.ctx);
-        let [idx1, idx2, idx3, idx4] = self.nt.get4(nib);
-        self.stats[ctx][idx1].update(nib >> 3);
-        self.stats[ctx][idx2].update((nib >> 2) & 1);
-        self.stats[ctx][idx3].update((nib >> 1) & 1);
-        self.stats[ctx][idx4].update(nib & 1);
+        self.nt.get4(nib).into_iter()
+            .zip([nib >> 3, (nib >> 2) & 1, (nib >> 1) & 1, nib & 1])
+            .for_each(|(idx, bit)| self.stats[ctx][idx].update(bit));
 
-        self.vbit ^= 1;
-        self.bits = (self.bits << 4) | u16::from(nib);
-        self.ctx = MASK & (self.bits << 1) | self.vbit;
+        let vbit = (self.ctx & 1) ^ 1;
+        self.ctx = ((self.ctx << 4) & MASK5) | u16::from(nib << 1) | vbit;
     }
 }
 
@@ -51,12 +44,13 @@ impl Model for Order0 {
         let ctx = usize::from(self.ctx);
         let idx = self.nt.get();
         self.stats[ctx][idx].update(bit);
-        self.nt.update(bit);
 
-        self.bits = (self.bits << 1) | u16::from(bit);
-        if self.nt.bit_id == 0 {
-            self.vbit ^= 1;
-            self.ctx = MASK & (self.bits << 1) | self.vbit;
+        // if it's the last bit of the nibble, we need to use the bit cache..
+        if self.nt.bit_id == 3 {
+            let nib = (self.nt.cache << 1) | bit;
+            let vbit = (self.ctx & 1) ^ 1;
+            self.ctx = ((self.ctx << 4) & MASK5) | u16::from(nib << 1) | vbit;
         }
+        self.nt.update(bit);
     }
 }
