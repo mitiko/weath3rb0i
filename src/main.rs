@@ -3,7 +3,7 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-use weath3rb0i::models::{Model, SmartCtx, SharedCtx};
+use weath3rb0i::models::{Model, Model4, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable;
 use weath3rb0i::entropy_coding::{ArithmeticCoder, ac_io::{ACWriter, ACReader}};
 
@@ -100,11 +100,10 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut ctx = SmartCtx::new();
     let mut model = init_model();
 
-    for byte in reader.bytes() {
-        let byte = byte?;
+    for byte in reader.bytes().map(|byte| byte.unwrap()) {
         for nib in [byte >> 4, byte & 15] {
-            let p4 = model.predict4(&ctx, nib);
-            model.update4(&ctx, nib);
+            let p4 = model.predict4(nib);
+            model.update4(nib);
             ctx.update4(nib);
             ac.encode4(nib, p4)?;
         }
@@ -133,9 +132,9 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     for _ in 0..len {
         let mut byte = 0;
         for _ in 0..u8::BITS {
-            let p = model.predict(&ctx);
+            let p = model.predict();
             let bit = ac.decode(p)?;
-            model.update(&ctx, bit);
+            model.update(bit);
             ctx.update(bit);
             byte = (byte << 1) | bit;
         }
@@ -146,15 +145,15 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     Ok(())
 }
 
-// use weath3rb0i::models::Order0;
-// fn init_model() -> Order0 {
-//     Order0::init()
-// }
-
-use weath3rb0i::models::TinyOrder0;
-fn init_model() -> TinyOrder0 {
-    TinyOrder0::init()
+use weath3rb0i::models::Order0;
+fn init_model() -> Order0 {
+    Order0::new()
 }
+
+// use weath3rb0i::models::TinyOrder0;
+// fn init_model() -> TinyOrder0 {
+//     TinyOrder0::init()
+// }
 
 fn print_usage_and_exit(msg: &str) {
     println!("Usage: weath3rb0i <Action> <Path>");

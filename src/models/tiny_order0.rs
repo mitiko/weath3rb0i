@@ -1,4 +1,4 @@
-use super::{Model, SharedCtx, SmartCtx, counter::Counter};
+use super::{SharedModel, SharedCtx, SmartCtx, counter::Counter};
 use super::{StateTable, naive::NaiveStateTable};
 
 pub struct TinyOrder0 {
@@ -13,7 +13,7 @@ impl TinyOrder0 {
 
 const MASK: u64 = u8::MAX as u64;
 
-impl Model<SmartCtx> for TinyOrder0 {
+impl SharedModel<SmartCtx> for TinyOrder0 {
     fn predict(&self, ctx: &SmartCtx) -> u16 {
         let state = self.stats[ctx.get(MASK)];
         NaiveStateTable::p(state)

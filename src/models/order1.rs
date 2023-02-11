@@ -1,4 +1,4 @@
-use super::{Model, SharedCtx, SmartCtx, counter::Counter};
+use super::{SharedModel, SharedCtx, SmartCtx, counter::Counter};
 
 pub struct Order1 {
     stats: [[Counter; 15]; 1 << 16]
@@ -12,7 +12,7 @@ impl Order1 {
 
 const MASK: u64 = u16::MAX as u64;
 
-impl Model<SmartCtx> for Order1 {
+impl SharedModel<SmartCtx> for Order1 {
     fn predict(&self, ctx: &SmartCtx) -> u16 {
         self.stats[ctx.get(MASK)].p()
     }
