@@ -6,17 +6,16 @@ pub struct Counter {
 impl Counter {
     pub fn new() -> Self { Self { data: [0; 2] } }
 
-    // TODO: check if not borrowing self (as suggested by clippy) is any beneficial
     pub fn p(&self) -> u16 {
-        let c0 = self.data[0] as u64;
-        let c1 = self.data[1] as u64;
+        let c0 = u64::from(self.data[0]);
+        let c1 = u64::from(self.data[1]);
         let p = (1 << 17) * (c1 + 1) / (c0 + c1 + 2);
         u16::try_from((p >> 1) + (p & 1)).unwrap() // rounding
     }
 
     pub fn update(&mut self, bit: u8) {
-        self.data[bit as usize] += 1;
-        if self.data[bit as usize] == u16::MAX {
+        self.data[usize::from(bit)] += 1;
+        if self.data[usize::from(bit)] == u16::MAX {
             self.data[0] = (self.data[0] >> 1) + (self.data[0] & 1);
             self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
         }

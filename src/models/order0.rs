@@ -1,4 +1,4 @@
-use super::{counter::Counter, nib_tree::NibTree, Model, Model4};
+use super::{Model, Model4, counter::Counter, nib_tree::NibTree};
 
 pub struct Order0 {
     stats: [[Counter; 15]; 512],
@@ -8,13 +8,12 @@ pub struct Order0 {
 
 impl Order0 {
     pub fn new() -> Self {
-        Self {
-            stats: [[Counter::new(); 15]; 512], nt: NibTree::new(), ctx: 0
-        }
+        Self { stats: [[Counter::new(); 15]; 512], nt: NibTree::new(), ctx: 0 }
     }
 }
 
-const MASK5: u16 = 15 << 5;  // takes 4 bits and sets last 5 to 0
+// mask the first nibble and discard last 5 lsb
+const MASK: u16 = (1 << 9) - (1 << 5);
 
 impl Model4 for Order0 {
     fn predict4(&self, nib: u8) -> [u16; 4] {
@@ -29,7 +28,7 @@ impl Model4 for Order0 {
             .for_each(|(idx, bit)| self.stats[ctx][idx].update(bit));
 
         let vbit = (self.ctx & 1) ^ 1;
-        self.ctx = ((self.ctx << 4) & MASK5) | u16::from(nib << 1) | vbit;
+        self.ctx = ((self.ctx << 4) & MASK) | u16::from(nib << 1) | vbit;
     }
 }
 
@@ -46,11 +45,9 @@ impl Model for Order0 {
         self.stats[ctx][idx].update(bit);
 
         // if it's the last bit of the nibble, we need to use the bit cache..
-        if self.nt.bit_id == 3 {
-            let nib = (self.nt.cache << 1) | bit;
+        if let Some(nib) = self.nt.update(bit) {
             let vbit = (self.ctx & 1) ^ 1;
-            self.ctx = ((self.ctx << 4) & MASK5) | u16::from(nib << 1) | vbit;
+            self.ctx = ((self.ctx << 4) & MASK) | u16::from(nib << 1) | vbit;
         }
-        self.nt.update(bit);
     }
 }
