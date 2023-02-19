@@ -3,9 +3,9 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-use weath3rb0i::models::{Model, Model4, SmartCtx, SharedCtx};
-use weath3rb0i::debug_unreachable;
-use weath3rb0i::entropy_coding::{ArithmeticCoder, ac_io::{ACWriter, ACReader}};
+use weath3rb0i::*;
+use models::{Model, Model4};
+use entropy_coding::{ArithmeticCoder, ac_io::{ACWriter, ACReader}};
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
@@ -97,14 +97,12 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         BufReader::new(f)
     };
     let mut ac = ArithmeticCoder::<_>::new_coder(ACWriter::new(writer));
-    let mut ctx = SmartCtx::new();
     let mut model = init_model();
 
     for byte in reader.bytes().map(|byte| byte.unwrap()) {
         for nib in [byte >> 4, byte & 15] {
             let p4 = model.predict4(nib);
             model.update4(nib);
-            ctx.update4(nib);
             ac.encode4(nib, p4)?;
         }
     }
@@ -126,7 +124,6 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
     let mut ac = ArithmeticCoder::<_>::new_decoder(ACReader::new(reader))?;
-    let mut ctx = SmartCtx::new();
     let mut model = init_model();
 
     for _ in 0..len {
@@ -135,7 +132,6 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
             let p = model.predict();
             let bit = ac.decode(p)?;
             model.update(bit);
-            ctx.update(bit);
             byte = (byte << 1) | bit;
         }
         writer.write_all(&[byte])?;
@@ -145,15 +141,15 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     Ok(())
 }
 
-use weath3rb0i::models::Order0;
-fn init_model() -> Order0 {
-    Order0::new()
-}
-
-// use weath3rb0i::models::TinyOrder0;
-// fn init_model() -> TinyOrder0 {
-//     TinyOrder0::init()
+// use models::Order0;
+// fn init_model() -> Order0 {
+//     Order0::new()
 // }
+
+use models::RecordModel;
+fn init_model() -> RecordModel {
+    RecordModel::new()
+}
 
 fn print_usage_and_exit(msg: &str) {
     println!("Usage: weath3rb0i <Action> <Path>");
