@@ -141,14 +141,9 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     Ok(())
 }
 
-// use models::Order0;
-// fn init_model() -> Order0 {
-//     Order0::new()
-// }
-
-use models::RecordModel;
-fn init_model() -> RecordModel {
-    RecordModel::new()
+fn init_model() -> impl Model4 {
+    // Order0::new()
+    models::CompoundModel::new()
 }
 
 fn print_usage_and_exit(msg: &str) {

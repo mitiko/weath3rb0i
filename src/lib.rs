@@ -7,9 +7,9 @@
 pub mod entropy_coding;
 pub mod models;
 pub mod counters;
+pub mod mixers;
 
 mod hashmap;
-mod mixer;
 mod state_table;
 
 pub use debug_unreachable::debug_unreachable;

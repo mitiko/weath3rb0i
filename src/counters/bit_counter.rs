@@ -10,7 +10,7 @@ impl Counter for BitCounter {}
 impl Model for BitCounter {
     fn new() -> Self { Self { data: [0; 2] } }
 
-    fn predict(&self) -> u16 {
+    fn predict(&mut self) -> u16 {
         let c0 = u64::from(self.data[0]);
         let c1 = u64::from(self.data[1]);
         let p = (1 << 17) * (c1 + 1) / (c0 + c1 + 2);
