@@ -18,30 +18,46 @@ pub trait Model4 : Model {
 pub struct CompoundModel {
     model_a: Order0,
     model_b: RecordModel,
-    mixer: InterpolatedMixer2
+    mixers: [[InterpolatedMixer2; 15]; 512],
+    ctx: u16, nt: NibTree
 }
 
 use crate::mixers::Mixer;
 use crate::mixers::InterpolatedMixer2;
+use self::nib_tree::NibTree;
+
 impl Model for CompoundModel {
     fn new() -> Self {
         Self {
             model_a: Order0::new(),
             model_b: RecordModel::new(),
-            mixer: InterpolatedMixer2::new()
+            mixers: [[InterpolatedMixer2::new(); 15]; 512],
+            ctx: 0, nt: NibTree::new()
         }
     }
 
     fn predict(&mut self) -> u16 {
         let pa = self.model_a.predict();
         let pb = self.model_b.predict();
-        self.mixer.mix(pa, pb)
+
+        let ctx = usize::from(self.ctx);
+        let idx = self.nt.get();
+        self.mixers[ctx][idx].mix(pa, pb)
     }
 
     fn update(&mut self, bit: u8) {
-        self.mixer.update(bit);
         self.model_a.update(bit);
         self.model_b.update(bit);
+
+        const MASK: u16 = (1 << 9) - (1 << 5);
+        let ctx = usize::from(self.ctx);
+        let idx = self.nt.get();
+        self.mixers[ctx][idx].update(bit);
+
+        if let Some(nib) = self.nt.update(bit) {
+            let vbit = (self.ctx & 1) ^ 1;
+            self.ctx = ((self.ctx << 4) & MASK) | u16::from(nib << 1) | vbit;
+        }
     }
 }
 
@@ -49,20 +65,23 @@ impl Model4 for CompoundModel {
     fn predict4(&mut self, nib: u8) -> [u16; 4] {
         let pa = self.model_a.predict4(nib);
         let pb = self.model_b.predict4(nib);
-        let mut res = [0; 4];
-        res[0] = self.mixer.mix(pa[0], pb[0]);
-        self.mixer.update(nib >> 3);
-        res[1] = self.mixer.mix(pa[1], pb[1]);
-        self.mixer.update((nib >> 2) & 1);
-        res[2] = self.mixer.mix(pa[2], pb[2]);
-        self.mixer.update((nib >> 1) & 1);
-        res[3] = self.mixer.mix(pa[3], pb[3]);
-        self.mixer.update(nib & 1);
-        res
+
+        let ctx = usize::from(self.ctx);
+        let idxs = self.nt.get4(nib);
+        [0, 1, 2, 3].map(|i| self.mixers[ctx][idxs[i]].mix(pa[i], pb[i]))
     }
 
     fn update4(&mut self, nib: u8) {
         self.model_a.update4(nib);
         self.model_b.update4(nib);
+
+        const MASK: u16 = (1 << 9) - (1 << 5);
+        let ctx = usize::from(self.ctx);
+        self.nt.get4(nib).into_iter()
+            .zip([nib >> 3, (nib >> 2) & 1, (nib >> 1) & 1, nib & 1])
+            .for_each(|(idx, bit)| self.mixers[ctx][idx].update(bit));
+
+        let vbit = (self.ctx & 1) ^ 1;
+        self.ctx = ((self.ctx << 4) & MASK) | u16::from(nib << 1) | vbit;
     }
 }
