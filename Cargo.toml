@@ -3,14 +3,13 @@ name = "weath3rb0i"
 version = "0.1.0"
 edition = "2021"
 authors = ["Dimitar Rusev <mitikodev@gmail.com>"]
-description = "A lightweight-ish CM text compressor"
-repository = "https://github.com/Mitiko/weath3rb0i/"
+description = "CM text compressor"
+repository = "https://github.com/mitiko/weath3rb0i/"
 license = "GPL-3.0"
 keywords = ["compressor", "context_mixing"]
 categories = ["compression"]
 
 [dependencies]
-fastrand = "1.8.0" # To be removed, used only by the PoC state table implementation (the one in paq8)
 debug_unreachable = "0.1"
 
 [profile.dev]
