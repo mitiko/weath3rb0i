@@ -3,9 +3,12 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-use weath3rb0i::models::{Model, Model4, SmartCtx, SharedCtx};
 use weath3rb0i::debug_unreachable;
-use weath3rb0i::entropy_coding::{ArithmeticCoder, ac_io::{ACWriter, ACReader}};
+use weath3rb0i::entropy_coding::{
+    ac_io::{ACReader, ACWriter},
+    ArithmeticCoder,
+};
+use weath3rb0i::models::{Model, Model4, SharedCtx, SmartCtx};
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
@@ -14,7 +17,7 @@ const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
 enum Action {
     Compress,
     Decompress,
-    Test
+    Test,
 }
 
 fn main() -> std::io::Result<()> {
@@ -29,7 +32,9 @@ fn main() -> std::io::Result<()> {
         "t" => Action::Test,
         _ => {
             print_usage_and_exit("Unrecognized option -> <action>!");
-            unsafe { debug_unreachable!(); } // we've already panicked
+            unsafe {
+                debug_unreachable!();
+            } // we've already panicked
         }
     };
 
@@ -60,12 +65,11 @@ fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
 
         match action {
             Action::Compress | Action::Test => out_path.set_extension("bin"),
-            Action::Decompress => out_path.set_extension("orig")
+            Action::Decompress => out_path.set_extension("orig"),
         };
 
         out_path
     };
-
 
     let timer = Instant::now();
     match action {

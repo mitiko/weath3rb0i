@@ -1,10 +1,12 @@
 #[derive(Copy, Clone)]
 pub struct Counter {
-    data: [u16; 2]
+    data: [u16; 2],
 }
 
 impl Counter {
-    pub fn new() -> Self { Self { data: [0; 2] } }
+    pub fn new() -> Self {
+        Self { data: [0; 2] }
+    }
 
     pub fn p(&self) -> u16 {
         let c0 = u64::from(self.data[0]);

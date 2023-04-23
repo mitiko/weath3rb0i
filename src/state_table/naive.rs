@@ -1,6 +1,6 @@
 use std::char::MAX;
 
-use super::{StateTable, StateEntry, impl_state_table_from};
+use super::{impl_state_table_from, StateEntry, StateTable};
 
 // TODO: Docs
 // notes are from 22.09.2022
@@ -43,7 +43,7 @@ const fn gen_table() -> [StateEntry; SIZE] {
         t[b_reg + i] = StateEntry::new(p, [c + next[0], d + next[1]]);
         t[c_reg + i] = StateEntry::new(p, [a + next[0], b + next[1]]);
         t[d_reg + i] = StateEntry::new(p, [c + next[0], d + next[1]]);
-        i+=1;
+        i += 1;
     }
 
     t
@@ -88,8 +88,12 @@ const fn get_next_nodes(level: usize, filled: usize, node: usize) -> [u16; 2] {
         let next_node = (next_node_idx + (next_level - 1) * next_level / 2) as u16;
         let mut next = [next_node, next_node];
 
-        if node == 0 { next[0] = curr_node; }
-        if node == level - 1 { next[1] = curr_node; }
+        if node == 0 {
+            next[0] = curr_node;
+        }
+        if node == level - 1 {
+            next[1] = curr_node;
+        }
         return next;
     }
 

@@ -1,7 +1,7 @@
-use super::{SharedModel, SharedCtx, SmartCtx, counter::Counter};
+use super::{counter::Counter, SharedCtx, SharedModel, SmartCtx};
 
 pub struct Order1 {
-    stats: [[Counter; 15]; 1 << 16]
+    stats: [[Counter; 15]; 1 << 16],
 }
 
 impl Order1 {
@@ -27,7 +27,7 @@ impl SharedModel<SmartCtx> for Order1 {
             self.stats[idx1].p(),
             self.stats[idx2].p(),
             self.stats[idx3].p(),
-            self.stats[idx4].p()
+            self.stats[idx4].p(),
         ]
     }
 

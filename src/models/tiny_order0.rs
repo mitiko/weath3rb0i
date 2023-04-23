@@ -1,8 +1,8 @@
-use super::{SharedModel, SharedCtx, SmartCtx, counter::Counter};
-use super::{StateTable, naive::NaiveStateTable};
+use super::{counter::Counter, SharedCtx, SharedModel, SmartCtx};
+use super::{naive::NaiveStateTable, StateTable};
 
 pub struct TinyOrder0 {
-    stats: [[u16; 15]; 256]
+    stats: [[u16; 15]; 256],
 }
 
 impl TinyOrder0 {
@@ -26,12 +26,22 @@ impl SharedModel<SmartCtx> for TinyOrder0 {
 
     fn predict4(&self, ctx: &SmartCtx, nib: u8) -> [u16; 4] {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
-        let states = [self.stats[idx1], self.stats[idx2], self.stats[idx3], self.stats[idx4]];
+        let states = [
+            self.stats[idx1],
+            self.stats[idx2],
+            self.stats[idx3],
+            self.stats[idx4],
+        ];
         NaiveStateTable::p4(states)
     }
     fn update4(&mut self, ctx: &SmartCtx, nib: u8) {
         let [idx1, idx2, idx3, idx4] = ctx.get4(MASK, nib);
-        let states = [self.stats[idx1], self.stats[idx2], self.stats[idx3], self.stats[idx4]];
+        let states = [
+            self.stats[idx1],
+            self.stats[idx2],
+            self.stats[idx3],
+            self.stats[idx4],
+        ];
         let new_states = NaiveStateTable::next4(states, nib);
         self.stats[idx1] = new_states[0];
         self.stats[idx2] = new_states[1];

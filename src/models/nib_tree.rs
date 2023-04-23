@@ -1,11 +1,13 @@
 pub struct NibTree {
     /// Bit id in nibble 0-3
     bit_id: u8,
-    cache: u8
+    cache: u8,
 }
 
 impl NibTree {
-    pub fn new() -> Self { Self { bit_id: 0, cache: 0 } }
+    pub fn new() -> Self {
+        Self { bit_id: 0, cache: 0 }
+    }
 
     pub fn get4(&self, nib: u8) -> [usize; 4] {
         let nib = usize::from(nib);

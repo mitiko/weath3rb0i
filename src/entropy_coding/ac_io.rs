@@ -1,6 +1,6 @@
-use std::io::{self, Read, Write, ErrorKind};
-use core::slice::from_mut as into_slice;
 use core::fmt::Debug;
+use core::slice::from_mut as into_slice;
+use std::io::{self, ErrorKind, Read, Write};
 
 pub trait ACRead {
     fn read_u32(&mut self) -> io::Result<u32>;
@@ -25,8 +25,8 @@ impl<T: Default> ZeroedEofExt<T> for io::Result<T> {
             Ok(val) => Ok(val),
             Err(err) => match err.kind() {
                 ErrorKind::UnexpectedEof => Ok(T::default()),
-                _ => Err(err)
-            }
+                _ => Err(err),
+            },
         }
     }
 }
@@ -34,7 +34,7 @@ impl<T: Default> ZeroedEofExt<T> for io::Result<T> {
 pub struct ACReader<R> {
     inner: R,
     buf: Option<u8>,
-    mask: u8
+    mask: u8,
 }
 
 impl<R: Read> ACReader<R> {
@@ -45,7 +45,8 @@ impl<R: Read> ACReader<R> {
     pub fn read_byte(&mut self) -> io::Result<u8> {
         debug_assert!(self.buf.is_none());
         let mut byte = 0;
-        self.inner.read_exact(into_slice(&mut byte))
+        self.inner
+            .read_exact(into_slice(&mut byte))
             .map(|_| byte)
             .zero_eof()
     }
@@ -56,24 +57,28 @@ impl<R: Read> ACRead for ACReader<R> {
     fn read_bit(&mut self) -> io::Result<u8> {
         if let Some(val) = self.buf {
             self.mask >>= 1;
-            if self.mask == 1 { // last bit
-                self.buf = None;
+            if self.mask == 1 {
+                self.buf = None; // last bit
             }
             return Ok((val & self.mask > 0).into());
         }
 
-        self.read_byte().map(|byte| {
-            self.buf = Some(byte);
-            self.mask = 1 << 7;
-            (byte & self.mask > 0).into()
-        }).zero_eof()
+        self.read_byte()
+            .map(|byte| {
+                self.buf = Some(byte);
+                self.mask = 1 << 7;
+                (byte & self.mask > 0).into()
+            })
+            .zero_eof()
     }
 
     /// Read 4 bytes BE as u32 and pad with 0s if EOF
     fn read_u32(&mut self) -> io::Result<u32> {
         let bytes = [
-            self.read_byte()?, self.read_byte()?,
-            self.read_byte()?, self.read_byte()?
+            self.read_byte()?,
+            self.read_byte()?,
+            self.read_byte()?,
+            self.read_byte()?,
         ];
         Ok(u32::from_be_bytes(bytes))
     }
@@ -83,10 +88,10 @@ pub struct ACWriter<W> {
     inner: W,
     buf: u8,
     idx: u8,
-    rev_bits: u64
+    rev_bits: u64,
 }
 
-impl <W: Write> ACWriter<W> {
+impl<W: Write> ACWriter<W> {
     pub fn new(inner: W) -> Self {
         Self { inner, buf: 0, idx: 0, rev_bits: 0 }
     }
@@ -125,10 +130,13 @@ impl<W: Write> ACWrite for ACWriter<W> {
     }
 
     fn flush(&mut self, mut state: u32) -> io::Result<()> {
-        loop { // ensure we write at least one bit
+        // do-while - ensure we write at least one bit
+        loop {
             self.write_bit(state >> 31)?;
             state <<= 1;
-            if self.idx == 0 { break; }
+            if self.idx == 0 {
+                break;
+            }
         }
 
         self.inner.flush()?;

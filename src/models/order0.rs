@@ -1,4 +1,4 @@
-use super::{Model, Model4, counter::Counter, nib_tree::NibTree};
+use super::{counter::Counter, nib_tree::NibTree, Model, Model4};
 
 pub struct Order0 {
     stats: [[Counter; 15]; 512],
@@ -8,7 +8,11 @@ pub struct Order0 {
 
 impl Order0 {
     pub fn new() -> Self {
-        Self { stats: [[Counter::new(); 15]; 512], nt: NibTree::new(), ctx: 0 }
+        Self {
+            stats: [[Counter::new(); 15]; 512],
+            nt: NibTree::new(),
+            ctx: 0,
+        }
     }
 }
 
@@ -23,7 +27,9 @@ impl Model4 for Order0 {
 
     fn update4(&mut self, nib: u8) {
         let ctx = usize::from(self.ctx);
-        self.nt.get4(nib).into_iter()
+        self.nt
+            .get4(nib)
+            .into_iter()
             .zip([nib >> 3, (nib >> 2) & 1, (nib >> 1) & 1, nib & 1])
             .for_each(|(idx, bit)| self.stats[ctx][idx].update(bit));
 

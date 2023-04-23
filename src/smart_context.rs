@@ -6,7 +6,7 @@ use crate::models::SharedCtx;
 pub struct SmartCtx {
     ctx: u64,
     bit_id: u8,
-    ctx_cache: u8
+    ctx_cache: u8,
 }
 
 impl SmartCtx {
@@ -20,7 +20,9 @@ impl SmartCtx {
 impl SharedCtx for SmartCtx {
     type Idx = SmartCtxIdx;
 
-    fn new() -> Self { Self::default() }
+    fn new() -> Self {
+        Self::default()
+    }
 
     fn get(&self, mask: u64) -> SmartCtxIdx {
         SmartCtxIdx((self.ctx & mask).try_into().unwrap(), self.rel_idx())
@@ -32,7 +34,7 @@ impl SharedCtx for SmartCtx {
             SmartCtxIdx(ctx, 0),
             SmartCtxIdx(ctx, usize::from(1 + (nib >> 3))),
             SmartCtxIdx(ctx, usize::from(3 + (nib >> 2))),
-            SmartCtxIdx(ctx, usize::from(7 + (nib >> 1)))
+            SmartCtxIdx(ctx, usize::from(7 + (nib >> 1))),
         ]
     }
 
@@ -71,4 +73,3 @@ impl<C, const N: usize, const M: usize> IndexMut<SmartCtxIdx> for [[C; M]; N] {
         &mut self[index.0][index.1]
     }
 }
-

@@ -1,15 +1,14 @@
 pub mod ac_io;
-use std::{io::{Read, Write, self}, fmt::LowerExp};
 use self::ac_io::{ACRead, ACReader, ACWrite, ACWriter};
+use std::io::{self, Read, Write};
 
-const PRECISION:  u32 = u32::BITS;            // 32
-const PREC_SHIFT: u32 = PRECISION - 1;        // 31
-const Q1:   u32 = 1 << (PRECISION - 2);       // 0x40000000, 1 = 0b01, quarter 1
-const RMID: u32 = 2 << (PRECISION - 2);       // 0x80000000, 2 = 0b10, range mid
-const Q3:   u32 = 3 << (PRECISION - 2);       // 0xC0000000, 3 = 0b11, quarter 3
-const RLOW_MOD:  u32 = (1 << PREC_SHIFT) - 1; // 0x7FFFFFFF, range low modifier, AND with -> sets high bit to 0, keeps low bit (to 0 after shift)
-const RHIGH_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, range high modifier, OR with -> sets high bit to 1, sets low bit to 1
-
+const PRECISION: u32 = u32::BITS; // 32
+const PREC_SHIFT: u32 = PRECISION - 1; // 31
+const Q1: u32 = 1 << (PRECISION - 2); // 0x40000000, 1 = 0b01, quarter 1
+const Q2: u32 = 2 << (PRECISION - 2); // 0x80000000, 2 = 0b10, range mid
+const Q3: u32 = 3 << (PRECISION - 2); // 0xC0000000, 3 = 0b11, quarter 3
+const RLO_MOD: u32 = (1 << PREC_SHIFT) - 1; // 0x7FFFFFFF, range low modify
+const RHI_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, range high modify
 
 /// The `ArithmeticCoder` compresses bits given a probability and writes
 /// fractional bits to an internal `Write` instance.
@@ -19,7 +18,7 @@ pub struct ArithmeticCoder<T> {
     x1: u32, // low
     x2: u32, // high
     x: u32,  // state
-    io: T    // bit reader/writer
+    io: T,   // bit reader/writer
 }
 
 impl<W: ACWrite> ArithmeticCoder<W> {
@@ -55,8 +54,8 @@ impl<W: ACWrite> ArithmeticCoder<W> {
         // E3 renorm (special case) -> increase parity
         while self.x1 >= Q1 && self.x2 < Q3 {
             self.io.inc_parity();
-            self.x1 = (self.x1 << 1) & RLOW_MOD;
-            self.x2 = (self.x2 << 1) | RHIGH_MOD;
+            self.x1 = (self.x1 << 1) & RLO_MOD;
+            self.x2 = (self.x2 << 1) | RHI_MOD;
         }
 
         Ok(())
@@ -94,9 +93,9 @@ impl<R: ACRead> ArithmeticCoder<R> {
 
         // E3 renorm (special case) -> fix parity
         while self.x1 >= Q1 && self.x2 < Q3 {
-            self.x1 = (self.x1 << 1) & RLOW_MOD;
-            self.x2 = (self.x2 << 1) | RHIGH_MOD;
-            self.x = ((self.x << 1) ^ RMID) | u32::from(self.io.read_bit()?);
+            self.x1 = (self.x1 << 1) & RLO_MOD;
+            self.x2 = (self.x2 << 1) | RHI_MOD;
+            self.x = ((self.x << 1) ^ Q2) | u32::from(self.io.read_bit()?);
         }
 
         Ok(bit)
@@ -113,7 +112,7 @@ fn lerp(x1: u32, x2: u32, prob: u16) -> u32 {
     const RANGE_SHIFT: u32 = P_SHIFT + u16::BITS;
 
     let mut p = u64::from(prob) << P_SHIFT;
-    if p == 0 { p = 1; }
+    p = if p == 0 { 1 } else { p };
 
     let range = u64::from(x2 - x1);
     let lerped_range = (range * p) >> RANGE_SHIFT;
