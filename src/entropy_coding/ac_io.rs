@@ -1,4 +1,3 @@
-use core::fmt::Debug;
 use core::slice::from_mut as into_slice;
 use std::io::{self, ErrorKind, Read, Write};
 
@@ -13,24 +12,9 @@ pub trait ACWrite {
     fn flush(&mut self, padding: u32) -> io::Result<()>;
 }
 
-pub trait ZeroedEofExt<T> {
-    fn zero_eof(self) -> io::Result<T>;
-}
-
-impl<T: Default> ZeroedEofExt<T> for io::Result<T> {
-    /// Return result or 0 if EOF
-    // T::default() is 0 for u8, u16, u32, u64
-    fn zero_eof(self) -> io::Result<T> {
-        match self {
-            Ok(val) => Ok(val),
-            Err(err) => match err.kind() {
-                ErrorKind::UnexpectedEof => Ok(T::default()),
-                _ => Err(err),
-            },
-        }
-    }
-}
-
+/// Buffers bits from an `io::Read` instance without changing the bit position.
+///
+/// For example 0b0101 will produce 0b0000, 0b0100, 0b0000, 0b0001
 pub struct ACReader<R> {
     inner: R,
     buf: Option<u8>,
@@ -42,13 +26,16 @@ impl<R: Read> ACReader<R> {
         Self { inner, buf: None, mask: 0 }
     }
 
-    pub fn read_byte(&mut self) -> io::Result<u8> {
+    // not publicly exposed, helper method
+    fn read_byte(&mut self) -> io::Result<u8> {
         debug_assert!(self.buf.is_none());
         let mut byte = 0;
-        self.inner
-            .read_exact(into_slice(&mut byte))
-            .map(|_| byte)
-            .zero_eof()
+        let result = self.inner.read_exact(into_slice(&mut byte));
+
+        match result {
+            Err(err) if err.kind() == ErrorKind::UnexpectedEof => Ok(0),
+            _ => result.map(|_| byte),
+        }
     }
 }
 
@@ -63,13 +50,11 @@ impl<R: Read> ACRead for ACReader<R> {
             return Ok((val & self.mask > 0).into());
         }
 
-        self.read_byte()
-            .map(|byte| {
-                self.buf = Some(byte);
-                self.mask = 1 << 7;
-                (byte & self.mask > 0).into()
-            })
-            .zero_eof()
+        self.read_byte().map(|byte| {
+            self.buf = Some(byte);
+            self.mask = 1 << 7;
+            (byte & self.mask > 0).into()
+        })
     }
 
     /// Read 4 bytes BE as u32 and pad with 0s if EOF
@@ -141,5 +126,30 @@ impl<W: Write> ACWrite for ACWriter<W> {
 
         self.inner.flush()?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ACRead, ACReader};
+
+    #[test]
+    fn read_bits_test() {
+        let data: [u8; 2] = [0b0101_0101, 0b1010_1010];
+        let mut reader = ACReader::new(data.as_ref());
+        let truth = [0, 1]
+            .iter()
+            .cycle()
+            .take(17)
+            .enumerate()
+            .filter(|&(i, _)| i != 8)
+            .map(|(_, x)| x);
+
+        for &bit in truth {
+            assert_eq!(reader.read_bit().unwrap(), bit);
+        }
+        for _ in 0..16 {
+            assert_eq!(reader.read_bit().unwrap(), 0);
+        }
     }
 }
