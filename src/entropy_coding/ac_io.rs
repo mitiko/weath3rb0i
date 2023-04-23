@@ -42,19 +42,15 @@ impl<R: Read> ACReader<R> {
 impl<R: Read> ACRead for ACReader<R> {
     /// Read bit or 0 on EOF
     fn read_bit(&mut self) -> io::Result<u8> {
-        if let Some(val) = self.buf {
+        let byte = if let Some(value) = self.buf {
             self.mask >>= 1;
-            if self.mask == 1 {
-                self.buf = None; // last bit
-            }
-            return Ok((val & self.mask > 0).into());
-        }
-
-        self.read_byte().map(|byte| {
-            self.buf = Some(byte);
+            value
+        } else {
             self.mask = 1 << 7;
-            (byte & self.mask > 0).into()
-        })
+            self.read_byte()?
+        };
+        self.buf = if self.mask == 1 { None } else { Some(byte) };
+        Ok((byte & self.mask > 0).into())
     }
 
     /// Read 4 bytes BE as u32 and pad with 0s if EOF
@@ -148,6 +144,26 @@ mod tests {
         for &bit in truth {
             assert_eq!(reader.read_bit().unwrap(), bit);
         }
+        for _ in 0..16 {
+            assert_eq!(reader.read_bit().unwrap(), 0);
+        }
+    }
+
+    #[test]
+    fn read_u32_complete_test() {
+        let data = b"\xde\xad\xbe\xef";
+        let mut reader = ACReader::new(data.as_ref());
+        assert_eq!(reader.read_u32().unwrap(), 0xdeadbeef);
+        for _ in 0..16 {
+            assert_eq!(reader.read_bit().unwrap(), 0);
+        }
+    }
+
+    #[test]
+    fn read_u32_incomplete_test() {
+        let data = b"\xde\xad";
+        let mut reader = ACReader::new(data.as_ref());
+        assert_eq!(reader.read_u32().unwrap(), 0xdead0000);
         for _ in 0..16 {
             assert_eq!(reader.read_bit().unwrap(), 0);
         }
