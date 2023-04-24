@@ -2,19 +2,22 @@ use core::slice::from_mut as into_slice;
 use std::io::{self, ErrorKind, Read, Write};
 
 pub trait ACRead {
-    fn read_u32(&mut self) -> io::Result<u32>;
+    /// Read bit or 0 on EOF
     fn read_bit(&mut self) -> io::Result<u8>;
+    /// Read 4 bytes BE as u32 and pad with 0s on EOF
+    fn read_u32(&mut self) -> io::Result<u32>;
 }
 
 pub trait ACWrite {
+    /// Increases the number of reverse bits to write
     fn inc_parity(&mut self);
-    fn write_bit(&mut self, bit: u32) -> io::Result<()>;
+    /// Writes a bit and maintains E3 mapping logic
+    fn write_bit(&mut self, bit: impl TryInto<u8>) -> io::Result<()>;
+    /// Flushes leftover parity bits and internal writer
     fn flush(&mut self, padding: u32) -> io::Result<()>;
 }
 
-/// Buffers bits from an `io::Read` instance without changing the bit position.
-///
-/// For example 0b0101 will produce 0b0000, 0b0100, 0b0000, 0b0001
+/// Arithmetic coder read io for `io::Read` types
 pub struct ACReader<R> {
     inner: R,
     buf: Option<u8>,
@@ -26,7 +29,6 @@ impl<R: Read> ACReader<R> {
         Self { inner, buf: None, mask: 0 }
     }
 
-    // not publicly exposed, helper method
     fn read_byte(&mut self) -> io::Result<u8> {
         debug_assert!(self.buf.is_none());
         let mut byte = 0;
@@ -40,7 +42,6 @@ impl<R: Read> ACReader<R> {
 }
 
 impl<R: Read> ACRead for ACReader<R> {
-    /// Read bit or 0 on EOF
     fn read_bit(&mut self) -> io::Result<u8> {
         let byte = if let Some(value) = self.buf {
             self.mask >>= 1;
@@ -53,7 +54,6 @@ impl<R: Read> ACRead for ACReader<R> {
         Ok((byte & self.mask > 0).into())
     }
 
-    /// Read 4 bytes BE as u32 and pad with 0s if EOF
     fn read_u32(&mut self) -> io::Result<u32> {
         let bytes = [
             self.read_byte()?,
@@ -65,6 +65,7 @@ impl<R: Read> ACRead for ACReader<R> {
     }
 }
 
+/// Arithmetic coder write io for `io::Write` types
 pub struct ACWriter<W> {
     inner: W,
     buf: u8,
@@ -79,47 +80,38 @@ impl<W: Write> ACWriter<W> {
 }
 
 impl<W: Write> ACWrite for ACWriter<W> {
-    /// Writes a bit and maintains E3 mapping logic
-    fn write_bit(&mut self, bit: u32) -> io::Result<()> {
-        let bit = u8::try_from(bit).unwrap_or_default();
-        debug_assert!(bit <= 1, "Provided value wasn't a valid bit");
-
-        self.buf = (self.buf << 1) | bit;
-        self.idx += 1;
-        if self.idx == 8 {
-            self.inner.write_all(&[self.buf])?;
-            self.idx = 0;
-        }
-
-        while self.rev_bits > 0 {
-            self.rev_bits -= 1;
-
-            self.buf = (self.buf << 1) | (bit ^ 1);
-            self.idx += 1;
-            if self.idx == 8 {
-                self.inner.write_all(&[self.buf])?;
-                self.idx = 0;
-            }
-        }
-
-        Ok(())
-    }
-
-    /// Increases the number of reverse bits to write
     fn inc_parity(&mut self) {
         self.rev_bits += 1;
     }
 
+    fn write_bit(&mut self, bit: impl TryInto<u8>) -> io::Result<()> {
+        let bit: u8 = bit.try_into().unwrap_or_default();
+        debug_assert!(bit <= 1, "Tried to write invalid bit");
+
+        let mut write_bit_raw = |bit: u8| -> io::Result<()> {
+            self.buf = (self.buf << 1) | bit;
+            self.idx = (self.idx + 1) % 8;
+            if self.idx == 0 {
+                self.inner.write_all(&[self.buf])?
+            }
+            Ok(())
+        };
+
+        write_bit_raw(bit)?;
+        while self.rev_bits > 0 {
+            self.rev_bits -= 1;
+            write_bit_raw(bit ^ 1)?;
+        }
+        Ok(())
+    }
+
     fn flush(&mut self, mut state: u32) -> io::Result<()> {
-        // do-while - ensure we write at least one bit
-        loop {
+        self.write_bit(state >> 31)?;
+        state <<= 1;
+        while self.idx > 0 {
             self.write_bit(state >> 31)?;
             state <<= 1;
-            if self.idx == 0 {
-                break;
-            }
         }
-
         self.inner.flush()?;
         Ok(())
     }
