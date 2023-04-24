@@ -20,17 +20,17 @@ pub trait ACWrite {
 /// Arithmetic coder read io for `io::Read` types
 pub struct ACReader<R> {
     inner: R,
-    buf: Option<u8>,
+    buf: u8,
     mask: u8,
 }
 
 impl<R: Read> ACReader<R> {
     pub fn new(inner: R) -> Self {
-        Self { inner, buf: None, mask: 0 }
+        Self { inner, buf: 0, mask: 0 }
     }
 
     fn read_byte(&mut self) -> io::Result<u8> {
-        debug_assert!(self.buf.is_none());
+        debug_assert!(self.mask == 0);
         let mut byte = 0;
         let result = self.inner.read_exact(into_slice(&mut byte));
 
@@ -43,15 +43,12 @@ impl<R: Read> ACReader<R> {
 
 impl<R: Read> ACRead for ACReader<R> {
     fn read_bit(&mut self) -> io::Result<u8> {
-        let byte = if let Some(value) = self.buf {
-            self.mask >>= 1;
-            value
-        } else {
-            self.mask = 1 << 7;
-            self.read_byte()?
-        };
-        self.buf = if self.mask == 1 { None } else { Some(byte) };
-        Ok((byte & self.mask > 0).into())
+        self.mask >>= 1; // move to next bit
+        if self.mask == 0 {
+            self.buf = self.read_byte()?; // fill
+            self.mask = 1 << 7; // then move to first bit
+        }
+        Ok((self.buf & self.mask > 0).into())
     }
 
     fn read_u32(&mut self) -> io::Result<u32> {
