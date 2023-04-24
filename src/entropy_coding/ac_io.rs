@@ -136,19 +136,15 @@ mod tests {
         let truth = [0, 1]
             .iter()
             .cycle()
-            .take(17)
+            .take(17) // 16 bits, but eliminate 1
             .enumerate()
-            .filter(|&(i, _)| i != 8)
+            .filter(|&(i, _)| i != 8) // fancy
             .map(|(_, x)| x);
 
-        for &bit in truth {
-            assert_eq!(reader.read_bit().unwrap(), bit);
-        }
-
+        // assert truth
+        truth.for_each(|&bit| assert_eq!(reader.read_bit().unwrap(), bit));
         // read past EOF
-        for _ in 0..16 {
-            assert_eq!(reader.read_bit().unwrap(), 0);
-        }
+        (0..16).for_each(|_| assert_eq!(reader.read_bit().unwrap(), 0));
     }
 
     #[test]
@@ -156,11 +152,8 @@ mod tests {
         let data = b"\xde\xad\xbe\xef";
         let mut reader = ACReader::new(data.as_ref());
         assert_eq!(reader.read_u32().unwrap(), 0xdeadbeef);
-
         // read past EOF
-        for _ in 0..16 {
-            assert_eq!(reader.read_bit().unwrap(), 0);
-        }
+        (0..16).for_each(|_| assert_eq!(reader.read_bit().unwrap(), 0));
     }
 
     #[test]
@@ -168,11 +161,8 @@ mod tests {
         let data = b"\xde\xad";
         let mut reader = ACReader::new(data.as_ref());
         assert_eq!(reader.read_u32().unwrap(), 0xdead0000);
-
         // read past EOF
-        for _ in 0..16 {
-            assert_eq!(reader.read_bit().unwrap(), 0);
-        }
+        (0..16).for_each(|_| assert_eq!(reader.read_bit().unwrap(), 0));
     }
 
     #[test]
