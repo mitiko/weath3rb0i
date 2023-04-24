@@ -176,46 +176,88 @@ mod tests {
     }
 
     #[test]
-    fn write_bits() {
-        let mut data = [0; 3];
-        let truth = [0b111_01110, 0b000__111_01, 0b110__01100];
+    fn write_bits_across_byte_boundary() {
+        let mut data = [0; 2];
+        let truth = [0b111__0_111_0, 0b000__11111];
         let mut writer = ACWriter::new(data.as_mut());
-
-        // write across byte boundary
         (0..3).for_each(|_| writer.write_bit(1).unwrap());
         (0..3).for_each(|_| writer.inc_parity());
         (0..5).for_each(|_| writer.write_bit(0).unwrap());
-
-        // write parity bits across byte boundary
-        (0..3).for_each(|_| writer.write_bit(1).unwrap());
-        (0..3).for_each(|_| writer.inc_parity());
-        (0..2).for_each(|_| writer.write_bit(0).unwrap());
-
-        // flush with parity
-        (0..2).for_each(|_| writer.inc_parity());
-        writer.flush(0).unwrap();
-
-        // total = 3 + (1 + 3 parity + 4) + 3 + (1 + 3 parity + 1) + 5 flushed
+        writer.flush(u32::MAX).unwrap();
         assert_eq!(data, truth);
     }
 
     #[test]
-    fn write_bits_flush_aligned() {
-        let truth = b"\xff\xde";
+    fn write_parity_bits_across_byte_boundary() {
+        let mut data = [0; 2];
+        let truth = [0b111__0_1111, 0b11_0__11111];
+        let mut writer = ACWriter::new(data.as_mut());
+        (0..3).for_each(|_| writer.write_bit(1).unwrap());
+        (0..6).for_each(|_| writer.inc_parity());
+        (0..2).for_each(|_| writer.write_bit(0).unwrap());
+        writer.flush(u32::MAX).unwrap();
+        assert_eq!(data, truth);
+    }
+
+    #[test]
+    fn flush_aligned() {
+        let truth = [0xff, 0xde];
         let mut data = [0; 2];
         let mut writer = ACWriter::new(data.as_mut());
         (0..8).for_each(|_| writer.write_bit(1).unwrap());
         writer.flush(0xdeadbeef).unwrap();
-        assert_eq!(&data, truth);
+        assert_eq!(data, truth);
     }
 
     #[test]
-    fn write_bits_flush_unaligned() {
-        let truth = b"\xfe\x00";
+    fn flush_unaligned() {
+        let truth = [0xfe, 0x00];
         let mut data = [0; 2];
         let mut writer = ACWriter::new(data.as_mut());
         (0..7).for_each(|_| writer.write_bit(1).unwrap());
         writer.flush(0x00adbeef).unwrap();
+        assert_eq!(data, truth);
+    }
+
+    #[test]
+    fn flush_with_parity() {
+        let truth = [0b1111__0_11_0, 0x00];
+        let mut data = [0; 2];
+        let mut writer = ACWriter::new(data.as_mut());
+        (0..4).for_each(|_| writer.write_bit(1).unwrap());
+        (0..2).for_each(|_| writer.inc_parity());
+        writer.flush(0x00adbeef).unwrap();
+        assert_eq!(data, truth);
+    }
+
+    #[test]
+    fn flush_with_too_much_parity() {
+        let truth = [0b1111__0_111, 0b1111111_0];
+        let mut data = [0; 2];
+        let mut writer = ACWriter::new(data.as_mut());
+        (0..4).for_each(|_| writer.write_bit(1).unwrap());
+        (0..10).for_each(|_| writer.inc_parity());
+        writer.flush(0x00adbeef).unwrap();
+        assert_eq!(data, truth);
+    }
+
+    #[test]
+    fn flush_with_too_much_parity_aligned() {
+        let truth = [0b1111111_0, 0b1111111_0];
+        let mut data = [0; 2];
+        let mut writer = ACWriter::new(data.as_mut());
+        (0..7).for_each(|_| writer.write_bit(1).unwrap());
+        (0..7).for_each(|_| writer.inc_parity());
+        writer.flush(0x00adbeef).unwrap();
+        assert_eq!(data, truth);
+    }
+
+    #[test]
+    fn flush_only() {
+        let truth = b"\xde\x00\x00\x00";
+        let mut data = [0; 4];
+        let mut writer = ACWriter::new(data.as_mut());
+        writer.flush(0xdeadbeef).unwrap();
         assert_eq!(&data, truth);
     }
 }
