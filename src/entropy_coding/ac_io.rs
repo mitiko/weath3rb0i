@@ -1,21 +1,6 @@
+use super::{ACRead, ACWrite};
 use core::slice::from_mut as into_slice;
 use std::io::{self, ErrorKind, Read, Write};
-
-pub trait ACRead {
-    /// Read bit or 0 on EOF
-    fn read_bit(&mut self) -> io::Result<u8>;
-    /// Read 4 bytes BE as u32 and pad with 0s on EOF
-    fn read_u32(&mut self) -> io::Result<u32>;
-}
-
-pub trait ACWrite {
-    /// Increases the number of reverse bits to write
-    fn inc_parity(&mut self);
-    /// Writes a bit and maintains E3 mapping logic
-    fn write_bit(&mut self, bit: impl TryInto<u8>) -> io::Result<()>;
-    /// Flushes leftover parity bits and internal writer
-    fn flush(&mut self, padding: u32) -> io::Result<()>;
-}
 
 /// Arithmetic coder read io for `io::Read` types
 pub struct ACReader<R> {

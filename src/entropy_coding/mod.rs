@@ -1,5 +1,4 @@
 pub mod ac_io;
-use self::ac_io::{ACRead, ACWrite};
 use std::io;
 
 const PREC_SHIFT: u32 = u32::BITS - 1; // 31
@@ -15,6 +14,22 @@ pub struct ArithmeticCoder<T> {
     x2: u32, // high
     x: u32,  // state
     io: T,   // bit reader/writer
+}
+
+pub trait ACRead {
+    /// Read bit or 0 on EOF
+    fn read_bit(&mut self) -> io::Result<u8>;
+    /// Read 4 bytes BE as u32 and pad with 0s on EOF
+    fn read_u32(&mut self) -> io::Result<u32>;
+}
+
+pub trait ACWrite {
+    /// Increases the number of reverse bits to write
+    fn inc_parity(&mut self);
+    /// Writes a bit and maintains E3 mapping logic
+    fn write_bit(&mut self, bit: impl TryInto<u8>) -> io::Result<()>;
+    /// Flushes leftover parity bits and internal writer
+    fn flush(&mut self, padding: u32) -> io::Result<()>;
 }
 
 impl<W: ACWrite> ArithmeticCoder<W> {
