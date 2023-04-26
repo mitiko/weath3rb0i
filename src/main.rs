@@ -1,4 +1,3 @@
-// (c) 2022 Dimitar Rusev <mitikodev@gmail.com> licensed under GPL-3.0
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
@@ -145,9 +144,8 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     Ok(())
 }
 
-use weath3rb0i::models::Order0;
-fn init_model() -> Order0 {
-    Order0::new()
+fn init_model() -> impl Model {
+    weath3rb0i::models::Order0::new()
 }
 
 fn print_usage_and_exit(msg: &str) {

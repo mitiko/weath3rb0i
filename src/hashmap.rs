@@ -1,5 +1,3 @@
-// (c) 2022 Dimitar Rusev <mitikodev@gmail.com> licensed under GPL-3.0
-
 pub struct HashMap {
     arr: Vec<Cell>,
     log_cell_count: u32,
