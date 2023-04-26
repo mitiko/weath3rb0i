@@ -1,5 +1,4 @@
 pub mod counter;
-mod nib_tree;
 pub mod order0;
 
 pub use self::{counter::*, order0::*};
