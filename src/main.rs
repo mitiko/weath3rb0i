@@ -145,7 +145,8 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
 }
 
 fn init_model() -> impl Model {
-    weath3rb0i::models::Order0::new()
+    // weath3rb0i::models::Order0::new()
+    weath3rb0i::models::Order0Tiny::new()
 }
 
 fn print_usage_and_exit(msg: &str) {
