@@ -9,7 +9,6 @@ pub mod models;
 
 mod hashmap;
 mod mixer;
-mod smart_context;
 mod state_table;
 
 pub use debug_unreachable::debug_unreachable;

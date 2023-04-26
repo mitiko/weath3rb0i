@@ -40,16 +40,6 @@ impl<W: ACWrite> ArithmeticCoder<W> {
         Self { io: writer, x1: 0, x2: u32::MAX, x: 0 }
     }
 
-    /// TODO: Encode 4-bits at once.
-    pub fn encode4(&mut self, nib: u8, probs: [u16; 4]) -> io::Result<()> {
-        // todo!();
-        self.encode(nib & 0b1000, probs[0])?;
-        self.encode(nib & 0b0100, probs[1])?;
-        self.encode(nib & 0b0010, probs[2])?;
-        self.encode(nib & 0b0001, probs[3])?;
-        Ok(())
-    }
-
     pub fn encode(&mut self, bit: u8, prob: u16) -> io::Result<()> {
         let xmid = lerp(self.x1, self.x2, prob);
 
