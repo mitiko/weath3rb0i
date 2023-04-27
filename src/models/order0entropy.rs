@@ -81,7 +81,7 @@ impl ConstCounter {
 const PROB_TABLE: [u16; 8] = [29616, 22988, 31499, 22545, 15819, 62497, 50188, 1];
 
 struct Context {
-    history: u32,
+    history: u64,
     idx: usize
 }
 
@@ -91,7 +91,7 @@ impl Context {
     }
 
     fn update(&mut self, bit: u8) {
-        self.history = (self.history << 1) | u32::from(bit);
+        self.history = (self.history << 1) | u64::from(bit);
         self.idx = (self.idx + 1) % 8;
     }
 
@@ -99,12 +99,15 @@ impl Context {
         let mut writer = EntropyWriter::new();
         let mut ac = ArithmeticCoder::new_coder();
         let mut bits = self.history;
-        for i in 0..32 {
+        for i in 0..64 {
             let bit = u8::try_from(bits & 1).unwrap();
             let prob = PROB_TABLE[(8 + i - self.idx) % 8];
 
             let res = ac.encode(bit, prob, &mut writer);
             if res.is_err() {
+                if i > 40 {
+                    println!("compressed {i} bits into 8, {}, {}", writer.state, self.history);
+                }
                 break;
             }
             bits >>= 1;
