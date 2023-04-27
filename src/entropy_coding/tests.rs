@@ -7,29 +7,29 @@ use super::{
 
 fn compress(filename: &str, input: &[u8], probabilities: &[u16]) -> Vec<u8> {
     let file = File::create(filename).unwrap();
-    let writer = ACWriter::new(BufWriter::new(file));
-    let mut ac = ArithmeticCoder::new_coder(writer);
+    let mut writer = ACWriter::new(BufWriter::new(file));
+    let mut ac = ArithmeticCoder::new_coder();
 
     let mut reader = ACReader::new(input);
     for &prob in probabilities {
         let bit = reader.read_bit().unwrap();
-        ac.encode(bit, prob).unwrap();
+        ac.encode(bit, prob, &mut writer).unwrap();
     }
 
-    ac.flush().unwrap();
+    ac.flush(&mut writer).unwrap();
     let compressed = std::fs::read(filename).unwrap();
     std::fs::remove_file(filename).unwrap();
     compressed
 }
 
 fn decompress(filename: &str, input: &[u8], probabilities: &[u16]) -> Vec<u8> {
-    let reader = ACReader::new(input);
-    let mut ac = ArithmeticCoder::new_decoder(reader).unwrap();
+    let mut reader = ACReader::new(input);
+    let mut ac = ArithmeticCoder::new_decoder(&mut reader).unwrap();
 
     let file = File::create(filename).unwrap();
     let mut writer = ACWriter::new(BufWriter::new(file));
     for &prob in probabilities {
-        let bit = ac.decode(prob).unwrap();
+        let bit = ac.decode(prob, &mut reader).unwrap();
         writer.write_bit(bit).unwrap();
     }
 
