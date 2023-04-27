@@ -30,6 +30,24 @@ impl Model for Order0Entropy {
         self.alignment = (self.alignment + 1) % 8;
         self.context.update(bit);
         self.hash = self.context.hash();
+        // log hash + alignment
+        // print!("h:{} @ {} <- {}", self.hash, self.alignment, self.context.history);
+        // if self.alignment == 0 {
+        //     let hb = self.context.history.to_be_bytes();
+        //     let mut ext = String::new();
+        //     for bb in hb {
+        //         if bb.is_ascii_alphanumeric() {
+        //             let chr = char::from_u32(bb as u32).unwrap();
+        //             ext += format!(" {}", chr).as_str();
+        //         } else {
+        //             ext += format!(" 0x{}{}", bb >> 4, bb & 0xf).as_str();
+        //         }
+        //     }
+        //     println!(" = {ext}");
+        // }
+        // else {
+        //     println!();
+        // }
     }
 }
 
@@ -60,60 +78,21 @@ impl ConstCounter {
     }
 }
 
-const PROB_TABLE: [u16; 8] = {
-    let string = include_str!("/data/book1");
-    let mut model = [ConstCounter::new(); 8];
-    let data = string.as_bytes();
-    let mut idx = 0;
-    while idx < 100_000 {
-        let byte = data[idx];
-        // Little Endian
-        model[0] = model[0].update(byte & 1);
-        model[1] = model[1].update((byte >> 1) & 1);
-        model[2] = model[2].update((byte >> 2) & 1);
-        model[3] = model[3].update((byte >> 3) & 1);
-        model[4] = model[4].update((byte >> 4) & 1);
-        model[5] = model[5].update((byte >> 5) & 1);
-        model[6] = model[6].update((byte >> 6) & 1);
-        model[7] = model[7].update(byte >> 7);
-        idx += 1;
-    }
-    [
-        model[0].p(),
-        model[1].p(),
-        model[2].p(),
-        model[3].p(),
-        model[4].p(),
-        model[5].p(),
-        model[6].p(),
-        model[7].p(),
-    ]
-};
+const PROB_TABLE: [u16; 8] = [29616, 22988, 31499, 22545, 15819, 62497, 50188, 1];
 
 struct Context {
     history: u32,
-    seen: std::collections::HashMap<u8, u32>
+    idx: usize
 }
 
 impl Context {
     fn new() -> Self {
-        let mut model = [Counter::new(); 8];
-        let mut freq: [u64; 256] = [0; 256];
-        let data = std::fs::read("/data/book1").unwrap();
-        for byte in data {
-            freq[usize::from(byte)] += 1;
-            model
-                .iter_mut()
-                .enumerate()
-                .for_each(|(i, c)| c.update((byte >> i) & 1));
-        }
-        let table: Vec<_> = model.iter().map(|c| c.p()).collect();
-        dbg!(table); // little endian
-
-        Self { history: 0, seen: std::collections::HashMap::new() }
+        Self { history: 0, idx: 0 }
     }
+
     fn update(&mut self, bit: u8) {
         self.history = (self.history << 1) | u32::from(bit);
+        self.idx = (self.idx + 1) % 8;
     }
 
     fn hash(&mut self) -> u8 {
@@ -122,7 +101,7 @@ impl Context {
         let mut bits = self.history;
         for i in 0..32 {
             let bit = u8::try_from(bits & 1).unwrap();
-            let prob = PROB_TABLE[i % 8];
+            let prob = PROB_TABLE[(8 + i - self.idx) % 8];
 
             let res = ac.encode(bit, prob, &mut writer);
             if res.is_err() {
@@ -130,12 +109,7 @@ impl Context {
             }
             bits >>= 1;
         }
-        let hash = writer.state;
-        if self.seen.contains_key(&hash) {
-            println!("{hash} -> {}", self.history >> 24);
-        }
-        self.seen.insert(hash, self.history);
-        hash
+        writer.state
     }
 }
 
