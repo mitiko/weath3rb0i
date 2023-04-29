@@ -27,6 +27,6 @@ impl Model for Order0 {
         self.stats[usize::from(self.ctx)].update(bit);
         self.history = (self.history << 1) | bit;
         self.alignment = (self.alignment + 1) % 8;
-        self.ctx = u16::from(self.history) << 3 | u16::from(self.alignment);
+        self.ctx = u16::from(self.alignment) << 8 | u16::from(self.history);
     }
 }
