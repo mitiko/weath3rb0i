@@ -1,5 +1,4 @@
-use super::stationary::RevBitStationaryModel;
-use super::{counter::Counter, Model, StationaryModel};
+use super::{counter::Counter, Model};
 use crate::history::History;
 
 pub struct Order0Entropy {
