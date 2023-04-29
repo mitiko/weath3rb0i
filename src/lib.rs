@@ -6,6 +6,7 @@ pub mod entropy_coding;
 pub mod models;
 
 mod hashmap;
+mod history;
 mod mixer;
 mod state_table;
 

@@ -99,18 +99,19 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         writer.write_all(&len.to_be_bytes())?;
         BufReader::new(f)
     };
-    let mut ac = ArithmeticCoder::<_>::new_coder(ACWriter::new(writer));
+    let mut writer = ACWriter::new(writer);
+    let mut ac = ArithmeticCoder::new_coder();
     let mut model = init_model();
 
     for byte in reader.bytes().map(|byte| byte.unwrap()) {
         for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
             let p = model.predict();
             model.update(bit);
-            ac.encode(bit, p)?;
+            ac.encode(bit, p, &mut writer)?;
         }
     }
 
-    ac.flush()?;
+    ac.flush(&mut writer)?;
     Ok(())
 }
 
@@ -126,14 +127,15 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
-    let mut ac = ArithmeticCoder::<_>::new_decoder(ACReader::new(reader))?;
+    let mut reader = ACReader::new(reader);
+    let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
     let mut model = init_model();
 
     for _ in 0..len {
         let mut byte = 0;
         for _ in 0..u8::BITS {
             let p = model.predict();
-            let bit = ac.decode(p)?;
+            let bit = ac.decode(p, &mut reader)?;
             model.update(bit);
             byte = (byte << 1) | bit;
         }
@@ -145,7 +147,8 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
 }
 
 fn init_model() -> impl Model {
-    weath3rb0i::models::Order0::new()
+    // weath3rb0i::models::Order0::new()
+    weath3rb0i::models::Order0Entropy::new()
 }
 
 fn print_usage_and_exit(msg: &str) {
