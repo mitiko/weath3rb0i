@@ -3,13 +3,11 @@ use super::StationaryModel;
 // uses stats from book1
 // TODO: Read from book1 for real
 // big endian alignment
-pub const PROB_TABLE: [u16; 8] = [
-    1, 50188, 62497, 15819, 22545, 31499, 22988, 29616
-];
+pub const PROB_TABLE: [u16; 8] = [1, 50188, 62497, 15819, 22545, 31499, 22988, 29616];
 
 // encodes bits in reverse
 pub struct RevBitStationaryModel {
-    alignment: u8
+    alignment: u8,
 }
 
 impl RevBitStationaryModel {

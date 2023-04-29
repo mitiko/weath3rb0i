@@ -1,11 +1,9 @@
-use super::StationaryModel;
-use super::{counter::Counter, Model};
-use super::stationary::{PROB_TABLE, RevBitStationaryModel};
+use super::stationary::RevBitStationaryModel;
+use super::{counter::Counter, Model, StationaryModel};
 
 pub struct Order0Entropy {
     stats: [Counter; 1 << 11],
-    history: History, // TODO: share history across big models
-    alignment: u8,
+    history: History,
     ctx: u16,
 }
 
@@ -13,9 +11,8 @@ impl Order0Entropy {
     pub fn new() -> Self {
         Self {
             stats: [Counter::new(); 1 << 11],
-            ctx: 0,
-            alignment: 0,
             history: History::new(),
+            ctx: 0,
         }
     }
 }
@@ -27,15 +24,14 @@ impl Model for Order0Entropy {
 
     fn update(&mut self, bit: u8) {
         self.stats[usize::from(self.ctx)].update(bit);
-        self.alignment = (self.alignment + 1) % 8;
         self.history.update(bit);
-        self.ctx = u16::from(self.history.hash()) << 3 | u16::from(self.alignment);
+        self.ctx = self.history.hash();
     }
 }
 
 struct History {
     bits: u64,
-    alignment: u8
+    alignment: u8,
 }
 
 impl History {
@@ -48,7 +44,7 @@ impl History {
         self.alignment = (self.alignment + 1) % 8;
     }
 
-    fn hash(&self) -> u8 {
+    fn hash(&self) -> u16 {
         let mut model = RevBitStationaryModel::new(self.alignment);
         let mut writer = EntropyWriter { state: 0, rev_bits: 0, idx: 0 };
         let mut ac = ArithmeticCoder::new_coder();
@@ -60,7 +56,7 @@ impl History {
                 break;
             }
         }
-        writer.state
+        (u16::from(writer.state) << 3) | u16::from(self.alignment)
     }
 }
 
@@ -73,22 +69,23 @@ struct EntropyWriter {
 use crate::entropy_coding::{ACWrite, ArithmeticCoder};
 impl ACWrite for EntropyWriter {
     fn write_bit(&mut self, bit: impl TryInto<u8>) -> std::io::Result<()> {
-        use std::io::{ErrorKind, Error};
+        use std::io::{Error, ErrorKind};
         let bit: u8 = bit.try_into().unwrap_or_default();
-        self.state = (self.state << 1) | bit;
 
-        self.idx += 1;
-        if self.idx == 8 {
-            return Err(Error::from(ErrorKind::OutOfMemory));
-        }
-
-        while self.rev_bits > 0 {
-            self.rev_bits -= 1;
-            self.state = (self.state << 1) | (bit ^ 1);
+        let mut write_bit_raw = |bit: u8| -> std::io::Result<()> {
+            self.state = (self.state << 1) | bit;
             self.idx += 1;
             if self.idx == 8 {
-                return Err(Error::from(ErrorKind::OutOfMemory));
+                Err(Error::from(ErrorKind::Other))
+            } else {
+                Ok(())
             }
+        };
+
+        write_bit_raw(bit)?;
+        while self.rev_bits > 0 {
+            self.rev_bits -= 1;
+            write_bit_raw(bit ^ 1)?;
         }
         Ok(())
     }
