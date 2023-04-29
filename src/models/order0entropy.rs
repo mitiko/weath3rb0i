@@ -49,13 +49,12 @@ impl History {
         let mut writer = EntropyWriter { state: 0, rev_bits: 0, idx: 0 };
         let mut ac = ArithmeticCoder::new_coder();
 
-        for i in 0..u64::BITS {
-            let bit = u8::try_from((self.bits >> i) & 1).unwrap();
-            let res = ac.encode(bit, model.predict(), &mut writer);
-            if res.is_err() {
-                break;
-            }
-        }
+        (0..u64::BITS)
+            .map(|i| u8::try_from((self.bits >> i) & 1).unwrap())
+            .map(|bit| ac.encode(bit, model.predict(), &mut writer))
+            .take_while(|res| res.is_ok())
+            .for_each(|_| {});
+
         (u16::from(writer.state) << 3) | u16::from(self.alignment)
     }
 }
