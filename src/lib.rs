@@ -7,7 +7,7 @@ pub mod models;
 
 mod hashmap;
 mod history;
-mod mixer;
+mod mixers;
 mod state_table;
 
 pub use debug_unreachable::debug_unreachable;

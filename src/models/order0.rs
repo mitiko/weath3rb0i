@@ -4,7 +4,7 @@ pub struct Order0 {
     stats: [Counter; 1 << 11],
     history: u8,
     alignment: u8,
-    ctx: u16
+    ctx: u16,
 }
 
 impl Order0 {
@@ -13,7 +13,7 @@ impl Order0 {
             stats: [Counter::new(); 1 << 11],
             history: 0,
             alignment: 0,
-            ctx: 0
+            ctx: 0,
         }
     }
 }

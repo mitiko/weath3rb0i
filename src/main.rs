@@ -147,8 +147,10 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
 }
 
 fn init_model() -> impl Model {
-    // weath3rb0i::models::Order0::new()
-    weath3rb0i::models::Order0Entropy::new()
+    use weath3rb0i::models::*;
+    // BestOfTwoModel::new(Order0::new(), Order1::new())
+    // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
+    BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
 }
 
 fn print_usage_and_exit(msg: &str) {

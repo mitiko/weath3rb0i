@@ -4,7 +4,7 @@ pub struct Order1 {
     stats: Vec<Counter>,
     history: u16,
     alignment: u8,
-    ctx: u32
+    ctx: u32,
 }
 
 impl Order1 {
@@ -13,7 +13,7 @@ impl Order1 {
             stats: vec![Counter::new(); 1 << 19],
             history: 0,
             alignment: 0,
-            ctx: 0
+            ctx: 0,
         }
     }
 }
