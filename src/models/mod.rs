@@ -1,5 +1,6 @@
 pub mod counter;
 pub mod order0;
+pub mod order1;
 pub mod order0entropy;
 pub mod stationary;
 
