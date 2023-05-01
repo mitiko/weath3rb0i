@@ -5,7 +5,7 @@ use std::collections::HashMap;
 pub struct History {
     bits: u64,
     alignment: u8,
-    cache: HashMap<(u8, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
+    cache: HashMap<(u16, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
 }
 
 impl History {
@@ -19,7 +19,7 @@ impl History {
     }
 
     pub fn hash(&mut self) -> u16 {
-        let last_byte = u8::try_from(self.bits & 0xff).unwrap();
+        let last_byte = u16::try_from(self.bits & 0xff_ff).unwrap();
         let cached_state = self.cache.get(&(last_byte, self.alignment));
         let (mut writer, mut ac) = match cached_state {
             Some((writer, ac)) => (writer.clone(), ac.clone()),
@@ -29,13 +29,13 @@ impl History {
             ),
         };
         let mut model = RevBitStationaryModel::new(self.alignment);
-        let mut i = if cached_state.is_some() { 8 } else { 0 };
+        let mut i = if cached_state.is_some() { 16 } else { 0 };
 
         while i < u64::BITS {
             let bit = u8::try_from((self.bits >> i) & 1).unwrap();
             let res = ac.encode(bit, model.predict(), &mut writer);
             i += 1;
-            if i == 8 {
+            if i == 16 {
                 self.cache
                     .insert((last_byte, self.alignment), (writer.clone(), ac.clone()));
             }
@@ -44,7 +44,7 @@ impl History {
             }
         }
 
-        if i < 8 {
+        if i < 16 {
             self.cache
                 .insert((last_byte, self.alignment), (writer.clone(), ac.clone()));
         }
