@@ -150,7 +150,8 @@ fn init_model() -> impl Model {
     use weath3rb0i::models::*;
     // BestOfTwoModel::new(Order0::new(), Order1::new())
     // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
-    BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
+    // BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
+    Order0Entropy::new()
 }
 
 fn print_usage_and_exit(msg: &str) {

@@ -12,6 +12,7 @@ const RLO_MOD: u32 = (1 << PREC_SHIFT) - 1; // 0x7FFFFFFF, range low modify
 const RHI_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, range high modify
 
 /// The `ArithmeticCoder` encodes/decodes bits given a probability
+#[derive(Clone)]
 pub struct ArithmeticCoder<T> {
     x1: u32,                 // low
     x2: u32,                 // high
