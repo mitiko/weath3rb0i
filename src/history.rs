@@ -5,8 +5,11 @@ use std::collections::HashMap;
 pub struct History {
     bits: u64,
     alignment: u8,
-    cache: HashMap<(u8, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
+    cache: HashMap<(u16, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
 }
+
+const CACHE_SIZE: u8 = 16;
+const CACHE_MASK: u64 = (1 << CACHE_SIZE) - 1;
 
 impl History {
     pub fn new() -> Self {
@@ -18,8 +21,8 @@ impl History {
         self.alignment = (self.alignment + 1) % 8;
     }
 
-    pub fn hash(&mut self) -> u16 {
-        let last_byte = u8::try_from(self.bits & 0xff).unwrap();
+    pub fn hash(&mut self) -> u32 {
+        let last_byte = u16::try_from(self.bits & 0xff_ff).unwrap();
         let cached_state = self.cache.get(&(last_byte, self.alignment));
         let (mut writer, mut ac) = match cached_state {
             Some((writer, ac)) => (writer.clone(), ac.clone()),
@@ -29,13 +32,13 @@ impl History {
             ),
         };
         let mut model = RevBitStationaryModel::new(self.alignment);
-        let mut i = if cached_state.is_some() { 8 } else { 0 };
+        let mut i = if cached_state.is_some() { CACHE_SIZE } else { 0 };
 
-        while i < u64::BITS {
+        while i < 64 {
             let bit = u8::try_from((self.bits >> i) & 1).unwrap();
             let res = ac.encode(bit, model.predict(), &mut writer);
             i += 1;
-            if i == 8 {
+            if i == CACHE_SIZE {
                 self.cache
                     .insert((last_byte, self.alignment), (writer.clone(), ac.clone()));
             }
@@ -44,33 +47,33 @@ impl History {
             }
         }
 
-        if i < 8 {
+        if i < CACHE_SIZE {
             self.cache
                 .insert((last_byte, self.alignment), (writer.clone(), ac.clone()));
         }
 
-        (u16::from(writer.state) << 3) | u16::from(self.alignment)
+        u32::from(self.alignment) << 16 | u32::from(writer.state)
     }
 }
 
 #[derive(Clone, Debug)]
 struct EntropyWriter {
-    state: u8,
+    state: u16,
     rev_bits: u16,
     idx: u8,
 }
 
 impl ACWrite for EntropyWriter {
     fn write_bit(&mut self, bit: impl TryInto<u8>) -> std::io::Result<()> {
-        debug_assert!(self.idx <= 8);
+        debug_assert!(self.idx <= 16);
         use std::io::{Error, ErrorKind};
         let bit: u8 = bit.try_into().unwrap_or_default();
 
         let mut write_bit_raw = |bit: u8| -> std::io::Result<()> {
-            if self.idx == 8 {
+            if self.idx == 16 {
                 return Err(Error::from(ErrorKind::Other));
             }
-            self.state = (self.state << 1) | bit;
+            self.state = (self.state << 1) | u16::from(bit);
             self.idx += 1;
             Ok(())
         };

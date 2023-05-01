@@ -25,6 +25,7 @@ impl Model for Order0Entropy {
     fn update(&mut self, bit: u8) {
         self.stats[usize::from(self.ctx)].update(bit);
         self.history.update(bit);
-        self.ctx = self.history.hash();
+        // TODO: Reuse the history
+        self.ctx = u16::try_from(self.history.hash() >> 8).unwrap();
     }
 }

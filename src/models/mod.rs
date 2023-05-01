@@ -2,9 +2,10 @@ pub mod counter;
 pub mod order0;
 pub mod order0entropy;
 pub mod order1;
+pub mod order1entropy;
 pub mod stationary;
 
-pub use self::{counter::*, order0::*, order0entropy::*, order1::*};
+pub use self::{counter::*, order0::*, order0entropy::*, order1::*, order1entropy::*};
 pub use crate::state_table::*;
 
 pub trait Model {
