@@ -1,4 +1,5 @@
 pub mod ac_io;
+pub mod huffman;
 #[cfg(test)]
 mod tests;
 
