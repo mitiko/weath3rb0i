@@ -4,16 +4,12 @@ pub mod order0entropy;
 pub mod order1;
 pub mod stationary;
 
-pub use self::{counter::*, order0::*, order0entropy::*, order1::*};
+pub use self::{counter::*, order0::*, order0entropy::*, order1::*, stationary::*};
 pub use crate::state_table::*;
 
 pub trait Model {
     fn predict(&self) -> u16;
     fn update(&mut self, bit: u8);
-}
-
-pub trait StationaryModel {
-    fn predict(&mut self) -> u16;
 }
 
 use crate::mixers::opinion_mixer2::OpinionMixer2;

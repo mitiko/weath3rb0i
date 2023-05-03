@@ -1,4 +1,26 @@
-use super::StationaryModel;
+use super::Model;
+
+pub trait StationaryModel: Sized {
+    fn predict(&mut self) -> u16;
+    fn as_model(mut self) -> AsModel<Self> {
+        AsModel { prob: self.predict(), model: self }
+    }
+}
+
+pub struct AsModel<T: StationaryModel> {
+    prob: u16,
+    model: T,
+}
+
+impl<T: StationaryModel> Model for AsModel<T> {
+    fn predict(&self) -> u16 {
+        self.prob
+    }
+
+    fn update(&mut self, _bit: u8) {
+        self.prob = self.model.predict()
+    }
+}
 
 // uses stats from book1
 // TODO: Read from book1 for real
