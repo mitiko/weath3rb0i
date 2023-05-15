@@ -1,6 +1,8 @@
+#![allow(dead_code)]
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
+use core::slice::from_mut as into_slice;
 
 use weath3rb0i::debug_unreachable;
 use weath3rb0i::entropy_coding::huffman::HuffmanTree;
@@ -118,24 +120,32 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let huffman_tree = HuffmanTree::from_table(&freq_table);
     let huffman = huffman_tree.to_encode_table();
 
+    // Encode frequency table
+    for freq in freq_table {
+        writer.write_all(&freq.to_be_bytes())?;
+    }
+
     let mut idx = 0;
     let mut buf = 0;
     for byte in reader.bytes() {
         let (code, len) = huffman.encode(byte?);
         for i in (0..len).rev() {
-            if idx == 8 {
-                writer.write_all(&[buf])?;
-                idx = 0;
-            }
             let bit = u8::try_from((code >> i) & 1).unwrap();
             buf = (buf << 1) | bit;
-            idx += 1;
+            idx = (idx + 1) % 8;
+            if idx == 0 {
+                writer.write_all(&[buf])?;
+            }
         }
         // for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
         //     let p = model.predict();
         //     model.update(bit);
         //     ac.encode(bit, p, &mut writer)?;
         // }
+    }
+    if idx != 0 {
+        buf = buf << (8 - idx);
+        writer.write_all(&[buf])?;
     }
 
     // ac.flush(&mut writer)?;
@@ -146,7 +156,7 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     let mut reader = BufReader::new(File::open(input_file)?);
     let mut writer = BufWriter::new(File::create(output_file)?);
 
-    let len = {
+    let stream_len = {
         let mut len_buf = [0; std::mem::size_of::<u32>() + std::mem::size_of::<u64>()];
         reader.read_exact(&mut len_buf)?;
 
@@ -154,20 +164,43 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
         u64::from_be_bytes(len_buf[4..].try_into().unwrap())
     };
-    let mut reader = ACReader::new(reader);
-    let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
-    let mut model = init_model();
+    // let mut reader = ACReader::new(reader);
+    // let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
+    // let mut model = init_model();
 
-    for _ in 0..len {
-        let mut byte = 0;
-        for _ in 0..u8::BITS {
-            let p = model.predict();
-            let bit = ac.decode(p, &mut reader)?;
-            model.update(bit);
-            byte = (byte << 1) | bit;
-        }
-        writer.write_all(&[byte])?;
+    // Decode frequency table
+    let mut freq_table = [0; 256];
+    for byte in 0..256 {
+        let mut buf = [0; 4];
+        reader.read_exact(&mut buf)?;
+        freq_table[byte] = u32::from_be_bytes(buf);
     }
+    let huffman_tree = HuffmanTree::from_table(&freq_table);
+    let mut huffman = huffman_tree.to_decode_table();
+
+    let mut c = 0;
+    'outer: loop {
+        let mut byte = 0;
+        reader.read_exact(into_slice(&mut byte))?;
+        for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
+            huffman.update(bit);
+            if let Some(byte) = huffman.decode() {
+                writer.write_all(&[byte])?;
+                c += 1;
+                if c == stream_len { break 'outer; }
+            }
+        }
+    }
+    // for _ in 0..stream_len {
+        // let mut byte = 0;
+        // for _ in 0..u8::BITS {
+        //     let p = model.predict();
+        //     let bit = ac.decode(p, &mut reader)?;
+        //     model.update(bit);
+        //     byte = (byte << 1) | bit;
+        // }
+        // writer.write_all(&[byte])?;
+    // }
 
     writer.flush()?;
     Ok(())
