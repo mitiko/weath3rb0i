@@ -3,6 +3,8 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::debug_unreachable;
+use weath3rb0i::entropy_coding::huffman::HuffmanTree;
+#[allow(unused_imports)]
 use weath3rb0i::entropy_coding::{
     ac_io::{ACReader, ACWriter},
     ArithmeticCoder,
@@ -89,29 +91,54 @@ fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
     Ok(())
 }
 
+pub fn build_freq_table(path: PathBuf) -> std::io::Result<[u32; 256]> {
+    let mut table = [0; 256];
+    let reader = BufReader::new(File::open(path)?);
+    for byte in reader.bytes() {
+        table[usize::from(byte?)] += 1;
+    }
+    Ok(table)
+}
+
 fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut writer = BufWriter::new(File::create(output_file)?);
     let reader = {
-        let f = File::open(input_file)?;
+        let f = File::open(&input_file)?;
         let len = f.metadata()?.len();
 
         writer.write_all(MAGIC_STR)?;
         writer.write_all(&len.to_be_bytes())?;
         BufReader::new(f)
     };
-    let mut writer = ACWriter::new(writer);
-    let mut ac = ArithmeticCoder::new_coder();
-    let mut model = init_model();
+    // let mut writer = ACWriter::new(writer);
+    // let mut ac = ArithmeticCoder::new_coder();
+    // let mut model = init_model();
 
-    for byte in reader.bytes().map(|byte| byte.unwrap()) {
-        for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
-            let p = model.predict();
-            model.update(bit);
-            ac.encode(bit, p, &mut writer)?;
+    let freq_table = build_freq_table(input_file)?;
+    let huffman_tree = HuffmanTree::from_table(&freq_table);
+    let huffman = huffman_tree.to_encode_table();
+
+    let mut idx = 0;
+    let mut buf = 0;
+    for byte in reader.bytes() {
+        let (code, len) = huffman.encode(byte?);
+        for i in (0..len).rev() {
+            if idx == 8 {
+                writer.write_all(&[buf])?;
+                idx = 0;
+            }
+            let bit = u8::try_from((code >> i) & 1).unwrap();
+            buf = (buf << 1) | bit;
+            idx += 1;
         }
+        // for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
+        //     let p = model.predict();
+        //     model.update(bit);
+        //     ac.encode(bit, p, &mut writer)?;
+        // }
     }
 
-    ac.flush(&mut writer)?;
+    // ac.flush(&mut writer)?;
     Ok(())
 }
 
