@@ -1,4 +1,5 @@
 pub mod ac_io;
+pub mod prefix_codes;
 #[cfg(test)]
 mod tests;
 

@@ -3,6 +3,7 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::debug_unreachable;
+use weath3rb0i::entropy_coding::prefix_codes;
 use weath3rb0i::entropy_coding::{
     ac_io::{ACReader, ACWriter},
     ArithmeticCoder,
@@ -99,19 +100,22 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
         writer.write_all(&len.to_be_bytes())?;
         BufReader::new(f)
     };
-    let mut writer = ACWriter::new(writer);
-    let mut ac = ArithmeticCoder::new_coder();
-    let mut model = init_model();
 
+    let mut histogram = [0; 256];
+    let mut total = 0;
     for byte in reader.bytes().map(|byte| byte.unwrap()) {
-        for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
-            let p = model.predict();
-            model.update(bit);
-            ac.encode(bit, p, &mut writer)?;
-        }
+        histogram[usize::from(byte)] += 1;
+        total += 1;
     }
+    let histogram_copy = histogram.clone();
+    let max_code_len = prefix_codes::huff_in_place(&mut histogram);
+    dbg!(max_code_len);
+    let bits: u32 = histogram_copy.into_iter().zip(histogram).map(|(count, len)| count * len).sum();
+    let bytes = bits >> 3;
+    let ratio = f64::from(bytes) / f64::from(total);
+    dbg!(bytes, ratio);
 
-    ac.flush(&mut writer)?;
+
     Ok(())
 }
 
