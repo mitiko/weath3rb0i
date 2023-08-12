@@ -1,9 +1,21 @@
 // returns max code length
 fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
-    debug_assert!(sorted_histogram.iter().all(|&x| x != 0), "All entries of histogram must be non-zero.");
-    debug_assert!(sorted_histogram.windows(2).all(|x| x[0] <= x[1]), "Histogram must be sorted.");
-    debug_assert!(sorted_histogram.len() >= 1, "Histogram cannot be empty or trivial."); // TODO: remove triviality restriction
-    debug_assert!(sorted_histogram.len() <= usize::try_from(u32::MAX).unwrap_or(usize::MAX), "Histogram must be at most 2^32 elements");
+    debug_assert!(
+        sorted_histogram.iter().all(|&x| x != 0),
+        "All entries of histogram must be non-zero."
+    );
+    debug_assert!(
+        sorted_histogram.windows(2).all(|x| x[0] <= x[1]),
+        "Histogram must be sorted."
+    );
+    debug_assert!(
+        sorted_histogram.len() >= 1,
+        "Histogram cannot be empty or trivial."
+    ); // TODO: remove triviality restriction
+    debug_assert!(
+        sorted_histogram.len() <= usize::try_from(u32::MAX).unwrap_or(usize::MAX),
+        "Histogram must be at most 2^32 elements"
+    );
 
     let (len, a) = (sorted_histogram.len(), sorted_histogram);
     let (mut leaf_range, mut node_range) = (0..len, 0..0);
@@ -15,7 +27,8 @@ fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
         // assign on first iteration, add on second
         for is_left_child in [true, false] {
             let leafs_exist = !leaf_range.is_empty();
-            let prefer_leafs = || node_range.is_empty() || a[leaf_range.start] <= a[node_range.start]; // lazy
+            let prefer_leafs =
+                || node_range.is_empty() || a[leaf_range.start] <= a[node_range.start]; // lazy
             let use_leafs = leafs_exist && prefer_leafs();
 
             if is_left_child {
@@ -25,8 +38,7 @@ fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
             if use_leafs {
                 a[node_range.end] += a[leaf_range.start];
                 leaf_range.start += 1;
-            }
-            else {
+            } else {
                 a[node_range.end] += a[node_range.start];
                 a[node_range.start] = u32::try_from(i).unwrap(); // pointer
                 node_range.start += 1;
@@ -34,10 +46,12 @@ fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
         }
     }
 
-    // phase 2
-    a[len - 2] = 0;
-    for j in (0..(len - 2)).rev() {
-        a[j] = a[usize::try_from(a[j]).unwrap()] + 1;
+    // phase 2 (BFS to find node depths = code lengths)
+    let root_index = len - 2; // n leafs => n - 1 internal nodes
+    a[root_index] = 0; // depth of root is 0
+    for j in (0..root_index).rev() {
+        let parent = usize::try_from(a[j]).unwrap();
+        a[j] = a[parent] + 1; // depth of child is 1 more than depth of parent
     }
 
     let mut avail = 1;
