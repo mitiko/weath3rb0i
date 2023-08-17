@@ -31,6 +31,7 @@ fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
                 || node_range.is_empty() || a[leaf_range.start] <= a[node_range.start]; // lazy
             let use_leafs = leafs_exist && prefer_leafs();
 
+            // TODO: wrong if node_range.end == node_range.start || node_range.end == leaf_range.start
             if is_left_child {
                 a[node_range.end] = 0; // reset
             }
@@ -46,27 +47,32 @@ fn canon_huff_in_place(sorted_histogram: &mut [u32]) -> u32 {
         }
     }
 
-    // phase 2 (BFS to find node depths = code lengths)
+    // phase 2 (BFS to find internal node depths)
     let root_index = len - 2; // n leafs => n - 1 internal nodes
     a[root_index] = 0; // depth of root is 0
     for j in (0..root_index).rev() {
         let parent = usize::try_from(a[j]).unwrap();
         a[j] = a[parent] + 1; // depth of child is 1 more than depth of parent
     }
+    debug_assert!(
+        a.windows(2).all(|x| x[0] <= x[1]),
+        "Array of node depths (post phase 2) must be sorted."
+    );
 
+    // phase 3 (internal node depths to leaf node depths)
     let mut avail = 1;
     let mut used = 0;
     let mut depth = 0;
 
-    let mut root2 = isize::try_from(len - 2).unwrap();
-    let mut next = isize::try_from(len - 1).unwrap();
+    let mut root = isize::try_from(root_index).unwrap();
+    let mut next = usize::try_from(len - 1).unwrap();
     while avail > 0 {
-        while root2 >= 0 && a[usize::try_from(root2).unwrap()] == depth {
+        while root >= 0 && a[usize::try_from(root_index).unwrap()] == depth {
             used += 1;
-            root2 -= 1;
+            root -= 1;
         }
         while avail > used {
-            a[usize::try_from(next).unwrap()] = depth;
+            a[next] = depth;
             next -= 1;
             avail -= 1;
         }
