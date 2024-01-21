@@ -39,24 +39,20 @@ impl HuffmanTree {
 
     // TODO: optimize table creation?
     pub fn to_table_encoder(&self) -> HuffmanTableEncoder {
-        let mut codes = [0; 256];
-        let mut lengths = [0; 256];
+        let mut table = vec![(0, 0); 256];
         let mut bfs = VecDeque::new();
         bfs.push_back((self, 0, 0));
 
         while let Some((node, len, code)) = bfs.pop_front() {
             match node {
-                Leaf(byte, _) => {
-                    codes[usize::from(*byte)] = code;
-                    lengths[usize::from(*byte)] = len;
-                }
+                Leaf(byte, _) => table[usize::from(*byte)] = (code, len),
                 Node(left, right) => {
                     bfs.push_back((left, len + 1, code << 1));
                     bfs.push_back((right, len + 1, (code << 1) | 1));
                 }
             }
         }
-        HuffmanTableEncoder { codes, lengths }
+        HuffmanTableEncoder { table }
     }
 
     // TODO: Table decoder (can do up to 5 iterations with 64-bit buffer)
@@ -73,18 +69,19 @@ impl PartialOrd for HuffmanTree {
 }
 
 // TODO: store LSB version of code if needed
+// TODO: u16 version for lenght-limited codes
 pub struct HuffmanTableEncoder {
-    codes: [u32; 256],
-    lengths: [u8; 256],
+    /// code, len
+    table: Vec<(u32, u8)>,
 }
 
 impl HuffmanTableEncoder {
     pub fn encode(&self, byte: u8) -> (u32, u8) {
-        let byte = usize::from(byte);
-        (self.codes[byte], self.lengths[byte])
+        self.table[usize::from(byte)]
     }
 }
 
+// TODO: Store root, and pointer to node
 pub struct HuffmanTreeDecoder<'a> {
     root: &'a HuffmanTree,
     node: &'a HuffmanTree,
