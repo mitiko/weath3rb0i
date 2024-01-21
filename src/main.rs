@@ -184,7 +184,8 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         reader.read_exact(into_slice(&mut byte))?;
         for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
             huffman.update(bit);
-            if let Some(byte) = huffman.decode() {
+            if let Some(symbol) = huffman.decode() {
+                let byte = u8::try_from(symbol).unwrap();
                 writer.write_all(&[byte])?;
                 c += 1;
                 if c == stream_len { break 'outer; }

@@ -4,20 +4,24 @@ use HuffmanTree::*;
 #[derive(PartialEq, Eq, Debug, Ord)]
 pub enum HuffmanTree {
     /// byte, count
-    Leaf(u8, u32), // TODO: allow 16-bit symbols
+    Leaf(u16, u32),
     Node(Box<HuffmanTree>, Box<HuffmanTree>),
 }
 
 // TODO: Length limit the codes
 impl HuffmanTree {
-    pub fn from_histogram(histogram: &[u32; 256]) -> Self {
+    pub fn from_histogram(histogram: &[u32]) -> Self {
+        assert!(
+            histogram.len() <= usize::from(u16::MAX),
+            "Only up to u16::MAX symbols allowed"
+        );
         use std::collections::BinaryHeap;
         let mut heap: BinaryHeap<_> = histogram
             .iter()
             .enumerate()
             .filter(|&(_, &count)| count > 0)
-            .map(|(i, count)| (u8::try_from(i).unwrap(), count))
-            .map(|(byte, &count)| HuffmanTree::Leaf(byte, count))
+            .map(|(i, count)| (u16::try_from(i).unwrap(), count))
+            .map(|(symbol, &count)| HuffmanTree::Leaf(symbol, count))
             .collect();
 
         while heap.len() >= 2 {
@@ -38,8 +42,15 @@ impl HuffmanTree {
     }
 
     // TODO: optimize table creation?
+    // TODO: tree encoder
     pub fn to_table_encoder(&self) -> HuffmanTableEncoder {
-        let mut table = vec![(0, 0); 256];
+        fn count_leafs(node: &HuffmanTree) -> usize {
+            match node {
+                Leaf(..) => 1,
+                Node(left, right) => count_leafs(left) + count_leafs(right),
+            }
+        } // TODO: store leafs count in root
+        let mut table = vec![(0, 0); count_leafs(self)];
         let mut bfs = VecDeque::new();
         bfs.push_back((self, 0, 0));
 
@@ -76,8 +87,8 @@ pub struct HuffmanTableEncoder {
 }
 
 impl HuffmanTableEncoder {
-    pub fn encode(&self, byte: u8) -> (u32, u8) {
-        self.table[usize::from(byte)]
+    pub fn encode(&self, symbol: impl Into<u16>) -> (u32, u8) {
+        self.table[usize::from(symbol.into())]
     }
 }
 
@@ -96,9 +107,9 @@ impl<'a> HuffmanTreeDecoder<'a> {
         };
     }
 
-    pub fn decode(&mut self) -> Option<u8> {
+    pub fn decode(&mut self) -> Option<u16> {
         match self.node {
-            Leaf(byte, _) => Some(*byte),
+            Leaf(symbol, _) => Some(*symbol),
             Node(..) => None,
         }
     }
