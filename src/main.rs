@@ -117,8 +117,8 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     // let mut model = init_model();
 
     let freq_table = build_freq_table(input_file)?;
-    let huffman_tree = HuffmanTree::from_table(&freq_table);
-    let huffman = huffman_tree.to_encode_table();
+    let huffman_tree = HuffmanTree::from_histogram(&freq_table);
+    let huffman = huffman_tree.to_table_encoder();
 
     // Encode frequency table
     for freq in freq_table {
@@ -175,8 +175,8 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
         reader.read_exact(&mut buf)?;
         freq_table[byte] = u32::from_be_bytes(buf);
     }
-    let huffman_tree = HuffmanTree::from_table(&freq_table);
-    let mut huffman = huffman_tree.to_decode_table();
+    let huffman_tree = HuffmanTree::from_histogram(&freq_table);
+    let mut huffman = huffman_tree.to_tree_decoder();
 
     let mut c = 0;
     'outer: loop {

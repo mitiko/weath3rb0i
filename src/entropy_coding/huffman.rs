@@ -1,40 +1,18 @@
 use std::collections::VecDeque;
 use HuffmanTree::*;
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Ord)]
 pub enum HuffmanTree {
     /// byte, count
-    Leaf(u8, u32),
+    Leaf(u8, u32), // TODO: allow 16-bit symbols
     Node(Box<HuffmanTree>, Box<HuffmanTree>),
 }
 
-pub struct HuffmanEncoder {
-    codes: [u32; 256],
-    lengths: [u8; 256],
-}
-
-pub struct HuffmanDecoder<'a> {
-    root: &'a HuffmanTree,
-    node: &'a HuffmanTree
-}
-
-impl Ord for HuffmanTree {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        // inverts max-heap to be min-heap
-        self.get_count().cmp(&other.get_count()).reverse()
-    }
-}
-
-impl PartialOrd for HuffmanTree {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
+// TODO: Length limit the codes
 impl HuffmanTree {
-    pub fn from_table(table: &[u32; 256]) -> Self {
+    pub fn from_histogram(histogram: &[u32; 256]) -> Self {
         use std::collections::BinaryHeap;
-        let mut heap: BinaryHeap<_> = table
+        let mut heap: BinaryHeap<_> = histogram
             .iter()
             .enumerate()
             .filter(|&(_, &count)| count > 0)
@@ -59,7 +37,8 @@ impl HuffmanTree {
         }
     }
 
-    pub fn to_encode_table(&self) -> HuffmanEncoder {
+    // TODO: optimize table creation?
+    pub fn to_table_encoder(&self) -> HuffmanTableEncoder {
         let mut codes = [0; 256];
         let mut lengths = [0; 256];
         let mut bfs = VecDeque::new();
@@ -77,44 +56,47 @@ impl HuffmanTree {
                 }
             }
         }
-        HuffmanEncoder { codes, lengths }
+        HuffmanTableEncoder { codes, lengths }
     }
 
-    pub fn to_decode_table(&self) -> HuffmanDecoder {
-        HuffmanDecoder { root: self, node: self }
+    // TODO: Table decoder (can do up to 5 iterations with 64-bit buffer)
+    pub fn to_tree_decoder(&self) -> HuffmanTreeDecoder {
+        HuffmanTreeDecoder { root: self, node: self }
     }
 }
 
-impl HuffmanEncoder {
+impl PartialOrd for HuffmanTree {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // inverts max-heap to be min-heap
+        Some(self.get_count().cmp(&other.get_count()).reverse())
+    }
+}
+
+// TODO: store LSB version of code if needed
+pub struct HuffmanTableEncoder {
+    codes: [u32; 256],
+    lengths: [u8; 256],
+}
+
+impl HuffmanTableEncoder {
     pub fn encode(&self, byte: u8) -> (u32, u8) {
         let byte = usize::from(byte);
         (self.codes[byte], self.lengths[byte])
     }
 }
 
-impl<'a> HuffmanDecoder<'a> {
+pub struct HuffmanTreeDecoder<'a> {
+    root: &'a HuffmanTree,
+    node: &'a HuffmanTree,
+}
+
+impl<'a> HuffmanTreeDecoder<'a> {
     pub fn update(&mut self, bit: u8) {
-        // println!("decoding bit {bit}");
         self.node = match (self.node, self.root, bit) {
-            (Node(left, _right), _, 0) => {
-                // println!("node left");
-                left
-            },
-            (Node(_left, right), _, _) => {
-                // println!("node right");
-                right
-            },
-            (_, Node(left, _right), 0) => {
-                // println!("leaf left");
-                left
-            },
-            (_, Node(_left, right), _) => {
-                // println!("leaf right");
-                right
-            },
-            _ => self.root, // single byte streams
+            (Node(left, __), _, 0) | (_, Node(left, __), 0) => left,
+            (Node(_, right), _, 1) | (_, Node(_, right), 1) => right,
+            _ => self.root, // single byte streams, with 0-length codes
         };
-        // println!("moved to {:?}", self.node);
     }
 
     pub fn decode(&mut self) -> Option<u8> {
