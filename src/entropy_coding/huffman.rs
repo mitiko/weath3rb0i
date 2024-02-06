@@ -1,4 +1,4 @@
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use HuffmanTree::*;
 
 #[derive(PartialEq, Eq, Debug, Ord)]
@@ -33,6 +33,7 @@ impl HuffmanTree {
         heap.pop().unwrap()
     }
 
+    // TODO: cache
     fn get_count(&self) -> u32 {
         // does DFS sumation O(log n) depth, can be cached
         match self {
@@ -41,29 +42,68 @@ impl HuffmanTree {
         }
     }
 
+    // TODO: cache
+    fn count_leafs(&self) -> usize {
+        match self {
+            Leaf(..) => 1,
+            Node(left, right) => left.count_leafs() + right.count_leafs(),
+        }
+    }
+
+    fn max_symbol(&self) -> u16 {
+        match self {
+            Leaf(sym, _) => *sym,
+            Node(left, right) => left.max_symbol().max(right.max_symbol()),
+        }
+    }
+
+    fn max_depth(&self) -> usize {
+        match self {
+            Leaf(..) => 0,
+            Node(left, right) => 1 + left.max_depth().max(right.max_depth()),
+        }
+    }
+
     // TODO: optimize table creation?
-    // TODO: tree encoder
     pub fn to_table_encoder(&self) -> HuffmanTableEncoder {
-        fn count_leafs(node: &HuffmanTree) -> usize {
-            match node {
-                Leaf(..) => 1,
-                Node(left, right) => count_leafs(left) + count_leafs(right),
-            }
-        } // TODO: store leafs count in root
-        let mut table = vec![(0, 0); count_leafs(self)];
+        // at most (1 << 16) * 4 = 256 KiB
+        let mut table = vec![(0, 0); usize::from(self.max_symbol() + 1)];
         let mut bfs = VecDeque::new();
         bfs.push_back((self, 0, 0));
 
-        while let Some((node, len, code)) = bfs.pop_front() {
+        while let Some((node, code, len)) = bfs.pop_front() {
             match node {
-                Leaf(byte, _) => table[usize::from(*byte)] = (code, len),
+                Leaf(symbol, _) => table[usize::from(*symbol)] = (code, len),
                 Node(left, right) => {
-                    bfs.push_back((left, len + 1, code << 1));
-                    bfs.push_back((right, len + 1, (code << 1) | 1));
+                    // TODO: rev_code = code, rev_code = (1 << len) | code
+                    bfs.push_back((left, code << 1, len + 1));
+                    bfs.push_back((right, (code << 1) | 1, len + 1));
                 }
             }
         }
         HuffmanTableEncoder { table }
+    }
+
+    // meta function for entropy hashing
+    pub fn to_state_tree(&self) -> HuffmanTree {
+        // we assign a symbol for each node - its _hash_
+        // the hash is 1 concatenated with the partial bits up to this depth
+        let max_hash = (1 << self.max_depth() + 1) - 1;
+        let mut histogram = vec![0; max_hash];
+
+        let mut bfs = VecDeque::new();
+        bfs.push_back((self, 0, 0));
+
+        while let Some((node, code, len)) = bfs.pop_front() {
+            let node_hash = (1 << len) | code;
+            histogram[node_hash] = node.get_count();
+            if let Node(left, right) = node {
+                bfs.push_back((left, code << 1, len + 1));
+                bfs.push_back((right, (code << 1) | 1, len + 1));
+            }
+        }
+
+        Self::from_histogram(&histogram)
     }
 
     // TODO: Table decoder (can do up to 5 iterations with 64-bit buffer)
@@ -92,7 +132,6 @@ impl HuffmanTableEncoder {
     }
 }
 
-// TODO: Store root, and pointer to node
 pub struct HuffmanTreeDecoder<'a> {
     root: &'a HuffmanTree,
     node: &'a HuffmanTree,
