@@ -8,7 +8,7 @@
 //     // sort symbols by counts
 //     symbol_map.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
 //     let sorted_counts: Vec<_> = symbol_map.iter().map(|&x| x.1).collect();
-//     let code_lens = package_merge_in_place(&sorted_counts, max_len);
+//     let code_lens = package_merge_sorted(&sorted_counts, max_len);
 
 //     todo!()
 //     // do some un-sorting
@@ -19,6 +19,9 @@
 // https://create.stephan-brumme.com/length-limited-prefix-codes/#package-merge
 // https://github.com/sellibitze/packagemerge-rs/blob/27adc64e3a8b51b86ea91449c6a4c1971af7c682/src/lib.rs
 fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u32> {
+    assert!(a.len() <= 1 << max_len, "Max length is too small");
+    assert!(max_len <= 32, "Max length is too big");
+
     let mut package_depths: Vec<u32> = vec![0; a.len() * 2 - 1];
     let mut prev: Vec<u32> = a.iter().copied().collect();
 
@@ -60,7 +63,7 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u32> {
         let mask = 1 << depth;
         let mut packaged = 0;
         for sym in 0..relevant_symbols {
-            // if it hasn't been merged, we increase it's code length
+            // if it hasn't been packaged, we increase it's code length
             if package_depths[sym] & mask == 0 {
                 code_lens[sym - packaged] += 1;
             } else {
@@ -110,5 +113,17 @@ mod tests {
             assert_eq!(package_merge_sorted(&[10, 10], max_len), [1, 1]);
             assert_eq!(package_merge_sorted(&[1, 100], max_len), [1, 1]);
         }
+    }
+
+    #[test]
+    #[should_panic(expected = "Max length is too small")]
+    fn max_len_too_small() {
+        package_merge_sorted(&[1, 1, 2, 4, 8, 16, 32], 2);
+    }
+
+    #[test]
+    #[should_panic(expected = "Max length is too big")]
+    fn max_len_too_big() {
+        package_merge_sorted(&[1, 1, 2, 4, 8, 16, 32], 33);
     }
 }
