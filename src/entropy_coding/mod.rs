@@ -1,4 +1,5 @@
 pub mod ac_io;
+pub mod package_merge;
 #[cfg(test)]
 mod tests;
 
