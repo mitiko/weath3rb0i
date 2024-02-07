@@ -10,7 +10,7 @@ fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
     let sorted_counts: Vec<_> = symbol2count.iter().map(|&x| x.1).collect();
 
     assert!(sorted_counts.len() != 0, "No symbols provided");
-    assert!(max_len <= 32, "Max length is too big");
+    assert!(max_len <= 32, "Max length is too big"); // can be 64 for quad words
     assert!(
         sorted_counts.len() <= 1 << max_len,
         "Max length is too small"
@@ -41,7 +41,7 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
         let mut packages = prev.chunks_exact(2).map(|x| x[0] + x[1]).peekable();
         curr.clear(); //
 
-        // merge iteration
+        // merge packages from prev with initial sequence
         loop {
             let is_package = match (packages.peek(), seq.peek()) {
                 (None, None) => break,
@@ -101,6 +101,37 @@ mod tests {
     }
 
     #[test]
+    fn book1() {
+        let book1_counts = [
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 16622, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+            0, 0, 0, 0, 125551, 832, 2468, 0, 0, 0, 1, 6470, 43, 40, 1, 691, 10296, 3955, 7170, 0,
+            98, 240, 185, 184, 151, 96, 87, 85, 85, 82, 220, 762, 498, 5, 498, 759, 0, 967, 1463,
+            580, 269, 444, 413, 575, 977, 2899, 253, 45, 413, 565, 502, 856, 693, 14, 245, 850,
+            1966, 103, 64, 753, 5, 416, 0, 0, 0, 0, 0, 0, 0, 47836, 9132, 12685, 26623, 72431,
+            12237, 12303, 37561, 37007, 468, 4994, 23078, 14044, 40919, 44795, 9332, 520, 32889,
+            36788, 50027, 16031, 5382, 14071, 861, 11986, 264, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+        ];
+        let code_lens = [
+            12, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0,
+            0, 0, 0, 0, 3, 10, 8, 0, 0, 0, 12, 7, 12, 12, 12, 10, 6, 7, 7, 0, 12, 12, 12, 12, 12,
+            12, 12, 12, 12, 12, 12, 10, 10, 12, 10, 10, 0, 10, 9, 10, 11, 11, 11, 10, 10, 8, 11,
+            12, 11, 10, 10, 10, 10, 12, 12, 10, 9, 12, 12, 10, 12, 11, 0, 0, 0, 0, 0, 0, 0, 4, 6,
+            6, 5, 3, 6, 6, 4, 4, 11, 7, 5, 6, 4, 4, 6, 10, 5, 5, 4, 6, 7, 6, 10, 6, 11, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        assert_eq!(package_merge(&book1_counts, 12), code_lens);
+    }
+
+    #[test]
     fn single_symbol() {
         for max_len in [1, 2, 8] {
             assert_eq!(package_merge(&[1], max_len), [0]);
@@ -118,9 +149,9 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Max length is too small")]
-    fn max_len_too_small() {
-        package_merge(&[1, 1, 2, 4, 8, 16, 32], 2);
+    #[should_panic(expected = "No symbols provided")]
+    fn no_symbols() {
+        assert_eq!(package_merge(&[], 8), &[]);
     }
 
     #[test]
@@ -130,8 +161,8 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "No symbols provided")]
-    fn no_symbols() {
-        assert_eq!(package_merge(&[], 8), &[]);
+    #[should_panic(expected = "Max length is too small")]
+    fn max_len_too_small() {
+        package_merge(&[1, 1, 2, 4, 8, 16, 32], 2);
     }
 }
