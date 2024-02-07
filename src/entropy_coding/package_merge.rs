@@ -72,7 +72,7 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
         package_depths
             .iter()
             .take(relevant_symbols)
-            .filter(|&flag| flag & mask != 0)
+            .filter(|&flag| flag & mask == 0)
             .for_each(|_| {
                 code_lens[sym] += 1;
                 sym += 1; // move to the next non-packaged symbol
