@@ -15,8 +15,9 @@ fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
         sorted_counts.len() <= 1 << max_len,
         "Max length is too small"
     );
-
     let sorted_code_lens = package_merge_sorted(&sorted_counts, max_len);
+
+    // un-sort the code lens to their symbols
     let mut code_lens = vec![0; counts.len()];
     symbol2count
         .iter()
@@ -67,16 +68,16 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
             break;
         }
         let mask = 1 << depth;
-        let mut packaged = 0;
-        for sym in 0..relevant_symbols {
-            // if it hasn't been packaged, we increase it's code length
-            if package_depths[sym] & mask == 0 {
-                code_lens[sym - packaged] += 1;
-            } else {
-                packaged += 1;
-            }
-        }
-        relevant_symbols = packaged * 2;
+        let mut sym = 0;
+        package_depths
+            .iter()
+            .take(relevant_symbols)
+            .filter(|&flag| flag & mask != 0)
+            .for_each(|_| {
+                code_lens[sym] += 1;
+                sym += 1; // move to the next non-packaged symbol
+            });
+        relevant_symbols = (relevant_symbols - sym) * 2;
     }
     code_lens
 }
