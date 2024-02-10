@@ -3,8 +3,8 @@
 #![allow(unused_imports)]
 
 pub mod entropy_coding;
-pub mod models;
 pub mod helpers;
+pub mod models;
 
 mod hashmap;
 mod history;
