@@ -1,14 +1,16 @@
 use std::{
     fs::File,
-    io::{BufReader, BufWriter, Read, Result, Write},
+    io::{BufWriter, Result, Write},
     time::Instant,
 };
 use weath3rb0i::{
+    decode8, encode8,
     entropy_coding::{
         ac_io::{ACReader, ACWriter},
         package_merge::{canonical, package_merge},
         ArithmeticCoder,
     },
+    helpers::{cmp, histogram},
     models::Counter,
 };
 
@@ -79,58 +81,6 @@ impl Model {
     }
 }
 
-macro_rules! encode {
-    ($byte: expr, $b:ident, $x: block) => {
-        let mut $b = $byte >> 7;
-        $x;
-        $b = ($byte >> 6) & 1;
-        $x;
-        $b = ($byte >> 5) & 1;
-        $x;
-        $b = ($byte >> 4) & 1;
-        $x;
-        $b = ($byte >> 3) & 1;
-        $x;
-        $b = ($byte >> 2) & 1;
-        $x;
-        $b = ($byte >> 1) & 1;
-        $x;
-        $b = $byte & 1;
-        $x;
-    };
-}
-
-macro_rules! decode {
-    ($byte:ident, $bit:ident, $x: block) => {
-        let mut $byte = 0;
-        let mut $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-    };
-}
-
-fn histogram(buf: &[u8]) -> Vec<u32> {
-    let mut res = vec![0; 256];
-    for &byte in buf {
-        res[usize::from(byte)] += 1;
-    }
-    res
-}
-
 fn compress(in_file: &str, out_file: &str) -> Result<()> {
     let buf = std::fs::read(in_file)?;
     let mut ac = ArithmeticCoder::new_coder();
@@ -145,7 +95,7 @@ fn compress(in_file: &str, out_file: &str) -> Result<()> {
     };
 
     for byte in buf {
-        encode!(byte, bit, {
+        encode8!(byte, bit, {
             let p = model.predict();
             model.update(bit);
             ac.encode(bit, p, &mut writer)?;
@@ -174,7 +124,7 @@ fn decompress(in_file: &str, out_file: &str) -> Result<()> {
     let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
 
     for _ in 0..len {
-        decode!(byte, bit, {
+        decode8!(byte, bit, {
             let p = model.predict();
             bit = ac.decode(p, &mut reader)?;
             model.update(bit);
@@ -182,28 +132,5 @@ fn decompress(in_file: &str, out_file: &str) -> Result<()> {
         out.push(byte);
     }
     File::create(out_file)?.write_all(&out)?;
-    Ok(())
-}
-
-fn cmp(file1: &str, file2: &str) -> Result<()> {
-    let f1 = File::open(file1)?;
-    let f2 = File::open(file2)?;
-
-    let l1 = f1.metadata().unwrap().len();
-    let l2 = f2.metadata().unwrap().len();
-
-    let r1 = BufReader::new(f1);
-    let r2 = BufReader::new(f2);
-
-    let mut lines = 0;
-    let bytes1 = r1.bytes().map(|b| b.unwrap());
-    let bytes2 = r2.bytes().map(|b| b.unwrap());
-    for (pos, (b1, b2)) in bytes1.zip(bytes2).enumerate() {
-        assert_eq!(b1, b2, "Files differ at byte {}, line {}", pos, lines);
-        lines += usize::from(b1 == b'\n');
-    }
-
-    assert_eq!(l1, l2, "File 1 is {} bytes and file 2 is {} bytes", l1, l2);
-    println!("Compare: OK");
     Ok(())
 }
