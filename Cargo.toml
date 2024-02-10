@@ -25,3 +25,6 @@ panic = "abort"
 inherits = "release"
 debug = true
 strip = "none"
+
+[[bin]]
+name = "entropy-hashing-package-merge-search"
