@@ -1,4 +1,4 @@
-fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
+pub fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
     let mut symbol2count: Vec<_> = counts
         .iter()
         .copied()
@@ -80,6 +80,40 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
         relevant_symbols = (relevant_symbols - sym) * 2;
     }
     code_lens
+}
+
+// TODO: write tests
+pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
+    let mut symbol2code_lens: Vec<_> = code_lens.iter().enumerate().collect();
+    symbol2code_lens.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
+
+    let max_len = code_lens
+        .iter()
+        .reduce(|acc, x| acc.max(x))
+        .map(|&x| usize::from(x))
+        .unwrap_or(0);
+
+    let mut count_lens = vec![0; max_len + 1];
+    symbol2code_lens
+        .iter()
+        .map(|x| x.1)
+        .for_each(|&code_len| count_lens[usize::from(code_len)] += 1);
+
+    let mut codes = vec![0; max_len + 1];
+    for i in 1..max_len {
+        codes[i] = (codes[i - 1] + count_lens[i - 1]) << 1;
+    }
+
+    let mut res = vec![(0, 0); code_lens.len()];
+    for (sym, &code_len) in symbol2code_lens {
+        res[sym] = (codes[usize::from(code_len)], code_len);
+        codes[usize::from(code_len)] += 1;
+    }
+    res
+}
+
+fn package_merge_canonical(_counts: &[u32], _max_len: u8) -> Vec<(u16, u8)> {
+    todo!()
 }
 
 #[cfg(test)]
