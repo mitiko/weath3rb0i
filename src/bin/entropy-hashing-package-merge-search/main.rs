@@ -7,14 +7,16 @@ use weath3rb0i::{
     decode8, encode8,
     entropy_coding::{
         ac_io::{ACReader, ACWriter},
-        package_merge::{canonical, package_merge},
         ArithmeticCoder,
     },
-    helpers::{cmp, histogram},
-    models::Counter,
+    helpers::cmp,
+    models::Model,
 };
 
-const MAGIC_STR: &[u8; 8] = b"w3bi00\0\0";
+mod model;
+use model::PMHash;
+
+const MAGIC_STR: &[u8; 4] = b"w80i";
 
 fn main() -> Result<()> {
     let file = "/Users/mitiko/_data/book1";
@@ -45,46 +47,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-struct Model {
-    table: Vec<(u16, u8)>,
-    stats: [Counter; 1 << 11],
-    ctx: u8,
-}
-
-impl Model {
-    fn build(buf: &[u8]) -> Self {
-        let counts = histogram(&buf);
-        let code_lens = package_merge(&counts, 12);
-        Self::init(&code_lens)
-    }
-
-    fn init(buf: &[u8]) -> Self {
-        assert!(buf.len() >= 256);
-        Self {
-            table: canonical(&buf[..256]),
-            stats: [Counter::new(); 1 << 11],
-            ctx: 0,
-        }
-    }
-
-    fn serialize(&self) -> Vec<u8> {
-        self.table.iter().map(|x| x.1).collect()
-    }
-
-    fn predict(&self) -> u16 {
-        self.stats[usize::from(self.ctx)].p()
-    }
-
-    fn update(&mut self, bit: u8) {
-        self.stats[usize::from(self.ctx)].update(bit);
-        self.ctx = (self.ctx << 1) | bit;
-    }
-}
-
 fn compress(in_file: &str, out_file: &str) -> Result<()> {
     let buf = std::fs::read(in_file)?;
     let mut ac = ArithmeticCoder::new_coder();
-    let mut model = Model::build(&buf);
+    let mut model = PMHash::build(&buf);
 
     let mut writer = {
         let mut writer = BufWriter::new(File::create(out_file)?);
@@ -111,16 +77,21 @@ fn decompress(in_file: &str, out_file: &str) -> Result<()> {
     let buf = std::fs::read(in_file)?;
     let len = {
         assert_eq!(
-            &buf[..8],
+            &buf[..MAGIC_STR.len()],
             MAGIC_STR,
             "Magic string doesn't match. Check version."
         );
-        let x = u64::from_be_bytes(buf[8..16].try_into().unwrap());
-        usize::try_from(x).unwrap()
+        buf[MAGIC_STR.len()..MAGIC_STR.len() + 8]
+            .try_into()
+            .map(u64::from_be_bytes)
+            .map(usize::try_from)
+            .unwrap()
+            .unwrap()
     };
+    let buf = &buf[MAGIC_STR.len() + 8..];
     let mut out = Vec::with_capacity(len * 4 / 3);
-    let mut model = Model::init(&buf[16..272]);
-    let mut reader = ACReader::new(&buf[272..]);
+    let mut model = PMHash::init(&buf[..256]);
+    let mut reader = ACReader::new(&buf[256..]);
     let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
 
     for _ in 0..len {
