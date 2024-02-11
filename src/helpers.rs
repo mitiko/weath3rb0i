@@ -34,6 +34,28 @@ pub fn histogram(buf: &[u8]) -> Vec<u32> {
     res
 }
 
+pub fn histogram_simd(buf: &[u8]) -> Vec<u32> {
+    let mut res0 = vec![0; 256];
+    let mut res1 = vec![0; 256];
+    let mut res2 = vec![0; 256];
+    let mut res3 = vec![0; 256];
+    let iter = buf.chunks_exact(4);
+
+    for &byte in iter.remainder() {
+        res0[usize::from(byte)] += 1;
+    }
+    for chunk in iter {
+        res0[usize::from(chunk[0])] += 1;
+        res1[usize::from(chunk[1])] += 1;
+        res2[usize::from(chunk[2])] += 1;
+        res3[usize::from(chunk[3])] += 1;
+    }
+    for i in 0..256 {
+        res0[i] += res1[i] + res2[i] + res3[i];
+    }
+    res0
+}
+
 #[macro_export]
 macro_rules! encode8 {
     ($byte: expr, $b:ident, $x: block) => {
