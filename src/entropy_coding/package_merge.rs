@@ -113,7 +113,20 @@ pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
 }
 
 fn package_merge_canonical(_counts: &[u32], _max_len: u8) -> Vec<(u16, u8)> {
+    // don't do the sorting twice :)
     todo!()
+}
+
+pub fn meta_tree(codes: &[(u16, u8)], counts: &[u32]) -> Vec<u32> {
+    let longest_code = codes.iter().map(|x| x.1).max().unwrap_or(0);
+    let mut meta_counts = vec![0; 1 << (longest_code + 1)];
+    for (&(code, len), &count) in codes.iter().zip(counts.iter()) {
+        for l in (0..len).rev() {
+            let sym = (1 << l) | (code >> (len - l));
+            meta_counts[usize::from(sym)] += count;
+        }
+    }
+    meta_counts
 }
 
 #[cfg(test)]

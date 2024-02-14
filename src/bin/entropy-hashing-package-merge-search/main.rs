@@ -33,5 +33,7 @@ fn main() -> Result<()> {
         }
     }
 
+    // TODO: add back compress & decompress with real IO so we can test
+    // decompression still works
     Ok(())
 }
