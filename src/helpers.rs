@@ -1,7 +1,8 @@
 use std::{
     fs::File,
-    io::{BufReader, Read, Result},
+    io::{self, BufReader, Read, Result},
 };
+use crate::entropy_coding;
 
 pub fn cmp(file1: &str, file2: &str) -> Result<()> {
     let f1 = File::open(file1)?;
@@ -54,6 +55,37 @@ pub fn histogram_simd(buf: &[u8]) -> Vec<u32> {
         res0[i] += res1[i] + res2[i] + res3[i];
     }
     res0
+}
+
+pub struct ACStats {
+    bit_count: u64,
+    rev_bits: u64,
+}
+
+impl ACStats {
+    pub fn new() -> Self {
+        Self { bit_count: 0, rev_bits: 0 }
+    }
+
+    pub fn result(&self) -> u64 {
+        self.bit_count / 8
+    }
+}
+
+impl entropy_coding::ACWrite for ACStats {
+    fn inc_parity(&mut self) {
+        self.rev_bits += 1;
+    }
+
+    fn write_bit(&mut self, _bit: impl TryInto<u8>) -> io::Result<()> {
+        self.bit_count += 1 + self.rev_bits;
+        self.rev_bits = 0;
+        Ok(())
+    }
+
+    fn flush(&mut self, _padding: u32) -> io::Result<()> {
+        Ok(())
+    }
 }
 
 #[macro_export]
