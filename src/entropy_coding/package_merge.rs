@@ -100,8 +100,8 @@ pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
         .for_each(|&code_len| count_lens[usize::from(code_len)] += 1);
 
     let mut codes = vec![0; max_len + 1];
-    for i in 1..max_len {
-        codes[i] = (codes[i - 1] + count_lens[i - 1]) << 1;
+    for i in 0..max_len {
+        codes[i + 1] = (codes[i] + count_lens[i]) << 1;
     }
 
     let mut res = vec![(0, 0); code_lens.len()];
@@ -212,5 +212,16 @@ mod tests {
     #[should_panic(expected = "Max length is too small")]
     fn max_len_too_small() {
         package_merge(&[1, 1, 2, 4, 8, 16, 32], 2);
+    }
+}
+
+mod other_tests {
+    use super::*;
+
+    #[test]
+    fn check_canonical_sorted() {
+        let code_lens = [2, 2, 2, 3, 3];
+        let codes = canonical(&code_lens);
+        assert_eq!(codes, [(0, 2), (1, 2), (2, 2), (6, 3), (7, 3)]);
     }
 }
