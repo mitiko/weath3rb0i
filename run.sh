@@ -3,6 +3,7 @@
 PS3="Select binary to run: "
 binaries=(
     "order0"
+    "ac-over-huffman"
 )
 
 # TODO: if arg == 1, select the first choice

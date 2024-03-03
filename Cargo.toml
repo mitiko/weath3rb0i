@@ -30,3 +30,6 @@ strip = "none"
 
 [[bin]]
 name = "order0"
+
+[[bin]]
+name = "ac-over-huffman"
