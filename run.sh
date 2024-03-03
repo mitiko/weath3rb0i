@@ -3,6 +3,7 @@
 PS3="Select binary to run: "
 binaries=(
     "order0"
+    "ac-over-huffman"
     "entropy-hashing-package-merge-search"
     # "entropy-hashing-huffman-search"
 )

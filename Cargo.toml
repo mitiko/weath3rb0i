@@ -32,4 +32,7 @@ strip = "none"
 name = "order0"
 
 [[bin]]
+name = "ac-over-huffman"
+
+[[bin]]
 name = "entropy-hashing-package-merge-search"
