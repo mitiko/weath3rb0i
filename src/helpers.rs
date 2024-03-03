@@ -67,6 +67,7 @@ impl ACStats {
         Self { bit_count: 0, rev_bits: 0 }
     }
 
+    /// Bytes in compressed size roughly
     pub fn result(&self) -> u64 {
         self.bit_count / 8
     }
@@ -89,8 +90,8 @@ impl entropy_coding::ACWrite for ACStats {
 }
 
 #[macro_export]
-macro_rules! encode8 {
-    ($byte: expr, $b:ident, $x: block) => {
+macro_rules! unroll_for {
+    ($b:ident in $byte: expr, $x: block) => {
         let mut $b = $byte >> 7;
         $x;
         $b = ($byte >> 6) & 1;
@@ -111,8 +112,8 @@ macro_rules! encode8 {
 }
 
 #[macro_export]
-macro_rules! decode8 {
-    ($byte:ident, $bit:ident, $x: block) => {
+macro_rules! unroll_collect {
+    ($bit:ident into $byte:ident, $x: block) => {
         let mut $byte = 0;
         let mut $bit;
         $x;

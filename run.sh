@@ -2,6 +2,7 @@
 
 PS3="Select binary to run: "
 binaries=(
+    "order0"
     "entropy-hashing-package-merge-search"
     # "entropy-hashing-huffman-search"
 )

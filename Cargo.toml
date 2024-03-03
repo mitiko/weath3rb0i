@@ -9,6 +9,8 @@ license = "GPL-3.0"
 keywords = ["compressor", "context_mixing"]
 categories = ["compression"]
 
+default-run = "weath3rb0i"
+
 [dependencies]
 debug_unreachable = "0.1"
 
@@ -25,6 +27,9 @@ panic = "abort"
 inherits = "release"
 debug = true
 strip = "none"
+
+[[bin]]
+name = "order0"
 
 [[bin]]
 name = "entropy-hashing-package-merge-search"
