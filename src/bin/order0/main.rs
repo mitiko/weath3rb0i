@@ -1,7 +1,7 @@
 use std::{io::Result, time::Instant};
 
 use weath3rb0i::{
-    entropy_coding::ArithmeticCoder,
+    entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     models::{Model, Order0},
     unroll_for,

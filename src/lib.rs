@@ -4,6 +4,7 @@
 
 pub mod entropy_coding;
 pub mod helpers;
+pub mod macros;
 pub mod models;
 
 mod hashmap;

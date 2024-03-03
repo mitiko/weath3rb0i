@@ -28,6 +28,10 @@ inherits = "release"
 debug = true
 strip = "none"
 
+[features]
+default = []
+unsafe_conversions = []
+
 [[bin]]
 name = "order0"
 
