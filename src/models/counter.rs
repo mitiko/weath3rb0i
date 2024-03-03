@@ -1,3 +1,5 @@
+use crate::u16;
+
 #[derive(Copy, Clone)]
 pub struct Counter {
     data: [u16; 2],
@@ -12,7 +14,7 @@ impl Counter {
         let c0 = u64::from(self.data[0]);
         let c1 = u64::from(self.data[1]);
         let p = (1 << 17) * (c1 + 1) / (c0 + c1 + 2);
-        u16::try_from((p >> 1) + (p & 1)).unwrap() // rounding
+        u16!((p >> 1) + (p & 1)) // rounding
     }
 
     pub fn update(&mut self, bit: u8) {
