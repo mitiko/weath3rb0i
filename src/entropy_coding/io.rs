@@ -1,6 +1,7 @@
-use super::{ACRead, ACWrite};
 use core::slice::from_mut as into_slice;
 use std::io::{self, ErrorKind, Read, Write};
+
+use super::arithmetic_coder::{ACRead, ACWrite};
 
 /// Arithmetic coder read io for `io::Read` types
 pub struct ACReader<R> {

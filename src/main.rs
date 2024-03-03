@@ -4,8 +4,8 @@ use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::debug_unreachable;
 use weath3rb0i::entropy_coding::{
-    ac_io::{ACReader, ACWriter},
-    ArithmeticCoder,
+    io::{ACReader, ACWriter},
+    arithmetic_coder::ArithmeticCoder,
 };
 use weath3rb0i::models::Model;
 

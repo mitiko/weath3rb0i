@@ -1,4 +1,4 @@
-use crate::entropy_coding::{ACWrite, ArithmeticCoder};
+use crate::entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder};
 use crate::models::{stationary::RevBitStationaryModel, StationaryModel};
 use crate::u8;
 use std::collections::HashMap;

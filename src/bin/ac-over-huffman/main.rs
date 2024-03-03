@@ -3,7 +3,7 @@ use std::{io::Result, time::Instant};
 use weath3rb0i::{
     entropy_coding::{
         package_merge::{canonical, package_merge},
-        ArithmeticCoder,
+        arithmetic_coder::ArithmeticCoder,
     },
     helpers::{histogram, ACStats},
     models::{Model, Order0},

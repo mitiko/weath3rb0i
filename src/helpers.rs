@@ -73,7 +73,7 @@ impl ACStats {
     }
 }
 
-impl entropy_coding::ACWrite for ACStats {
+impl entropy_coding::arithmetic_coder::ACWrite for ACStats {
     fn inc_parity(&mut self) {
         self.rev_bits += 1;
     }
