@@ -1,4 +1,4 @@
-fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
+pub fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
     let mut symbol2count: Vec<_> = counts
         .iter()
         .copied()
@@ -80,6 +80,44 @@ fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
         relevant_symbols = (relevant_symbols - sym) * 2;
     }
     code_lens
+}
+
+// TODO: write tests
+pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
+    let mut symbol2code_lens: Vec<_> = code_lens
+        .iter()
+        .enumerate()
+        .filter(|(_, &x)| x != 0)
+        .collect();
+    symbol2code_lens.sort_unstable_by(|(_, a), (_, b)| a.cmp(b));
+
+    let max_len = code_lens
+        .iter()
+        .reduce(|acc, x| acc.max(x))
+        .map(|&x| usize::from(x))
+        .unwrap_or(0);
+
+    let mut count_lens = vec![0; max_len + 1];
+    symbol2code_lens
+        .iter()
+        .map(|x| x.1)
+        .for_each(|&code_len| count_lens[usize::from(code_len)] += 1);
+
+    let mut codes = vec![0; max_len + 1];
+    for i in 0..max_len {
+        codes[i + 1] = (codes[i] + count_lens[i]) << 1;
+    }
+
+    let mut res = vec![(0, 0); code_lens.len()];
+    for (sym, &code_len) in symbol2code_lens {
+        res[sym] = (codes[usize::from(code_len)], code_len);
+        codes[usize::from(code_len)] += 1;
+    }
+    res
+}
+
+fn package_merge_canonical(_counts: &[u32], _max_len: u8) -> Vec<(u16, u8)> {
+    todo!()
 }
 
 #[cfg(test)]
@@ -165,5 +203,42 @@ mod tests {
     #[should_panic(expected = "Max length is too small")]
     fn max_len_too_small() {
         package_merge(&[1, 1, 2, 4, 8, 16, 32], 2);
+    }
+}
+
+mod other_tests {
+    use super::*;
+
+    #[test]
+    fn check_canonical_sorted() {
+        let code_lens = [2, 2, 2, 3, 3];
+        let codes = canonical(&code_lens);
+        assert_eq!(codes, [(0, 2), (1, 2), (2, 2), (6, 3), (7, 3)]);
+    }
+
+    #[test]
+    fn check_canonical_unsorted() {
+        let code_lens = [2, 3, 2, 3, 2];
+        let codes = canonical(&code_lens);
+        assert_eq!(codes, [(0, 2), (6, 3), (1, 2), (7, 3), (2, 2)]);
+    }
+
+    #[test]
+    fn check_canonical_zeroes() {
+        let code_lens = [
+            7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0,
+            0, 0, 0, 3, 7, 7, 0, 0, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 7, 7, 7, 0, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7,
+            7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 5, 7, 7, 6, 4, 7, 7, 5, 5, 7, 7, 6, 7, 5, 5, 7, 7, 6, 5,
+            5, 7, 7, 7, 7, 7, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+        ];
+        let codes = canonical(&code_lens);
+        for (code, len) in codes {
+            assert!(code <= (1 << len));
+        }
     }
 }
