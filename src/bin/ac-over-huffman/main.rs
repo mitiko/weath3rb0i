@@ -7,12 +7,13 @@ use weath3rb0i::{
     },
     helpers::{histogram, ACStats},
     models::{Model, Order0},
+    u64, u8,
 };
 
 fn main() -> Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
-    let mut best = u64::try_from(buf.len()).unwrap();
+    let mut best = u64!(buf.len());
     let mut params = 0;
     for huffman_size in 7..16 {
         let res = exec(&buf, huffman_size)?;
@@ -40,7 +41,7 @@ fn exec(buf: &[u8], huffman_size: u8) -> Result<u64> {
         let (code, len) = huffman[usize::from(byte)];
         for i in (0..len).rev() {
             let p = model.predict();
-            let bit = u8::try_from((code >> i) & 1).unwrap();
+            let bit = u8!((code >> i) & 1);
             model.update(bit);
             ac.encode(bit, p, &mut writer)?;
         }

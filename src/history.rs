@@ -1,5 +1,6 @@
 use crate::entropy_coding::{ACWrite, ArithmeticCoder};
 use crate::models::{stationary::RevBitStationaryModel, StationaryModel};
+use crate::u8;
 use std::collections::HashMap;
 
 pub struct History {
@@ -19,7 +20,7 @@ impl History {
     }
 
     pub fn hash(&mut self) -> u16 {
-        let last_byte = u8::try_from(self.bits & 0xff).unwrap();
+        let last_byte = u8!(self.bits & 0xff);
         let cached_state = self.cache.get(&(last_byte, self.alignment));
         let (mut writer, mut ac) = match cached_state {
             Some((writer, ac)) => (writer.clone(), ac.clone()),
@@ -32,7 +33,7 @@ impl History {
         let mut i = if cached_state.is_some() { 8 } else { 0 };
 
         while i < u64::BITS {
-            let bit = u8::try_from((self.bits >> i) & 1).unwrap();
+            let bit = u8!((self.bits >> i) & 1);
             let res = ac.encode(bit, model.predict(), &mut writer);
             i += 1;
             if i == 8 {

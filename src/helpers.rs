@@ -1,8 +1,8 @@
+use crate::entropy_coding;
 use std::{
     fs::File,
     io::{self, BufReader, Read, Result},
 };
-use crate::entropy_coding;
 
 pub fn cmp(file1: &str, file2: &str) -> Result<()> {
     let f1 = File::open(file1)?;
@@ -87,50 +87,4 @@ impl entropy_coding::ACWrite for ACStats {
     fn flush(&mut self, _padding: u32) -> io::Result<()> {
         Ok(())
     }
-}
-
-#[macro_export]
-macro_rules! unroll_for {
-    ($b:ident in $byte: expr, $x: block) => {
-        let mut $b = $byte >> 7;
-        $x;
-        $b = ($byte >> 6) & 1;
-        $x;
-        $b = ($byte >> 5) & 1;
-        $x;
-        $b = ($byte >> 4) & 1;
-        $x;
-        $b = ($byte >> 3) & 1;
-        $x;
-        $b = ($byte >> 2) & 1;
-        $x;
-        $b = ($byte >> 1) & 1;
-        $x;
-        $b = $byte & 1;
-        $x;
-    };
-}
-
-#[macro_export]
-macro_rules! unroll_collect {
-    ($bit:ident into $byte:ident, $x: block) => {
-        let mut $byte = 0;
-        let mut $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-        $x;
-        $byte = ($byte << 1) | $bit;
-    };
 }

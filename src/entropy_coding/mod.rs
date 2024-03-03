@@ -4,6 +4,7 @@ pub mod package_merge;
 mod tests;
 
 use std::{io, marker::PhantomData};
+use crate::u32;
 
 const PREC_SHIFT: u32 = u32::BITS - 1; // 31
 const Q1: u32 = 1 << (PREC_SHIFT - 1); // 0x40000000, 1 = 0b01, quarter 1
@@ -117,7 +118,7 @@ fn lerp(x1: u32, x2: u32, prob: u16) -> u32 {
     let lerped_range = (range * p) >> 32;
 
     // no overflows/underflows, as both range < 2^32 and p < 2^32
-    let xmid = x1 + u32::try_from(lerped_range).unwrap();
+    let xmid = x1 + u32!(lerped_range);
     debug_assert!(xmid >= x1 && xmid < x2);
     xmid
 }

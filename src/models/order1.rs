@@ -1,3 +1,4 @@
+use crate::usize;
 use super::{counter::Counter, Model};
 
 pub struct Order1 {
@@ -20,12 +21,11 @@ impl Order1 {
 
 impl Model for Order1 {
     fn predict(&self) -> u16 {
-        let ctx = usize::try_from(self.ctx).unwrap();
-        self.stats[ctx].p()
+        self.stats[usize!(self.ctx)].p()
     }
 
     fn update(&mut self, bit: u8) {
-        let ctx = usize::try_from(self.ctx).unwrap();
+        let ctx = usize!(self.ctx);
         self.stats[ctx].update(bit);
         self.history = (self.history << 1) | u16::from(bit);
         self.alignment = (self.alignment + 1) % 8;
