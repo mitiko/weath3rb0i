@@ -3,6 +3,7 @@
 import argparse
 import subprocess
 from os import environ as env
+import os
 
 parser = argparse.ArgumentParser(
     prog="weath3rb0i",
@@ -10,11 +11,9 @@ parser = argparse.ArgumentParser(
     epilog="Run `cargo run` for the default",
 )
 
-binaries = [
-    "weath3rb0i",
-    "order0",
-    "ac-over-huffman",
-]
+binaries_path = os.path.join(os.path.dirname(__file__), './src/bin/')
+binaries = os.listdir(binaries_path)
+binaries.insert(0, 'weath3rb0i')
 
 # Add all parameters globally but only use the ones we require per binary (no checks for extra args)
 parser.add_argument("bin", type=int, nargs="?", help="Which binary (by id) to run")
