@@ -3,9 +3,9 @@
 #![allow(unused_imports)]
 
 pub mod entropy_coding;
-pub mod models;
 pub mod helpers;
 pub mod macros;
+pub mod models;
 
 mod hashmap;
 mod history;

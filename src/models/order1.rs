@@ -1,5 +1,5 @@
-use crate::usize;
 use super::{counter::Counter, Model};
+use crate::usize;
 
 pub struct Order1 {
     stats: Vec<Counter>,

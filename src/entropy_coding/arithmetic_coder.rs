@@ -1,5 +1,5 @@
-use std::{io, marker::PhantomData};
 use crate::u32;
+use std::{io, marker::PhantomData};
 
 const PREC_SHIFT: u32 = u32::BITS - 1; // 31
 const Q1: u32 = 1 << (PREC_SHIFT - 1); // 0x40000000, 1 = 0b01, quarter 1

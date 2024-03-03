@@ -1,8 +1,8 @@
 use std::{fs::File, io::BufWriter};
 
 use super::{
-    io::{ACReader, ACWriter},
     arithmetic_coder::*,
+    io::{ACReader, ACWriter},
 };
 
 fn compress(filename: &str, input: &[u8], probabilities: &[u16]) -> Vec<u8> {
