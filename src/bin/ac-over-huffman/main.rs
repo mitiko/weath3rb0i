@@ -15,6 +15,7 @@ fn main() -> Result<()> {
 
     let mut best = u64!(buf.len());
     let mut params = 0;
+
     for huffman_size in 7..16 {
         let res = exec(&buf, huffman_size)?;
         if res < best {
@@ -48,13 +49,15 @@ fn exec(buf: &[u8], huffman_size: u8) -> Result<u64> {
     }
     ac.flush(&mut writer)?;
 
+    let time = timer.elapsed();
     println!(
-        "[ac-over-huffman] [hsize: {:02} b{:02}] csize: {} (ratio: {:.3}), ctime: {:?}",
+        "[ac-over-huff] [hsize: {:02} b{:02}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
         huffman_size,
         8, // bits in context
         writer.result(),
         writer.result() as f64 / buf.len() as f64,
-        timer.elapsed()
+        time,
+        time.div_f64(buf.len() as f64 * 8.0)
     );
 
     Ok(writer.result())

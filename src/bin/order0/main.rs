@@ -24,11 +24,13 @@ fn main() -> Result<()> {
     }
     ac.flush(&mut writer)?;
 
+    let time = timer.elapsed();
     println!(
-        "[order0] csize: {} (ratio: {:.3}), ctime: {:?}",
+        "[order0] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
         writer.result(),
         writer.result() as f64 / buf.len() as f64,
-        timer.elapsed()
+        time,
+        time.div_f64(buf.len() as f64 * 8.0)
     );
 
     Ok(())

@@ -4,6 +4,7 @@ use std::{
     io::{self, BufReader, Read, Result},
 };
 
+
 pub fn cmp(file1: &str, file2: &str) -> Result<()> {
     let f1 = File::open(file1)?;
     let f2 = File::open(file2)?;
