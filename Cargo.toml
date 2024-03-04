@@ -40,3 +40,6 @@ name = "ac-over-huffman"
 
 [[bin]]
 name = "cmp"
+
+[[bin]]
+name = "ordern"
