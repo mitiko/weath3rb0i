@@ -37,3 +37,6 @@ name = "order0"
 
 [[bin]]
 name = "ac-over-huffman"
+
+[[bin]]
+name = "cmp"

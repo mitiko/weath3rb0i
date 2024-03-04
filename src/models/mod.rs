@@ -3,9 +3,9 @@ pub mod order0;
 pub mod order0entropy;
 pub mod order1;
 pub mod stationary;
-pub mod m16unaligned;
+pub mod ordern;
 
-pub use self::{counter::*, order0::*, order0entropy::*, order1::*, m16unaligned::*};
+pub use self::{counter::*, order0::*, order0entropy::*, order1::*, ordern::*};
 pub use crate::state_table::*;
 
 pub trait Model {
