@@ -4,11 +4,12 @@ use weath3rb0i::{
     entropy_coding::package_merge::{canonical, package_merge, meta_tree},
     helpers::histogram,
     models::{Counter, Model},
+    usize,
 };
 
 pub struct PMHash {
     table: Vec<(u16, u8)>, // TODO: reverse the table so we get: code -> symbol
-    meta_table: Vec<(u16, u8)>, // TODO: keep track of state
+    meta_table: Vec<(u16, u8)>,
     meta_state: u16,
     stats: Vec<Counter>,
     history: u64,
@@ -43,7 +44,7 @@ impl PMHash {
 }
 
 // TODO: check if that helps
-pub fn rev_codes(codes: &mut [(u16, u8)]) {
+pub fn _rev_codes(codes: &mut [(u16, u8)]) {
     for i in 0..codes.len() {
         let (mut code, len) = codes[i];
         let mut new_code = 0;
@@ -60,14 +61,14 @@ impl Model for PMHash {
     fn predict(&self) -> u16 {
         let (code, len) = self.meta_table[usize::from(self.meta_state)];
         let ctx = (self.history << len) | u64::from(code);
-        let ctx = usize::try_from(ctx & self.mask).unwrap();
+        let ctx = usize!(ctx & self.mask);
         self.stats[ctx].p()
     }
 
     fn update(&mut self, bit: u8) {
         let (code, len) = self.meta_table[usize::from(self.meta_state)];
         let ctx = (self.history << len) | u64::from(code);
-        let ctx = usize::try_from(ctx & self.mask).unwrap();
+        let ctx = usize!(ctx & self.mask);
         self.stats[ctx].update(bit);
 
         self.raw_history = (self.raw_history << 1) | u64::from(bit);
@@ -76,7 +77,7 @@ impl Model for PMHash {
         let (code, len) = self.meta_table[usize::from(self.meta_state)];
         if code == 1 && len == 1 {
             // decode prev_state or read fixed number of bits (8) from raw bitstream
-            let sym = usize::try_from(self.raw_history & 255).unwrap();
+            let sym = usize!(self.raw_history & 255);
             let (code, len) = self.table[sym];
             self.history <<= len;
             self.history |= u64::from(code);
