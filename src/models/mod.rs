@@ -2,8 +2,8 @@ pub mod counter;
 pub mod order0;
 pub mod order0entropy;
 pub mod order1;
-pub mod stationary;
 pub mod ordern;
+pub mod stationary;
 
 pub use self::{counter::*, order0::*, order0entropy::*, order1::*, ordern::*};
 pub use crate::state_table::*;
