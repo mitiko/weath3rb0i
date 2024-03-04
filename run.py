@@ -13,6 +13,7 @@ parser = argparse.ArgumentParser(
 
 binaries_path = os.path.join(os.path.dirname(__file__), './src/bin/')
 binaries = os.listdir(binaries_path)
+binaries.sort()
 binaries.insert(0, 'weath3rb0i')
 
 # Add all parameters globally but only use the ones we require per binary (no checks for extra args)
