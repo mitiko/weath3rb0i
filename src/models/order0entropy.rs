@@ -1,9 +1,10 @@
 use super::{counter::Counter, Model};
-use crate::history::History;
+use crate::history::{History, HistoryX};
+use crate::u16;
 
 pub struct Order0Entropy {
     stats: [Counter; 1 << 11],
-    history: History,
+    history: HistoryX,
     ctx: u16,
 }
 
@@ -11,7 +12,7 @@ impl Order0Entropy {
     pub fn new() -> Self {
         Self {
             stats: [Counter::new(); 1 << 11],
-            history: History::new(),
+            history: HistoryX::new(),
             ctx: 0,
         }
     }
@@ -25,6 +26,6 @@ impl Model for Order0Entropy {
     fn update(&mut self, bit: u8) {
         self.stats[usize::from(self.ctx)].update(bit);
         self.history.update(bit);
-        self.ctx = self.history.hash();
+        self.ctx = u16!(self.history.hash());
     }
 }

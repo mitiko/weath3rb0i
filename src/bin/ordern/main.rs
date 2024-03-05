@@ -45,7 +45,7 @@ fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
     let mut model = OrderN::new(ctx_bits, alignment_bits);
     let mut writer = ACStats::new();
 
-    for &byte in buf {
+    for byte in buf {
         unroll_for!(bit in byte, {
             let p = model.predict();
             model.update(bit);
@@ -56,7 +56,7 @@ fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
 
     let time = timer.elapsed();
     println!(
-        "[ordern] [ctx: {:2} align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        "[ordern] [ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
         ctx_bits,
         alignment_bits,
         writer.result(),

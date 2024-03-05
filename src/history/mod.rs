@@ -3,23 +3,33 @@ use crate::models::{stationary::RevBitStationaryModel, StationaryModel};
 use crate::u8;
 use std::collections::HashMap;
 
-pub struct History {
+pub mod raw_history;
+pub use raw_history::*;
+
+pub trait History {
+    fn update(&mut self, bit: u8);
+    fn hash(&mut self) -> u32;
+}
+
+pub struct HistoryX {
     bits: u64,
     alignment: u8,
     cache: HashMap<(u8, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
 }
 
-impl History {
+impl HistoryX {
     pub fn new() -> Self {
         Self { bits: 0, alignment: 0, cache: HashMap::new() }
     }
+}
 
-    pub fn update(&mut self, bit: u8) {
+impl History for HistoryX {
+    fn update(&mut self, bit: u8) {
         self.bits = (self.bits << 1) | u64::from(bit);
         self.alignment = (self.alignment + 1) % 8;
     }
 
-    pub fn hash(&mut self) -> u16 {
+    fn hash(&mut self) -> u32 {
         let last_byte = u8!(self.bits & 0xff);
         let cached_state = self.cache.get(&(last_byte, self.alignment));
         let (mut writer, mut ac) = match cached_state {
@@ -50,7 +60,7 @@ impl History {
                 .insert((last_byte, self.alignment), (writer.clone(), ac.clone()));
         }
 
-        (u16::from(writer.state) << 3) | u16::from(self.alignment)
+        (u32::from(writer.state) << 3) | u32::from(self.alignment)
     }
 }
 

@@ -43,3 +43,6 @@ name = "cmp"
 
 [[bin]]
 name = "ordern"
+
+[[bin]]
+name = "entropy-hashing-ac"
