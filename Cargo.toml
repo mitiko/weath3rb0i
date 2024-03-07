@@ -34,15 +34,15 @@ unsafe_conversions = []
 
 [[bin]]
 name = "order0"
-
 [[bin]]
 name = "ac-over-huffman"
-
 [[bin]]
 name = "cmp"
-
 [[bin]]
 name = "ordern"
-
 [[bin]]
 name = "entropy-hashing-ac"
+
+# Generators
+[[bin]]
+name = "gen-stationary-eh-ac-model"

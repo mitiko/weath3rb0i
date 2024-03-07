@@ -1,26 +1,28 @@
 use super::History;
-use crate::entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder};
-use crate::models::StationaryModel;
-use crate::models::{stationary::RevBitStationaryModel, Model};
 use crate::u8;
+use crate::{
+    entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder},
+    models::{ACHashModel, Model},
+};
 use std::marker::PhantomData;
 
-pub struct ACHistory {
+pub struct ACHistory<M: ACHashModel> {
+    pos: u64,
     bits: u64, // TODO: u128?
     max_bits: u8,
-    alignment: u8,
+    model: M,
 }
 
-impl ACHistory {
-    pub fn new(max_bits: u8) -> Self {
-        Self { bits: 0, alignment: 0, max_bits }
+impl<M: ACHashModel> ACHistory<M> {
+    pub fn new(max_bits: u8, model: M) -> Self {
+        Self { pos: 0, bits: 0, max_bits, model }
     }
 }
 
-impl History for ACHistory {
+impl<M: ACHashModel> History for ACHistory<M> {
     fn update(&mut self, bit: u8) {
         self.bits = (self.bits << 1) | u64::from(bit);
-        self.alignment = (self.alignment + 1) & 7;
+        self.pos += 1;
     }
 
     fn hash(&mut self) -> u32 {
@@ -31,10 +33,10 @@ impl History for ACHistory {
             idx: 0,
             max_bits: self.max_bits,
         };
-        let mut model = RevBitStationaryModel::new(self.alignment);
+        self.model.align(u8!(self.pos & 7));
         for i in 0..64 {
             let bit = u8!((self.bits >> i) & 1);
-            let res = ac.encode(bit, model.predict(), &mut writer);
+            let res = ac.encode(bit, self.model.predict(), &mut writer);
             if res.is_err() {
                 break;
             }

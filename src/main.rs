@@ -2,12 +2,15 @@ use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
-use weath3rb0i::debug_unreachable;
-use weath3rb0i::entropy_coding::{
-    arithmetic_coder::ArithmeticCoder,
-    io::{ACReader, ACWriter},
+use weath3rb0i::{
+    debug_unreachable,
+    entropy_coding::{
+        arithmetic_coder::ArithmeticCoder,
+        io::{ACReader, ACWriter},
+    },
+    history::ACHistory,
+    models::{ac_hash::Book1StationaryModel, Model},
 };
-use weath3rb0i::models::Model;
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
 const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
@@ -151,7 +154,7 @@ fn init_model() -> impl Model {
     // BestOfTwoModel::new(Order0::new(), Order1::new())
     // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
     // BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
-    Order0Entropy::new()
+    OrderNEntropy::new(11, 3, ACHistory::new(8, Book1StationaryModel::new()))
 }
 
 fn print_usage_and_exit(msg: &str) {

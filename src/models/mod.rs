@@ -1,12 +1,11 @@
 pub mod counter;
 pub mod order0;
-pub mod order0entropy;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
-pub mod stationary;
+pub mod ac_hash;
 
-pub use self::{counter::*, order0::*, order0entropy::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
 pub use crate::state_table::*;
 
 pub trait Model {
@@ -14,8 +13,9 @@ pub trait Model {
     fn update(&mut self, bit: u8);
 }
 
-pub trait StationaryModel {
+pub trait ACHashModel {
     fn predict(&mut self) -> u16;
+    fn align(&mut self, alignment: u8);
 }
 
 use crate::mixers::opinion_mixer2::OpinionMixer2;
