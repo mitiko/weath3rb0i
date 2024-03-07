@@ -9,7 +9,7 @@ use weath3rb0i::{
 };
 
 fn main() -> Result<()> {
-    let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
     let levels = 2;
     let mut best = vec![u64!(buf.len()); levels];
@@ -19,16 +19,14 @@ fn main() -> Result<()> {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            for is_big_endian in [true, false] {
-                let history = ACHistory::new_with_endiannes(ctx_bits - alignment_bits, is_big_endian);
-                let res = exec(&buf, ctx_bits, alignment_bits, is_big_endian, history)?;
-                for i in 0..levels {
-                    if res > best[i] {
-                        continue;
-                    }
-                    best[i] = res;
-                    params[i] = (ctx_bits, alignment_bits);
+            let history = ACHistory::new(ctx_bits - alignment_bits);
+            let res = exec(&buf, ctx_bits, alignment_bits, history)?;
+            for i in 0..levels {
+                if res > best[i] {
+                    continue;
                 }
+                best[i] = res;
+                params[i] = (ctx_bits, alignment_bits);
             }
         }
         println!(
@@ -44,7 +42,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, is_big_endian: bool, history: impl History) -> Result<u64> {
+fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) -> Result<u64> {
     let timer = Instant::now();
     let mut ac = ArithmeticCoder::new_coder();
     let mut model = OrderNEntropy::new(ctx_bits, alignment_bits, history);
@@ -60,13 +58,8 @@ fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, is_big_endian: bool, histo
     ac.flush(&mut writer)?;
 
     let time = timer.elapsed();
-    let name = if is_big_endian {
-        "eh-ac-be"
-    } else {
-        "eh-ac-le"
-    };
     println!(
-        "[{name}] [ctx: {:2}, align: {}] csize: {} (ratio {:.3}), ctime: {:?} ({:?} per bit)",
+        "[eh-ac] [ctx: {:2}, align: {}] csize: {} (ratio {:.3}), ctime: {:?} ({:?} per bit)",
         ctx_bits,
         alignment_bits,
         writer.result(),

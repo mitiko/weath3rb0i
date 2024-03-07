@@ -9,17 +9,11 @@ pub struct ACHistory {
     bits: u64, // TODO: u128?
     max_bits: u8,
     alignment: u8,
-    is_big_endian: bool,
 }
 
 impl ACHistory {
-    /// defaults to big endian
     pub fn new(max_bits: u8) -> Self {
-        Self { bits: 0, alignment: 0, max_bits, is_big_endian: true }
-    }
-
-    pub fn new_with_endiannes(max_bits: u8, is_big_endian: bool) -> Self {
-        Self { bits: 0, alignment: 0, max_bits, is_big_endian }
+        Self { bits: 0, alignment: 0, max_bits }
     }
 }
 
@@ -31,7 +25,12 @@ impl History for ACHistory {
 
     fn hash(&mut self) -> u32 {
         let mut ac = ArithmeticCoder::new_coder();
-        let mut writer = EntropyWriter { state: 0, rev_bits: 0, idx: 0, max_bits: self.max_bits, is_big_endian: self.is_big_endian };
+        let mut writer = EntropyWriter {
+            state: 0,
+            rev_bits: 0,
+            idx: 0,
+            max_bits: self.max_bits,
+        };
         let mut model = RevBitStationaryModel::new(self.alignment);
         for i in 0..64 {
             let bit = u8!((self.bits >> i) & 1);
@@ -41,11 +40,7 @@ impl History for ACHistory {
             }
         }
 
-        if self.is_big_endian {
-            writer.state >> (32 - writer.idx)
-        } else {
-            writer.state
-        }
+        writer.state >> (32 - writer.idx)
     }
 }
 
@@ -67,7 +62,6 @@ struct EntropyWriter {
     max_bits: u8,
     rev_bits: u16,
     idx: u8,
-    is_big_endian: bool,
 }
 
 impl ACWrite for EntropyWriter {
@@ -80,11 +74,8 @@ impl ACWrite for EntropyWriter {
             if self.idx == self.max_bits {
                 return Err(Error::from(ErrorKind::Other));
             }
-            self.state = if self.is_big_endian {
-                (self.state >> 1) | (u32::from(bit) << 31)
-            } else {
-                (self.state << 1) | u32::from(bit)
-            };
+
+            self.state = (self.state >> 1) | (u32::from(bit) << 31);
             self.idx += 1;
             Ok(())
         };
