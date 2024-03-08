@@ -1,23 +1,29 @@
 use std::{io::Result, time::Instant};
+
 use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
-    models::{Model, OrderN},
+    history::{ACHistory, History},
+    models::{ac_hash::StationaryModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
 
 fn main() -> Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    // let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
 
     let levels = 2;
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0); levels];
 
+    let model = StationaryModel::new(&buf);
+
     for ctx_bits in 8..=26 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            let res = exec(&buf, ctx_bits, alignment_bits)?;
+            let history = ACHistory::new(ctx_bits - alignment_bits, model.clone());
+            let res = exec(&buf, ctx_bits, alignment_bits, history)?;
             for i in 0..levels {
                 if res > best[i] {
                     continue;
@@ -39,10 +45,10 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
+fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) -> Result<u64> {
     let timer = Instant::now();
     let mut ac = ArithmeticCoder::new_coder();
-    let mut model = OrderN::new(ctx_bits, alignment_bits);
+    let mut model = OrderNEntropy::new(ctx_bits, alignment_bits, history);
     let mut writer = ACStats::new();
 
     for byte in buf {
@@ -56,7 +62,7 @@ fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
 
     let time = timer.elapsed();
     println!(
-        "[ordern] [ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        "[eh-ac] [ctx: {:2}, align: {}] csize: {} (ratio {:.3}), ctime: {:?} ({:?} per bit)",
         ctx_bits,
         alignment_bits,
         writer.result(),

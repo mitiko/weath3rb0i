@@ -66,7 +66,7 @@ fn exec(buf: &[u8], huffman_size: u8, ctx_bits: u8, alignment_bits: u8) -> Resul
 
     let time = timer.elapsed();
     println!(
-        "[ac-over-huff] [hsize: {:2} ctx: {:2} align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        "[ac-over-huff] [hsize: {:2}, ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
         huffman_size,
         ctx_bits,
         alignment_bits,
