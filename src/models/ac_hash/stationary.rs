@@ -51,7 +51,7 @@ impl ACHashModel for StationaryModel {
         self.alignment = alignment;
     }
 
-    fn predict(&mut self) -> u16 {
+    fn predict(&mut self, _bit: u8) -> u16 {
         self.alignment = (self.alignment + 7) & 7; // -1 = 7 (mod 8)
         self.table[usize::from(self.alignment)]
     }

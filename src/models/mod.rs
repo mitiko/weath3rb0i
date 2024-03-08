@@ -14,7 +14,7 @@ pub trait Model {
 }
 
 pub trait ACHashModel {
-    fn predict(&mut self) -> u16;
+    fn predict(&mut self, bit: u8) -> u16;
     fn align(&mut self, alignment: u8);
 }
 

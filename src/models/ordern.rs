@@ -2,7 +2,7 @@ use super::{counter::Counter, Model};
 use crate::usize;
 
 pub struct OrderN {
-    stats: Vec<Counter>,
+    pub stats: Vec<Counter>,
     ctx: u32,
     history: u32,
     alignment: u8,

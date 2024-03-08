@@ -36,7 +36,7 @@ impl<M: ACHashModel> History for ACHistory<M> {
         self.model.align(u8!(self.pos & 7));
         for i in 0..64 {
             let bit = u8!((self.bits >> i) & 1);
-            let res = ac.encode(bit, self.model.predict(), &mut writer);
+            let res = ac.encode(bit, self.model.predict(bit), &mut writer);
             if res.is_err() {
                 break;
             }

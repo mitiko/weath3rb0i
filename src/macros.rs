@@ -21,6 +21,28 @@ macro_rules! unroll_for {
 }
 
 #[macro_export]
+macro_rules! unroll_for_rev {
+    ($b:ident in $byte: expr, $x: block) => {
+        let mut $b = $byte & 1;
+        $x;
+        $b = ($byte >> 1) & 1;
+        $x;
+        $b = ($byte >> 2) & 1;
+        $x;
+        $b = ($byte >> 3) & 1;
+        $x;
+        $b = ($byte >> 4) & 1;
+        $x;
+        $b = ($byte >> 5) & 1;
+        $x;
+        $b = ($byte >> 6) & 1;
+        $x;
+        $b = $byte >> 7;
+        $x;
+    };
+}
+
+#[macro_export]
 macro_rules! unroll_collect {
     ($bit:ident into $byte:ident, $x: block) => {
         let mut $byte = 0;

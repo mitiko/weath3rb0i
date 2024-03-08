@@ -59,7 +59,7 @@ impl<M: ACHashModel> History for ACHistoryCached<M> {
         self.model.align(alignment);
         for i in start..64 {
             let bit = u8!((self.bits >> i) & 1);
-            let res = ac.encode(bit, self.model.predict(), &mut writer);
+            let res = ac.encode(bit, self.model.predict(bit), &mut writer);
             if res.is_err() {
                 break;
             }
