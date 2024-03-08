@@ -1,11 +1,8 @@
-use crate::entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder};
-use crate::u8;
-use std::collections::HashMap;
-
-pub mod raw_history;
 pub mod ac_history;
-pub use raw_history::*;
-pub use ac_history::*;
+pub mod ac_history_cached;
+pub mod raw_history;
+
+pub use self::{ac_history::*, ac_history_cached::*, raw_history::*};
 
 pub trait History {
     fn update(&mut self, bit: u8);
