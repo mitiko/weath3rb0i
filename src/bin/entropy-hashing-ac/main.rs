@@ -4,12 +4,13 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{ac_hash::{Book1StationaryModel, Enwik7StationaryModel}, Model, OrderNEntropy},
+    models::{Model, OrderNEntropy},
     u64, unroll_for,
 };
 
 fn main() -> Result<()> {
-    let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    // let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
 
     let levels = 2;
     let mut best = vec![u64!(buf.len()); levels];
@@ -19,8 +20,10 @@ fn main() -> Result<()> {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            // let model = Book1StationaryModel::new();
-            let model = Enwik7StationaryModel::new();
+            use weath3rb0i::models::ac_hash::Book1StationaryModel;
+            let model = Book1StationaryModel::new();
+            // use weath3rb0i::models::ac_hash::Enwik7StationaryModel;
+            // let model = Enwik7StationaryModel::new();
             let history = ACHistory::new(ctx_bits - alignment_bits, model);
             let res = exec(&buf, ctx_bits, alignment_bits, history)?;
             for i in 0..levels {
