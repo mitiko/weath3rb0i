@@ -1,4 +1,5 @@
 use std::{io::Result, time::{Duration, Instant}};
+use rayon::prelude::*;
 
 use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
@@ -23,12 +24,15 @@ fn main() -> Result<()> {
             params[2] = (0, 0, 0);
             let mut cache_sizes: Vec<u8> = (8..=24).collect();
             cache_sizes.insert(0, 0);
-            for cache_size in cache_sizes {
+            let results: Vec<_> = cache_sizes.into_par_iter().map(|cache_size| {
                 let model = Book1StationaryModel::new();
                 let history = ACHistoryCached::new(ctx_bits - alignment_bits, model, cache_size);
-                let (res, time) = exec(&buf, ctx_bits, alignment_bits, history, cache_size)?;
+                let results = exec(&buf, ctx_bits, alignment_bits, history, cache_size).unwrap();
+                (cache_size, results)
+            }).collect();
+            for (cache_size, (res, time)) in results {
                 for i in 0..levels {
-                    if res > best[i].0 || time >= best[i].1 {
+                    if res > best[i].0 || (res == best[i].0 && time > best[i].1) {
                         continue;
                     }
                     best[i] = (res, time);
