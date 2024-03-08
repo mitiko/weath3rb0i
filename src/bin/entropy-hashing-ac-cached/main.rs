@@ -20,6 +20,7 @@ fn main() -> Result<()> {
         best[1] = (u64!(buf.len()), Duration::MAX);
         params[1] = (0, 0, 0);
         for alignment_bits in 0..=4 {
+        // for alignment_bits in [3] { // go faster
             best[2] = (u64!(buf.len()), Duration::MAX);
             params[2] = (0, 0, 0);
             let mut cache_sizes: Vec<u8> = (8..=24).collect();
