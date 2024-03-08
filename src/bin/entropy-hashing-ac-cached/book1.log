@@ -93,7 +93,7 @@
 [eh-ac] [ctx:  8, align: 4 cache: 15] csize: 445328 (ratio 0.579), ctime: 436.733958ms (71ns per bit)
 [eh-ac] [ctx:  8, align: 4 cache: 19] csize: 445328 (ratio 0.579), ctime: 475.147959ms (77ns per bit)
 -> fastest: 445328 in 436.733958ms (71ns per bit) for [ctx: 8, align: 4, cache: 15]
---> best: 423101 in 546.431083ms (71ns per bit) for [ctx: 8, align: 3, cache: 23]
+--> best: 423101 in 546.431083ms (89ns per bit) for [ctx: 8, align: 3, cache: 23]
 [eh-ac] [ctx:  9, align: 0 cache: 13] csize: 659692 (ratio 0.858), ctime: 880.726292ms (143ns per bit)
 [eh-ac] [ctx:  9, align: 0 cache: 12] csize: 659692 (ratio 0.858), ctime: 898.64925ms (146ns per bit)
 [eh-ac] [ctx:  9, align: 0 cache: 14] csize: 659692 (ratio 0.858), ctime: 919.187125ms (149ns per bit)
@@ -189,7 +189,7 @@
 [eh-ac] [ctx:  9, align: 4 cache: 23] csize: 423318 (ratio 0.551), ctime: 650.630625ms (106ns per bit)
 [eh-ac] [ctx:  9, align: 4 cache: 24] csize: 423318 (ratio 0.551), ctime: 672.816834ms (109ns per bit)
 -> fastest: 423318 in 602.51875ms (98ns per bit) for [ctx: 9, align: 4, cache: 9]
---> best: 395997 in 649.907ms (98ns per bit) for [ctx: 9, align: 3, cache: 9]
+--> best: 395997 in 649.907ms (106ns per bit) for [ctx: 9, align: 3, cache: 9]
 [eh-ac] [ctx: 10, align: 0 cache: 14] csize: 628412 (ratio 0.817), ctime: 960.981625ms (156ns per bit)
 [eh-ac] [ctx: 10, align: 0 cache: 16] csize: 628412 (ratio 0.817), ctime: 963.942125ms (157ns per bit)
 [eh-ac] [ctx: 10, align: 0 cache: 13] csize: 628412 (ratio 0.817), ctime: 978.4745ms (159ns per bit)
@@ -285,7 +285,7 @@
 [eh-ac] [ctx: 10, align: 4 cache: 14] csize: 396382 (ratio 0.516), ctime: 768.374542ms (125ns per bit)
 [eh-ac] [ctx: 10, align: 4 cache: 15] csize: 396382 (ratio 0.516), ctime: 710.652667ms (116ns per bit)
 -> fastest: 396382 in 641.90075ms (104ns per bit) for [ctx: 10, align: 4, cache: 9]
---> best: 372546 in 694.527083ms (104ns per bit) for [ctx: 10, align: 3, cache: 11]
+--> best: 372546 in 694.527083ms (113ns per bit) for [ctx: 10, align: 3, cache: 11]
 [eh-ac] [ctx: 11, align: 0 cache: 16] csize: 593641 (ratio 0.772), ctime: 1.006500458s (164ns per bit)
 [eh-ac] [ctx: 11, align: 0 cache: 13] csize: 593641 (ratio 0.772), ctime: 1.089545583s (177ns per bit)
 [eh-ac] [ctx: 11, align: 0 cache: 11] csize: 593641 (ratio 0.772), ctime: 1.193975792s (194ns per bit)
@@ -381,7 +381,7 @@
 [eh-ac] [ctx: 11, align: 4 cache: 24] csize: 373232 (ratio 0.485), ctime: 978.8335ms (159ns per bit)
 [eh-ac] [ctx: 11, align: 4 cache: 21] csize: 373232 (ratio 0.485), ctime: 969.546208ms (158ns per bit)
 -> fastest: 373232 in 786.081ms (128ns per bit) for [ctx: 11, align: 4, cache: 10]
---> best: 353992 in 783.010666ms (128ns per bit) for [ctx: 11, align: 3, cache: 15]
+--> best: 353992 in 783.010666ms (127ns per bit) for [ctx: 11, align: 3, cache: 15]
 [eh-ac] [ctx: 12, align: 0 cache: 16] csize: 557707 (ratio 0.725), ctime: 997.963458ms (162ns per bit)
 [eh-ac] [ctx: 12, align: 0 cache: 13] csize: 557707 (ratio 0.725), ctime: 1.185716917s (193ns per bit)
 [eh-ac] [ctx: 12, align: 0 cache: 12] csize: 557707 (ratio 0.725), ctime: 1.236814333s (201ns per bit)
@@ -477,7 +477,7 @@
 [eh-ac] [ctx: 12, align: 4 cache: 24] csize: 355144 (ratio 0.462), ctime: 1.106554291s (180ns per bit)
 [eh-ac] [ctx: 12, align: 4 cache: 19] csize: 355144 (ratio 0.462), ctime: 1.0081015s (164ns per bit)
 -> fastest: 355144 in 845.099542ms (137ns per bit) for [ctx: 12, align: 4, cache: 11]
---> best: 333140 in 848.855708ms (137ns per bit) for [ctx: 12, align: 3, cache: 13]
+--> best: 333140 in 848.855708ms (138ns per bit) for [ctx: 12, align: 3, cache: 13]
 [eh-ac] [ctx: 13, align: 0 cache: 17] csize: 521221 (ratio 0.678), ctime: 1.28308275s (209ns per bit)
 [eh-ac] [ctx: 13, align: 0 cache: 18] csize: 521221 (ratio 0.678), ctime: 1.291768084s (210ns per bit)
 [eh-ac] [ctx: 13, align: 0 cache: 19] csize: 521221 (ratio 0.678), ctime: 1.329457666s (216ns per bit)
@@ -573,7 +573,7 @@
 [eh-ac] [ctx: 13, align: 4 cache: 18] csize: 335000 (ratio 0.436), ctime: 1.109557917s (180ns per bit)
 [eh-ac] [ctx: 13, align: 4 cache: 19] csize: 335000 (ratio 0.436), ctime: 955.396208ms (155ns per bit)
 -> fastest: 335000 in 870.915125ms (142ns per bit) for [ctx: 13, align: 4, cache: 12]
---> best: 318059 in 807.258125ms (142ns per bit) for [ctx: 13, align: 3, cache: 15]
+--> best: 318059 in 807.258125ms (131ns per bit) for [ctx: 13, align: 3, cache: 15]
 [eh-ac] [ctx: 14, align: 0 cache: 20] csize: 488233 (ratio 0.635), ctime: 1.305136458s (212ns per bit)
 [eh-ac] [ctx: 14, align: 0 cache: 16] csize: 488233 (ratio 0.635), ctime: 1.422875708s (231ns per bit)
 [eh-ac] [ctx: 14, align: 0 cache: 14] csize: 488233 (ratio 0.635), ctime: 1.556637208s (253ns per bit)
@@ -669,7 +669,7 @@
 [eh-ac] [ctx: 14, align: 4 cache: 15] csize: 320894 (ratio 0.417), ctime: 855.304542ms (139ns per bit)
 [eh-ac] [ctx: 14, align: 4 cache: 24] csize: 320894 (ratio 0.417), ctime: 1.161732083s (189ns per bit)
 -> fastest: 320894 in 855.304542ms (139ns per bit) for [ctx: 14, align: 4, cache: 15]
---> best: 304496 in 967.912292ms (139ns per bit) for [ctx: 14, align: 3, cache: 16]
+--> best: 304496 in 967.912292ms (157ns per bit) for [ctx: 14, align: 3, cache: 16]
 [eh-ac] [ctx: 15, align: 0 cache: 20] csize: 453528 (ratio 0.590), ctime: 1.185421083s (193ns per bit)
 [eh-ac] [ctx: 15, align: 0 cache: 21] csize: 453528 (ratio 0.590), ctime: 1.221675375s (199ns per bit)
 [eh-ac] [ctx: 15, align: 0 cache: 22] csize: 453528 (ratio 0.590), ctime: 1.228101625s (200ns per bit)
@@ -765,7 +765,7 @@
 [eh-ac] [ctx: 15, align: 4 cache: 23] csize: 308637 (ratio 0.401), ctime: 1.296330083s (211ns per bit)
 [eh-ac] [ctx: 15, align: 4 cache: 24] csize: 308637 (ratio 0.401), ctime: 1.283146917s (209ns per bit)
 -> fastest: 308637 in 947.056625ms (154ns per bit) for [ctx: 15, align: 4, cache: 16]
---> best: 291451 in 963.5865ms (154ns per bit) for [ctx: 15, align: 3, cache: 17]
+--> best: 291451 in 963.5865ms (157ns per bit) for [ctx: 15, align: 3, cache: 17]
 [eh-ac] [ctx: 16, align: 0 cache: 20] csize: 416608 (ratio 0.542), ctime: 1.331650125s (217ns per bit)
 [eh-ac] [ctx: 16, align: 0 cache: 18] csize: 416608 (ratio 0.542), ctime: 1.458429292s (237ns per bit)
 [eh-ac] [ctx: 16, align: 0 cache: 16] csize: 416608 (ratio 0.542), ctime: 1.594316667s (259ns per bit)
@@ -861,7 +861,7 @@
 [eh-ac] [ctx: 16, align: 4 cache: 23] csize: 297256 (ratio 0.387), ctime: 1.690003625s (275ns per bit)
 [eh-ac] [ctx: 16, align: 4 cache: 24] csize: 297256 (ratio 0.387), ctime: 1.503473584s (244ns per bit)
 -> fastest: 297256 in 1.022167s (166ns per bit) for [ctx: 16, align: 4, cache: 15]
---> best: 280621 in 1.150330875s (166ns per bit) for [ctx: 16, align: 3, cache: 18]
+--> best: 280621 in 1.150330875s (187ns per bit) for [ctx: 16, align: 3, cache: 18]
 [eh-ac] [ctx: 17, align: 0 cache: 20] csize: 378746 (ratio 0.493), ctime: 1.527669667s (248ns per bit)
 [eh-ac] [ctx: 17, align: 0 cache: 18] csize: 378746 (ratio 0.493), ctime: 1.604666958s (261ns per bit)
 [eh-ac] [ctx: 17, align: 0 cache: 17] csize: 378746 (ratio 0.493), ctime: 1.698360792s (276ns per bit)
@@ -957,7 +957,7 @@
 [eh-ac] [ctx: 17, align: 4 cache: 19] csize: 288497 (ratio 0.375), ctime: 943.740791ms (153ns per bit)
 [eh-ac] [ctx: 17, align: 4 cache: 24] csize: 288497 (ratio 0.375), ctime: 1.476986541s (240ns per bit)
 -> fastest: 288497 in 943.740791ms (153ns per bit) for [ctx: 17, align: 4, cache: 19]
---> best: 272974 in 1.119746959s (153ns per bit) for [ctx: 17, align: 3, cache: 19]
+--> best: 272974 in 1.119746959s (182ns per bit) for [ctx: 17, align: 3, cache: 19]
 [eh-ac] [ctx: 18, align: 0 cache: 22] csize: 351559 (ratio 0.457), ctime: 1.456940958s (237ns per bit)
 [eh-ac] [ctx: 18, align: 0 cache: 21] csize: 351559 (ratio 0.457), ctime: 1.516622875s (247ns per bit)
 [eh-ac] [ctx: 18, align: 0 cache: 20] csize: 351559 (ratio 0.457), ctime: 1.556224041s (253ns per bit)
@@ -1053,7 +1053,7 @@
 [eh-ac] [ctx: 18, align: 4 cache: 21] csize: 283267 (ratio 0.368), ctime: 1.013051458s (165ns per bit)
 [eh-ac] [ctx: 18, align: 4 cache: 24] csize: 283267 (ratio 0.368), ctime: 1.183082583s (192ns per bit)
 -> fastest: 283267 in 1.013051458s (165ns per bit) for [ctx: 18, align: 4, cache: 21]
---> best: 267552 in 1.190094125s (165ns per bit) for [ctx: 18, align: 3, cache: 20]
+--> best: 267552 in 1.190094125s (194ns per bit) for [ctx: 18, align: 3, cache: 20]
 [eh-ac] [ctx: 19, align: 0 cache: 16] csize: 333472 (ratio 0.434), ctime: 1.937916791s (315ns per bit)
 [eh-ac] [ctx: 19, align: 0 cache: 13] csize: 333472 (ratio 0.434), ctime: 2.194042292s (357ns per bit)
 [eh-ac] [ctx: 19, align: 0 cache: 12] csize: 333472 (ratio 0.434), ctime: 2.240125417s (364ns per bit)
@@ -1149,7 +1149,7 @@
 [eh-ac] [ctx: 19, align: 4 cache: 14] csize: 280691 (ratio 0.365), ctime: 1.381951916s (225ns per bit)
 [eh-ac] [ctx: 19, align: 4 cache: 15] csize: 280691 (ratio 0.365), ctime: 1.232843833s (200ns per bit)
 -> fastest: 280691 in 1.232843833s (200ns per bit) for [ctx: 19, align: 4, cache: 15]
---> best: 264450 in 1.391398792s (200ns per bit) for [ctx: 19, align: 3, cache: 22]
+--> best: 264450 in 1.391398792s (226ns per bit) for [ctx: 19, align: 3, cache: 22]
 [eh-ac] [ctx: 20, align: 0 cache: 22] csize: 321205 (ratio 0.418), ctime: 2.274482917s (370ns per bit)
 [eh-ac] [ctx: 20, align: 0 cache: 23] csize: 321205 (ratio 0.418), ctime: 2.292793708s (373ns per bit)
 [eh-ac] [ctx: 20, align: 0 cache: 21] csize: 321205 (ratio 0.418), ctime: 2.329192042s (379ns per bit)
@@ -1245,7 +1245,7 @@
 [eh-ac] [ctx: 20, align: 4 cache: 15] csize: 280753 (ratio 0.365), ctime: 1.61022775s (262ns per bit)
 [eh-ac] [ctx: 20, align: 4 cache:  8] csize: 280753 (ratio 0.365), ctime: 2.155022458s (350ns per bit)
 -> fastest: 280753 in 1.417871791s (231ns per bit) for [ctx: 20, align: 4, cache: 24]
---> best: 262871 in 1.427364542s (231ns per bit) for [ctx: 20, align: 3, cache: 19]
+--> best: 262871 in 1.427364542s (232ns per bit) for [ctx: 20, align: 3, cache: 19]
 [eh-ac] [ctx: 21, align: 0 cache: 20] csize: 314057 (ratio 0.409), ctime: 2.363155041s (384ns per bit)
 [eh-ac] [ctx: 21, align: 0 cache: 16] csize: 314057 (ratio 0.409), ctime: 2.574977208s (419ns per bit)
 [eh-ac] [ctx: 21, align: 0 cache: 13] csize: 314057 (ratio 0.409), ctime: 2.885642792s (469ns per bit)
@@ -1341,7 +1341,7 @@
 [eh-ac] [ctx: 21, align: 4 cache: 14] csize: 282662 (ratio 0.368), ctime: 1.692827416s (275ns per bit)
 [eh-ac] [ctx: 21, align: 4 cache: 15] csize: 282662 (ratio 0.368), ctime: 1.517682s (247ns per bit)
 -> fastest: 282662 in 1.450450792s (236ns per bit) for [ctx: 21, align: 4, cache: 22]
---> best: 263687 in 1.179676709s (236ns per bit) for [ctx: 21, align: 3, cache: 24]
+--> best: 263687 in 1.179676709s (192ns per bit) for [ctx: 21, align: 3, cache: 24]
 [eh-ac] [ctx: 22, align: 0 cache: 22] csize: 307226 (ratio 0.400), ctime: 2.151123042s (350ns per bit)
 [eh-ac] [ctx: 22, align: 0 cache: 20] csize: 307226 (ratio 0.400), ctime: 2.282788625s (371ns per bit)
 [eh-ac] [ctx: 22, align: 0 cache: 19] csize: 307226 (ratio 0.400), ctime: 2.29059025s (372ns per bit)
@@ -1437,7 +1437,7 @@
 [eh-ac] [ctx: 22, align: 4 cache:  9] csize: 287199 (ratio 0.374), ctime: 1.942965084s (316ns per bit)
 [eh-ac] [ctx: 22, align: 4 cache: 10] csize: 287199 (ratio 0.374), ctime: 1.826954583s (297ns per bit)
 -> fastest: 287199 in 1.547895917s (252ns per bit) for [ctx: 22, align: 4, cache: 24]
---> best: 266589 in 1.667212459s (252ns per bit) for [ctx: 22, align: 3, cache: 23]
+--> best: 266589 in 1.667212459s (271ns per bit) for [ctx: 22, align: 3, cache: 23]
 [eh-ac] [ctx: 23, align: 0 cache: 16] csize: 309522 (ratio 0.403), ctime: 2.653157209s (431ns per bit)
 [eh-ac] [ctx: 23, align: 0 cache: 14] csize: 309522 (ratio 0.403), ctime: 2.776519583s (451ns per bit)
 [eh-ac] [ctx: 23, align: 0 cache: 13] csize: 309522 (ratio 0.403), ctime: 2.897723209s (471ns per bit)
@@ -1629,7 +1629,7 @@
 [eh-ac] [ctx: 24, align: 4 cache: 24] csize: 302834 (ratio 0.394), ctime: 1.44561425s (235ns per bit)
 [eh-ac] [ctx: 24, align: 4 cache: 15] csize: 302834 (ratio 0.394), ctime: 1.871350459s (304ns per bit)
 -> fastest: 302834 in 1.44561425s (235ns per bit) for [ctx: 24, align: 4, cache: 24]
---> best: 278441 in 2.021113875s (235ns per bit) for [ctx: 24, align: 3, cache: 22]
+--> best: 278441 in 2.021113875s (329ns per bit) for [ctx: 24, align: 3, cache: 22]
 [eh-ac] [ctx: 25, align: 0 cache: 22] csize: 327176 (ratio 0.426), ctime: 3.385790333s (551ns per bit)
 [eh-ac] [ctx: 25, align: 0 cache: 20] csize: 327176 (ratio 0.426), ctime: 3.424508792s (557ns per bit)
 [eh-ac] [ctx: 25, align: 0 cache: 21] csize: 327176 (ratio 0.426), ctime: 3.440815041s (559ns per bit)
@@ -1725,7 +1725,7 @@
 [eh-ac] [ctx: 25, align: 4 cache: 15] csize: 313581 (ratio 0.408), ctime: 1.996106125s (325ns per bit)
 [eh-ac] [ctx: 25, align: 4 cache: 14] csize: 313581 (ratio 0.408), ctime: 2.116406459s (344ns per bit)
 -> fastest: 313581 in 1.996106125s (325ns per bit) for [ctx: 25, align: 4, cache: 15]
---> best: 287059 in 1.666252625s (325ns per bit) for [ctx: 25, align: 3, cache: 24]
+--> best: 287059 in 1.666252625s (271ns per bit) for [ctx: 25, align: 3, cache: 24]
 [eh-ac] [ctx: 26, align: 0 cache: 20] csize: 339085 (ratio 0.441), ctime: 3.223864792s (524ns per bit)
 [eh-ac] [ctx: 26, align: 0 cache: 18] csize: 339085 (ratio 0.441), ctime: 3.348245542s (544ns per bit)
 [eh-ac] [ctx: 26, align: 0 cache: 16] csize: 339085 (ratio 0.441), ctime: 3.554924333s (578ns per bit)
@@ -1821,5 +1821,5 @@
 [eh-ac] [ctx: 26, align: 4 cache: 24] csize: 326032 (ratio 0.424), ctime: 1.915878208s (312ns per bit)
 [eh-ac] [ctx: 26, align: 4 cache: 19] csize: 326032 (ratio 0.424), ctime: 1.778221125s (289ns per bit)
 -> fastest: 326032 in 1.778221125s (289ns per bit) for [ctx: 26, align: 4, cache: 19]
---> best: 297275 in 2.281569s (289ns per bit) for [ctx: 26, align: 3, cache: 19]
---> gloabl best: 262871 in 1.427364542s (289ns per bit) for [ctx: 20, align: 3, cache: 19]
+--> best: 297275 in 2.281569s (371ns per bit) for [ctx: 26, align: 3, cache: 19]
+--> gloabl best: 262871 in 1.427364542s (232ns per bit) for [ctx: 20, align: 3, cache: 19]

@@ -46,12 +46,12 @@ fn main() -> Result<()> {
         }
         println!(
             "--> best: {} in {:?} ({:?} per bit) for [ctx: {}, align: {}, cache: {}]",
-            best[1].0, best[1].1, best[2].1.div_f64(buf.len() as f64 * 8.0), params[1].0, params[1].1, params[1].2
+            best[1].0, best[1].1, best[1].1.div_f64(buf.len() as f64 * 8.0), params[1].0, params[1].1, params[1].2
         );
     }
     println!(
         "--> gloabl best: {} in {:?} ({:?} per bit) for [ctx: {}, align: {}, cache: {}]",
-        best[0].0, best[0].1, best[2].1.div_f64(buf.len() as f64 * 8.0), params[0].0, params[0].1, params[0].2
+        best[0].0, best[0].1, best[0].1.div_f64(buf.len() as f64 * 8.0), params[0].0, params[0].1, params[0].2
     );
 
     Ok(())
