@@ -12,7 +12,7 @@ pub struct ACHistoryCached<M: ACHashModel> {
     max_bits: u8,
     model: M,
     cache_size: u8,
-    cache: HashMap<(u64, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
+    cache: HashMap<(u64, u8, u8), (EntropyWriter, ArithmeticCoder<EntropyWriter>)>,
 }
 
 impl<M: ACHashModel> ACHistoryCached<M> {
@@ -36,34 +36,38 @@ impl<M: ACHashModel> History for ACHistoryCached<M> {
 
     fn hash(&mut self) -> u32 {
         let alignment = u8!(self.pos & 7);
-        let mask = (1 << self.cache_size) - 1;
-        let last_bits = self.bits & mask;
-        let key = (last_bits, alignment);
-        let cache_entry = self.cache.get(&key);
-        let (mut writer, mut ac) = match cache_entry {
-            Some((writer, ac)) => (writer.clone(), ac.clone()),
-            None => (
-                EntropyWriter::new(self.max_bits),
-                ArithmeticCoder::new_coder(),
-            ),
+
+        let (c1, c2) = (self.cache_size, self.cache_size / 2);
+        let (m1, m2) = ((1 << c1) - 1, (1 << c2) - 1);
+        let (k1, k2) = (
+            (self.bits & m1, alignment, 0),
+            (self.bits & m2, alignment, 1),
+        );
+        let (start, mut writer, mut ac) = match self.cache.get(&k1) {
+            Some((writer, ac)) => (c1, writer.clone(), ac.clone()),
+            None => match self.cache.get(&k2) {
+                Some((writer, ac)) => (c2, writer.clone(), ac.clone()),
+                None => (
+                    0,
+                    EntropyWriter::new(self.max_bits),
+                    ArithmeticCoder::new_coder(),
+                ),
+            },
         };
 
-        let start = if cache_entry.is_some() {
-            let alignment = ((alignment + 32) - self.cache_size) & 7;
-            self.model.align(alignment);
-            self.cache_size
-        } else {
-            self.model.align(alignment);
-            0
-        };
+        let alignment = ((alignment + 32) - start) & 7;
+        self.model.align(alignment);
         for i in start..64 {
             let bit = u8!((self.bits >> i) & 1);
             let res = ac.encode(bit, self.model.predict(), &mut writer);
             if res.is_err() {
                 break;
             }
-            if i == self.cache_size - 1 {
-                self.cache.insert(key, (writer.clone(), ac.clone()));
+            if i == c2 - 1 {
+                self.cache.insert(k2, (writer.clone(), ac.clone()));
+            }
+            if i == c1 - 1 {
+                self.cache.insert(k1, (writer.clone(), ac.clone()));
             }
         }
 
