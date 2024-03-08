@@ -4,7 +4,7 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{Model, OrderNEntropy},
+    models::{ac_hash::StationaryModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
 
@@ -16,15 +16,13 @@ fn main() -> Result<()> {
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0); levels];
 
+    let model = StationaryModel::new(&buf);
+
     for ctx_bits in 8..=26 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            use weath3rb0i::models::ac_hash::Book1StationaryModel;
-            let model = Book1StationaryModel::new();
-            // use weath3rb0i::models::ac_hash::Enwik7StationaryModel;
-            // let model = Enwik7StationaryModel::new();
-            let history = ACHistory::new(ctx_bits - alignment_bits, model);
+            let history = ACHistory::new(ctx_bits - alignment_bits, model.clone());
             let res = exec(&buf, ctx_bits, alignment_bits, history)?;
             for i in 0..levels {
                 if res > best[i] {

@@ -5,7 +5,7 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistoryCached, History},
-    models::{ac_hash::Book1StationaryModel, Model, OrderNEntropy},
+    models::{ac_hash::StationaryModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
 
@@ -16,6 +16,8 @@ fn main() -> Result<()> {
     let mut best = vec![(u64!(buf.len()), Duration::MAX); levels];
     let mut params = vec![(0, 0, 0); levels];
 
+    let model = StationaryModel::new(&buf);
+
     for ctx_bits in 8..=26 {
         best[1] = (u64!(buf.len()), Duration::MAX);
         params[1] = (0, 0, 0);
@@ -23,11 +25,8 @@ fn main() -> Result<()> {
         // for alignment_bits in [3] { // go faster
             best[2] = (u64!(buf.len()), Duration::MAX);
             params[2] = (0, 0, 0);
-            let mut cache_sizes: Vec<u8> = (8..=24).collect();
-            cache_sizes.insert(0, 0);
-            let results: Vec<_> = cache_sizes.into_par_iter().map(|cache_size| {
-                let model = Book1StationaryModel::new();
-                let history = ACHistoryCached::new(ctx_bits - alignment_bits, model, cache_size);
+            let results: Vec<_> = [0, 4, 8, 12, 16, 20, 24].into_par_iter().map(|cache_size| {
+                let history = ACHistoryCached::new(ctx_bits - alignment_bits, model.clone(), cache_size);
                 let results = exec(&buf, ctx_bits, alignment_bits, history, cache_size).unwrap();
                 (cache_size, results)
             }).collect();

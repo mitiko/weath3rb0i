@@ -45,7 +45,3 @@ name = "ordern"
 name = "entropy-hashing-ac"
 [[bin]]
 name = "entropy-hashing-ac-cached"
-
-# Generators
-[[bin]]
-name = "gen-stationary-eh-ac-model"

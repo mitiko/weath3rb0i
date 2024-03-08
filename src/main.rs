@@ -9,7 +9,7 @@ use weath3rb0i::{
         io::{ACReader, ACWriter},
     },
     history::ACHistory,
-    models::{ac_hash::Book1StationaryModel, Model},
+    models::{ac_hash::StationaryModel, Model},
 };
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
@@ -154,7 +154,7 @@ fn init_model() -> impl Model {
     // BestOfTwoModel::new(Order0::new(), Order1::new())
     // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
     // BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
-    OrderNEntropy::new(11, 3, ACHistory::new(8, Book1StationaryModel::new()))
+    OrderNEntropy::new(11, 3, ACHistory::new(8, StationaryModel::for_book1()))
 }
 
 fn print_usage_and_exit(msg: &str) {
