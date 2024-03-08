@@ -38,6 +38,7 @@ impl<H: History> Model for OrderNEntropy<H> {
 
         self.history.update(bit);
         self.alignment = (self.alignment + 1) & alignment_mask;
-        self.ctx = ((self.history.hash() & mask) << self.alignment_bits) | u32::from(self.alignment);
+        let hash = self.history.hash() & mask;
+        self.ctx = (hash << self.alignment_bits) | u32::from(self.alignment);
     }
 }
