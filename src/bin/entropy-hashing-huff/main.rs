@@ -9,19 +9,19 @@ use weath3rb0i::{
 };
 
 fn main() -> Result<()> {
-    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
 
     let levels = 3;
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0, 0); levels];
 
-    for rem_huff_size in 7..=12 {
+    for rem_huff_size in 8..=12 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0, 0);
-        for huff_size in 7..=15 {
+        for huff_size in 8..=15 {
             best[2] = u64!(buf.len());
             params[2] = (0, 0, 0);
-            for ctx_bits in 8..=24 {
+            for ctx_bits in 8..=30 {
                 let res = exec(&buf, huff_size, rem_huff_size, ctx_bits)?;
                 for i in 0..levels {
                     if res > best[i] {
