@@ -46,6 +46,8 @@ impl ACHashModel for OrderNStationary {
     }
 
     fn align(&mut self, alignment: u8) {
-        self.alignment = 7 - alignment;
+        self.history = 0;
+        self.ctx = 0;
+        self.alignment = (8 - alignment) & 7;
     }
 }
