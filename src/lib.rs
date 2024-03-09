@@ -11,5 +11,3 @@ pub mod models;
 mod hashmap;
 mod mixers;
 mod state_table;
-
-pub use debug_unreachable::debug_unreachable;

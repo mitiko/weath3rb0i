@@ -12,8 +12,7 @@ categories = ["compression"]
 default-run = "weath3rb0i"
 
 [dependencies]
-debug_unreachable = "0.1"
-rayon = "1.9.0"
+rayon = "1.9.0" # MT only used for search, compression is single threaded
 
 [profile.dev]
 opt-level = 1

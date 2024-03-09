@@ -3,7 +3,6 @@ use std::time::Instant;
 use std::{env, fs, fs::File, path::PathBuf};
 
 use weath3rb0i::{
-    debug_unreachable,
     entropy_coding::{
         arithmetic_coder::ArithmeticCoder,
         io::{ACReader, ACWriter},
@@ -32,12 +31,7 @@ fn main() -> std::io::Result<()> {
         "c" => Action::Compress,
         "d" => Action::Decompress,
         "t" => Action::Test,
-        _ => {
-            print_usage_and_exit("Unrecognized option -> <action>!");
-            unsafe {
-                debug_unreachable!();
-            } // we've already panicked
-        }
+        _ => print_usage_and_exit("Unrecognized option -> <action>!"),
     };
 
     if !path.is_file() && !path.is_dir() {
@@ -157,7 +151,7 @@ fn init_model() -> impl Model {
     OrderNEntropy::new(11, 3, ACHistory::new(8, StationaryModel::for_book1()))
 }
 
-fn print_usage_and_exit(msg: &str) {
+fn print_usage_and_exit(msg: &str) -> ! {
     println!("Usage: weath3rb0i <Action> <Path>");
     println!("<Action> [single file]: c (compress), d (decompress), t (test = c + d)");
     println!("<Path> can be a single file or a directory");
