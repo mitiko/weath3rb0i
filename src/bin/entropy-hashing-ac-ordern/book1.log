@@ -1,0 +1,55 @@
+[eh-ac-on] [ctx:  8, align: 4] csize: 449556 (ratio 0.585), ctime: 1.06967675s (174ns per bit)
+[eh-ac-on] [ctx:  8, align: 3] csize: 431519 (ratio 0.561), ctime: 1.273188625s (207ns per bit)
+[eh-ac-on] [ctx:  8, align: 2] csize: 513007 (ratio 0.667), ctime: 1.500804625s (244ns per bit)
+[eh-ac-on] [ctx:  8, align: 1] csize: 613347 (ratio 0.798), ctime: 1.823505584s (296ns per bit)
+[eh-ac-on] [ctx:  8, align: 0] csize: 654901 (ratio 0.852), ctime: 2.085132125s (339ns per bit)
+-> best: 431519 for [ctx: 8, align: 3, _ctx: 8, _align: 6]
+[eh-ac-on] [ctx: 16, align: 4] csize: 321787 (ratio 0.419), ctime: 3.911895625s (636ns per bit)
+[eh-ac-on] [ctx: 16, align: 3] csize: 308560 (ratio 0.401), ctime: 4.302371417s (700ns per bit)
+[eh-ac-on] [ctx: 16, align: 2] csize: 342672 (ratio 0.446), ctime: 4.634063708s (753ns per bit)
+[eh-ac-on] [ctx: 16, align: 1] csize: 382418 (ratio 0.497), ctime: 4.87644425s (793ns per bit)
+[eh-ac-on] [ctx: 16, align: 0] csize: 416548 (ratio 0.542), ctime: 5.138752917s (836ns per bit)
+-> best: 308560 for [ctx: 16, align: 3, _ctx: 8, _align: 6]
+--> best: 308560 for [ctx: 16, align: 3, _ctx: 8, _align: 6]
+[eh-ac-on] [ctx:  8, align: 4] csize: 465952 (ratio 0.606), ctime: 1.055145916s (172ns per bit)
+[eh-ac-on] [ctx:  8, align: 3] csize: 437319 (ratio 0.569), ctime: 1.264348958s (206ns per bit)
+[eh-ac-on] [ctx:  8, align: 2] csize: 516514 (ratio 0.672), ctime: 1.531807791s (249ns per bit)
+[eh-ac-on] [ctx:  8, align: 1] csize: 619683 (ratio 0.806), ctime: 1.729581334s (281ns per bit)
+[eh-ac-on] [ctx:  8, align: 0] csize: 660180 (ratio 0.859), ctime: 1.931213625s (314ns per bit)
+-> best: 437319 for [ctx: 8, align: 3, _ctx: 8, _align: 7]
+[eh-ac-on] [ctx: 16, align: 4] csize: 320959 (ratio 0.417), ctime: 3.410167375s (554ns per bit)
+[eh-ac-on] [ctx: 16, align: 3] csize: 308134 (ratio 0.401), ctime: 3.760820375s (611ns per bit)
+[eh-ac-on] [ctx: 16, align: 2] csize: 336205 (ratio 0.437), ctime: 4.052061291s (659ns per bit)
+[eh-ac-on] [ctx: 16, align: 1] csize: 380549 (ratio 0.495), ctime: 4.291839709s (698ns per bit)
+[eh-ac-on] [ctx: 16, align: 0] csize: 422573 (ratio 0.550), ctime: 4.509213958s (733ns per bit)
+-> best: 308134 for [ctx: 16, align: 3, _ctx: 8, _align: 7]
+--> best: 308134 for [ctx: 16, align: 3, _ctx: 8, _align: 7]
+---> best: 308134 for [ctx: 16, align: 3, _ctx: 8, _align: 7]
+[eh-ac-on] [ctx:  8, align: 4] csize: 435990 (ratio 0.567), ctime: 754.570625ms (123ns per bit)
+[eh-ac-on] [ctx:  8, align: 3] csize: 424450 (ratio 0.552), ctime: 882.530708ms (143ns per bit)
+[eh-ac-on] [ctx:  8, align: 2] csize: 474227 (ratio 0.617), ctime: 1.016669166s (165ns per bit)
+[eh-ac-on] [ctx:  8, align: 1] csize: 505213 (ratio 0.657), ctime: 1.120834542s (182ns per bit)
+[eh-ac-on] [ctx:  8, align: 0] csize: 555661 (ratio 0.723), ctime: 1.235042875s (201ns per bit)
+-> best: 424450 for [ctx: 8, align: 3, _ctx: 16, _align: 6]
+[eh-ac-on] [ctx: 16, align: 4] csize: 333312 (ratio 0.434), ctime: 2.431021916s (395ns per bit)
+[eh-ac-on] [ctx: 16, align: 3] csize: 319566 (ratio 0.416), ctime: 2.87432225s (467ns per bit)
+[eh-ac-on] [ctx: 16, align: 2] csize: 315740 (ratio 0.411), ctime: 3.165128292s (515ns per bit)
+[eh-ac-on] [ctx: 16, align: 1] csize: 305913 (ratio 0.398), ctime: 3.45843875s (562ns per bit)
+[eh-ac-on] [ctx: 16, align: 0] csize: 315559 (ratio 0.410), ctime: 3.730798875s (607ns per bit)
+-> best: 305913 for [ctx: 16, align: 1, _ctx: 16, _align: 6]
+--> best: 305913 for [ctx: 16, align: 1, _ctx: 16, _align: 6]
+[eh-ac-on] [ctx:  8, align: 4] csize: 435990 (ratio 0.567), ctime: 834.13475ms (136ns per bit)
+[eh-ac-on] [ctx:  8, align: 3] csize: 424449 (ratio 0.552), ctime: 982.260875ms (160ns per bit)
+[eh-ac-on] [ctx:  8, align: 2] csize: 474227 (ratio 0.617), ctime: 1.101312166s (179ns per bit)
+[eh-ac-on] [ctx:  8, align: 1] csize: 505481 (ratio 0.658), ctime: 1.220875042s (199ns per bit)
+[eh-ac-on] [ctx:  8, align: 0] csize: 555232 (ratio 0.722), ctime: 1.328588542s (216ns per bit)
+-> best: 424449 for [ctx: 8, align: 3, _ctx: 16, _align: 7]
+[eh-ac-on] [ctx: 16, align: 4] csize: 333272 (ratio 0.434), ctime: 2.780081667s (452ns per bit)
+[eh-ac-on] [ctx: 16, align: 3] csize: 319641 (ratio 0.416), ctime: 3.217523625s (523ns per bit)
+[eh-ac-on] [ctx: 16, align: 2] csize: 314567 (ratio 0.409), ctime: 3.523744s (573ns per bit)
+[eh-ac-on] [ctx: 16, align: 1] csize: 305290 (ratio 0.397), ctime: 3.817949375s (621ns per bit)
+[eh-ac-on] [ctx: 16, align: 0] csize: 314684 (ratio 0.409), ctime: 4.076923458s (663ns per bit)
+-> best: 305290 for [ctx: 16, align: 1, _ctx: 16, _align: 7]
+--> best: 305290 for [ctx: 16, align: 1, _ctx: 16, _align: 7]
+---> best: 305290 for [ctx: 16, align: 1, _ctx: 16, _align: 7]
+-> gloabl best: 305290 for [ctx: 16, align: 1, _ctx: 16, _align: 7]

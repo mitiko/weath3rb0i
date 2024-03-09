@@ -11,9 +11,9 @@ use weath3rb0i::{
 
 fn main() -> Result<()> {
     // _stat()?;
-    _run()?;
+    // _run()?;
 
-    // _search()?;
+    _search()?;
     let _ = StationaryModel::for_book1();
     Ok(())
 }
@@ -35,6 +35,11 @@ fn _stat() -> Result<()> {
     // let data = b" the";
     // let data = b" the Brown Fox jumped over the fence";
     let data = &buf;
+    let mut pos = 0;
+    let flag = true;
+    // flag = false -> 4.257
+    // flag = true -> 7.245
+    // conclusion: the model just sucks at small contexts.
 
     model.align(align);
     for (&b1, &b2) in data.iter().rev().skip(1).zip(data.iter().rev()) {
@@ -43,6 +48,10 @@ fn _stat() -> Result<()> {
         let mut sum_gain = 0.0;
         let mut sum_entropy = 0.0;
 
+        pos += 1;
+        if (pos % 4 == 0) && flag {
+            model.align(align);
+        }
         for i in 0..8 {
             let bit = (byte >> i) & 1;
             let p = model.predict(bit);
@@ -91,12 +100,12 @@ fn _search() -> Result<()> {
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0, 0, 0); levels];
 
-    for inner_ctx_bits in 0..=16 {
-    // for inner_ctx_bits in [8] {
+    // for inner_ctx_bits in 0..=16 {
+    for inner_ctx_bits in [8, 16] {
         best[1] = u64!(buf.len());
         params[1] = (0, 0, 0, 0);
-        for inner_alignment_bits in 0..=4 {
-        // for inner_alignment_bits in [3] {
+        // for inner_alignment_bits in 0..=4 {
+        for inner_alignment_bits in [6, 7] {
             best[2] = u64!(buf.len());
             params[2] = (0, 0, 0, 0);
             let model = OrderNStationary::new(
@@ -105,8 +114,8 @@ fn _search() -> Result<()> {
                 inner_alignment_bits,
             );
 
-            for ctx_bits in 8..=26 {
-            // for ctx_bits in [8] {
+            // for ctx_bits in 8..=26 {
+            for ctx_bits in [8, 16] {
                 best[3] = u64!(buf.len());
                 params[3] = (0, 0, 0, 0);
                 let results: Vec<_> = (0..=4)
@@ -137,12 +146,12 @@ fn _search() -> Result<()> {
                 );
             }
             println!(
-                "-> best: {} for [ctx: {}, align: {}, _ctx: {}, _align: {}]",
+                "--> best: {} for [ctx: {}, align: {}, _ctx: {}, _align: {}]",
                 best[2], params[2].0, params[2].1, params[2].2, params[2].3
             );
         }
         println!(
-            "-> best: {} for [ctx: {}, align: {}, _ctx: {}, _align: {}]",
+            "---> best: {} for [ctx: {}, align: {}, _ctx: {}, _align: {}]",
             best[1], params[1].0, params[1].1, params[1].2, params[1].3
         );
     }
@@ -171,7 +180,7 @@ fn _exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) ->
 
     let time = timer.elapsed();
     println!(
-        "[eh-ac] [ctx: {:2}, align: {}] csize: {} (ratio {:.3}), ctime: {:?} ({:?} per bit)",
+        "[eh-ac-on] [ctx: {:2}, align: {}] csize: {} (ratio {:.3}), ctime: {:?} ({:?} per bit)",
         ctx_bits,
         alignment_bits,
         writer.result(),
