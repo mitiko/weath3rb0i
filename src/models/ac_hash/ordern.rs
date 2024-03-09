@@ -39,13 +39,13 @@ impl ACHashModel for OrderNStationary {
         let alignment_mask = (1 << self.alignment_bits) - 1;
 
         self.history = ((self.history << 1) | u32::from(bit)) & mask;
-        self.alignment = (self.alignment + alignment_mask) & alignment_mask;
+        self.alignment = (self.alignment + 1) & alignment_mask;
         self.ctx = (self.history << self.alignment_bits) | u32::from(self.alignment);
 
         p
     }
 
     fn align(&mut self, alignment: u8) {
-        self.alignment = alignment;
+        self.alignment = 7 - alignment;
     }
 }

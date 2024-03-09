@@ -5,11 +5,77 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{ac_hash::OrderNStationary, ACHashModel, Model, OrderNEntropy},
+    models::{ac_hash::{OrderNStationary, StationaryModel}, ACHashModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
 
 fn main() -> Result<()> {
+    // _stat()?;
+    _run()?;
+
+    // _search()?;
+    Ok(())
+}
+
+fn _stat() -> Result<()> {
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let orig_model = OrderNStationary::new(&buf, 11, 3);
+    // let orig_model = StationaryModel::new(&buf);
+    // let orig_model = StationaryModel::for_book1();
+    // let orig_model = StationaryModel::for_enwik7();
+    let mut model = orig_model.clone();
+
+    let ctx_bits = 8.0;
+    let mut total_entropy = 0.0;
+    let mut total_gain = 0.0;
+    // let data = b" the";
+    // let data = b" the Brown Fox jumped over the fence";
+    let data = &buf;
+    for &byte in data.iter().rev() {
+        let mut sum_gain = 0.0;
+        let mut sum_entropy = 0.0;
+        model.align(0);
+        for i in 0..8 {
+            let bit = (byte >> i) & 1;
+            let p = model.predict(bit);
+            let p = p as f64 / (1 << 16) as f64;
+            let entropy = -(p * p.log2() + (1.0 - p) * (1.0 - p).log2());
+            let gain = if bit == 1 {
+                - p.log2()
+            } else {
+                - (1.0 - p).log2()
+            };
+            // println!("bit {bit} of '{}' -> {:.3}, entropy = {:.3}, gain: {:.3}", byte as char, p, entropy, gain);
+            sum_gain += gain;
+            sum_entropy += entropy;
+            if sum_gain > ctx_bits {
+                model = orig_model.clone();
+            }
+        }
+        // println!("[sum] entropy: {}, gain: {}", sum_entropy, sum_gain);
+        total_entropy += sum_entropy;
+        total_gain += sum_gain;
+    }
+    let n = data.len() as f64;
+    println!("-> entropy: {total_entropy:.3}, avg: {:.3}", total_entropy / n);
+    println!("-> gain: {total_gain:.3}, avg: {:.3}", total_gain / n);
+
+    Ok(())
+}
+
+fn _run() -> Result<()> {
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let model = OrderNStationary::new(&buf, 11, 3);
+    // let model = StationaryModel::for_book1();
+
+    let history = ACHistory::new(8, model.clone());
+    _exec(&buf, 8, 3, history).unwrap();
+    let history = ACHistory::new(16, model.clone());
+    _exec(&buf, 16, 3, history).unwrap();
+    Ok(())
+}
+
+fn _search() -> Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
     // let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
 
@@ -17,31 +83,44 @@ fn main() -> Result<()> {
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0, 0, 0); levels];
 
-    // for inner_ctx_bits in 0..=16 {
-    for inner_ctx_bits in [8] {
+    for inner_ctx_bits in 0..=16 {
+    // for inner_ctx_bits in [8] {
         best[1] = u64!(buf.len());
         params[1] = (0, 0, 0, 0);
-        // for inner_alignment_bits in 0..=4 {
-        for inner_alignment_bits in [3] {
+        for inner_alignment_bits in 0..=4 {
+        // for inner_alignment_bits in [3] {
             best[2] = u64!(buf.len());
             params[2] = (0, 0, 0, 0);
-            let model = OrderNStationary::new(&buf, inner_ctx_bits + inner_alignment_bits, inner_alignment_bits);
+            let model = OrderNStationary::new(
+                &buf,
+                inner_ctx_bits + inner_alignment_bits,
+                inner_alignment_bits,
+            );
 
             for ctx_bits in 8..=26 {
+            // for ctx_bits in [8] {
                 best[3] = u64!(buf.len());
                 params[3] = (0, 0, 0, 0);
-                let results: Vec<_> = (0..=4).into_par_iter().map(|alignment_bits| {
-                    let history = ACHistory::new(ctx_bits - alignment_bits, model.clone());
-                    let result = exec(&buf, ctx_bits, alignment_bits, history).unwrap();
-                    (result, alignment_bits)
-                }).collect();
+                let results: Vec<_> = (0..=4)
+                    .into_par_iter()
+                    .map(|alignment_bits| {
+                        let history = ACHistory::new(ctx_bits - alignment_bits, model.clone());
+                        let result = _exec(&buf, ctx_bits, alignment_bits, history).unwrap();
+                        (result, alignment_bits)
+                    })
+                    .collect();
                 for (res, alignment_bits) in results {
                     for i in 0..levels {
                         if res > best[i] {
                             continue;
                         }
                         best[i] = res;
-                        params[i] = (ctx_bits, alignment_bits, inner_ctx_bits, inner_alignment_bits);
+                        params[i] = (
+                            ctx_bits,
+                            alignment_bits,
+                            inner_ctx_bits,
+                            inner_alignment_bits,
+                        );
                     }
                 }
                 println!(
@@ -67,7 +146,7 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) -> Result<u64> {
+fn _exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) -> Result<u64> {
     let timer = Instant::now();
     let mut ac = ArithmeticCoder::new_coder();
     let mut model = OrderNEntropy::new(ctx_bits, alignment_bits, history);
