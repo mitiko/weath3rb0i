@@ -6,7 +6,7 @@ use weath3rb0i::{
     helpers::ACStats,
     history::{ACHistory, History},
     models::{ac_hash::{OrderNStationary, StationaryModel}, ACHashModel, Model, OrderNEntropy},
-    u64, unroll_for,
+    u8, u64, unroll_for,
 };
 
 fn main() -> Result<()> {
@@ -14,6 +14,7 @@ fn main() -> Result<()> {
     _run()?;
 
     // _search()?;
+    let _ = StationaryModel::for_book1();
     Ok(())
 }
 
@@ -26,15 +27,22 @@ fn _stat() -> Result<()> {
     let mut model = orig_model.clone();
 
     let ctx_bits = 8.0;
+    let align = 2;
+    let distort = (8 - align) & 7;
+
     let mut total_entropy = 0.0;
     let mut total_gain = 0.0;
     // let data = b" the";
     // let data = b" the Brown Fox jumped over the fence";
     let data = &buf;
-    for &byte in data.iter().rev() {
+
+    model.align(align);
+    for (&b1, &b2) in data.iter().rev().skip(1).zip(data.iter().rev()) {
+        let slice = u16::from_be_bytes([b1, b2]);
+        let byte = u8!((slice >> distort) & 255); // distort
         let mut sum_gain = 0.0;
         let mut sum_entropy = 0.0;
-        model.align(0);
+
         for i in 0..8 {
             let bit = (byte >> i) & 1;
             let p = model.predict(bit);
@@ -49,7 +57,7 @@ fn _stat() -> Result<()> {
             sum_gain += gain;
             sum_entropy += entropy;
             if sum_gain > ctx_bits {
-                model = orig_model.clone();
+                model.align(align);
             }
         }
         // println!("[sum] entropy: {}, gain: {}", sum_entropy, sum_gain);
