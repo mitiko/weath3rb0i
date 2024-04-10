@@ -9,13 +9,13 @@ use weath3rb0i::{
 };
 
 fn main() -> Result<()> {
-    let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
     let levels = 3;
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0, 0); levels];
 
-    for rem_huff_size in 8..=12 {
+    for rem_huff_size in 7..=12 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0, 0);
         for huff_size in 8..=15 {
@@ -50,7 +50,30 @@ fn main() -> Result<()> {
 }
 
 fn exec(buf: &[u8], huff_size: u8, rem_huff_size: u8, ctx_bits: u8) -> Result<u64> {
-    let timer = Instant::now();
+    let (res, time) = (0..3)
+        .map(|_| {
+            let timer = Instant::now();
+            let res = compress(buf, huff_size, rem_huff_size, ctx_bits).unwrap();
+            let time = timer.elapsed();
+            (res, time)
+        })
+        .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+        .unwrap();
+
+    println!(
+        "[eh-huff] [rem_hsize: {:2}, hsize: {:2}, ctx: {:2}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        rem_huff_size,
+        huff_size,
+        ctx_bits,
+        res,
+        res as f64 / buf.len() as f64,
+        time,
+        time.div_f64(buf.len() as f64 * 8.0)
+    );
+    Ok(res)
+}
+
+fn compress(buf: &[u8], huff_size: u8, rem_huff_size: u8, ctx_bits: u8) -> Result<u64> {
     let mut ac = ArithmeticCoder::new_coder();
     let history = HuffHistory::new(buf, huff_size, rem_huff_size);
     let mut model = OrderNEntropy::new(ctx_bits, 0, history);
@@ -64,18 +87,5 @@ fn exec(buf: &[u8], huff_size: u8, rem_huff_size: u8, ctx_bits: u8) -> Result<u6
         });
     }
     ac.flush(&mut writer)?;
-
-    let time = timer.elapsed();
-    println!(
-        "[eh-huff] [rem_hsize: {:2}, hsize: {:2}, ctx: {:2}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
-        rem_huff_size,
-        huff_size,
-        ctx_bits,
-        writer.result(),
-        writer.result() as f64 / buf.len() as f64,
-        time,
-        time.div_f64(buf.len() as f64 * 8.0)
-    );
-
     Ok(writer.result())
 }

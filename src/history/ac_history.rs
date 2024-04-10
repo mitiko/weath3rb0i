@@ -46,18 +46,6 @@ impl<M: ACHashModel> History for ACHistory<M> {
     }
 }
 
-// fn rev_bits(mut n: u32) -> u32 {
-//     let mut x = 0;
-//     for _ in 0..32 {
-//         x <<= 1;
-//         if n & 1 == 1 {
-//             x = x | 1;
-//         }
-//         n >>= 1;
-//     }
-//     x
-// }
-
 #[derive(Clone, Debug)]
 struct EntropyWriter {
     state: u32,

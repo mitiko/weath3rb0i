@@ -21,7 +21,7 @@ fn main() -> Result<()> {
 
     let model = StationaryModel::new(&buf);
 
-    for ctx_bits in 8..=26 {
+    for ctx_bits in 8..=30 {
         best[1] = (u64!(buf.len()), Duration::MAX);
         params[1] = (0, 0, 0);
         for alignment_bits in 0..=4 {

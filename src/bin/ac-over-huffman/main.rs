@@ -20,8 +20,8 @@ fn main() -> Result<()> {
     for huffman_size in 7..=15 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
-        for ctx_bits in 8..=26 {
-            let res = exec(&buf, huffman_size, ctx_bits, 0)?;
+        for ctx_bits in 8..=30 {
+            let res = exec(&buf, huffman_size, ctx_bits)?;
             for i in 0..levels {
                 if res > best[i] {
                     continue;
@@ -43,10 +43,32 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exec(buf: &[u8], huffman_size: u8, ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
-    let timer = Instant::now();
+fn exec(buf: &[u8], huffman_size: u8, ctx_bits: u8) -> Result<u64> {
+    let (res, time) = (0..3)
+        .map(|_| {
+            let timer = Instant::now();
+            let res = compress(buf, huffman_size, ctx_bits).unwrap();
+            let time = timer.elapsed();
+            (res, time)
+        })
+        .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+        .unwrap();
+
+    println!(
+        "[ac-over-huff] [hsize: {:2}, ctx: {:2}, align: 0] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        huffman_size,
+        ctx_bits,
+        res,
+        res as f64 / buf.len() as f64,
+        time,
+        time.div_f64(buf.len() as f64 * 8.0)
+    );
+    Ok(res)
+}
+
+fn compress(buf: &[u8], huffman_size: u8, ctx_bits: u8) -> Result<u64> {
     let mut ac = ArithmeticCoder::new_coder();
-    let mut model = OrderN::new(ctx_bits, alignment_bits);
+    let mut model = OrderN::new(ctx_bits, 0);
     let mut writer = ACStats::new();
 
     let counts = histogram(&buf);
@@ -63,18 +85,5 @@ fn exec(buf: &[u8], huffman_size: u8, ctx_bits: u8, alignment_bits: u8) -> Resul
         }
     }
     ac.flush(&mut writer)?;
-
-    let time = timer.elapsed();
-    println!(
-        "[ac-over-huff] [hsize: {:2}, ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
-        huffman_size,
-        ctx_bits,
-        alignment_bits,
-        writer.result(),
-        writer.result() as f64 / buf.len() as f64,
-        time,
-        time.div_f64(buf.len() as f64 * 8.0)
-    );
-
     Ok(writer.result())
 }
