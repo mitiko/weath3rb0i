@@ -103,7 +103,7 @@ pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
         .map(|x| x.1)
         .for_each(|&code_len| count_lens[usize::from(code_len)] += 1);
 
-    let mut codes = vec![0; max_len + 1];
+    let mut codes: Vec<u16> = vec![0; max_len + 1];
     for i in 0..max_len {
         codes[i + 1] = (codes[i] + count_lens[i]) << 1;
     }
@@ -111,7 +111,7 @@ pub fn canonical(code_lens: &[u8]) -> Vec<(u16, u8)> {
     let mut res = vec![(0, 0); code_lens.len()];
     for (sym, &code_len) in symbol2code_lens {
         res[sym] = (codes[usize::from(code_len)], code_len);
-        codes[usize::from(code_len)] += 1;
+        codes[usize::from(code_len)] = codes[usize::from(code_len)].wrapping_add(1);
     }
     res
 }
@@ -204,10 +204,6 @@ mod tests {
     fn max_len_too_small() {
         package_merge(&[1, 1, 2, 4, 8, 16, 32], 2);
     }
-}
-
-mod other_tests {
-    use super::*;
 
     #[test]
     fn check_canonical_sorted() {
@@ -240,5 +236,33 @@ mod other_tests {
         for (code, len) in codes {
             assert!(code <= (1 << len));
         }
+    }
+
+    #[test]
+    fn test_canonical_max_len() {
+        let counts: Vec<u32> = (0..=17).map(|x| 1 << x).collect();
+        let codes = package_merge(&counts, 16);
+        let canonical_codes = canonical(&codes);
+        let expected = [
+            (0b1111111111111100, 16),
+            (0b1111111111111101, 16),
+            (0b1111111111111110, 16),
+            (0b1111111111111111, 16),
+            (0b11111111111110, 14),
+            (0b1111111111110, 13),
+            (0b111111111110, 12),
+            (0b11111111110, 11),
+            (0b1111111110, 10),
+            (0b111111110, 9),
+            (0b11111110, 8),
+            (0b1111110, 7),
+            (0b111110, 6),
+            (0b11110, 5),
+            (0b1110, 4),
+            (0b110, 3),
+            (0b10, 2),
+            (0b0, 1),
+        ];
+        assert_eq!(canonical_codes, expected);
     }
 }
