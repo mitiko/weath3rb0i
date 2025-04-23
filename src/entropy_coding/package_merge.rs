@@ -121,13 +121,14 @@ fn package_merge_canonical(_counts: &[u32], _max_len: u8) -> Vec<(u16, u8)> {
     todo!()
 }
 
-pub fn meta_tree(codes: &[(u16, u8)], counts: &[u32]) -> Vec<u32> {
-    let longest_code = codes.iter().map(|x| x.1).max().unwrap_or(0);
-    let mut meta_counts = vec![0; 1 << (longest_code + 1)];
-    for (&(code, len), &count) in codes.iter().zip(counts.iter()) {
-        for l in (0..len).rev() {
-            let sym = (1 << l) | (code >> (len - l));
-            meta_counts[usize::from(sym)] += count;
+pub fn meta_tree(counts: &[u32]) -> Vec<u32> {
+    let mut meta_counts = vec![0; counts.len() << 1];
+    for (sym, &count) in counts.iter().enumerate() {
+        let mut isym = 1;
+        for l in (1..8).rev() {
+            isym <<= 1;
+            isym |= (sym >> l) & 1;
+            meta_counts[usize::from(isym)] += count;
         }
     }
     meta_counts

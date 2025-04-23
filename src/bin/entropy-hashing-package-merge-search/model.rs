@@ -1,44 +1,71 @@
-use std::time::Instant;
+// use std::time::Instant;
 
 use weath3rb0i::{
-    entropy_coding::package_merge::{canonical, package_merge, meta_tree},
+    entropy_coding::package_merge::{canonical, meta_tree, package_merge},
     helpers::histogram,
     models::{Counter, Model},
-    usize,
+    u16, u32, usize,
 };
 
 pub struct PMHash {
-    table: Vec<(u16, u8)>, // TODO: reverse the table so we get: code -> symbol
-    meta_table: Vec<(u16, u8)>,
-    meta_state: u16,
     stats: Vec<Counter>,
-    history: u64,
+    history: PMHistory,
+}
+
+pub struct PMHistory {
     raw_history: u64,
+    history: u64,
+    align: u8,
+    // TODO: reverse the table so we get: code -> symbol
+    table: Vec<(u16, u8)>,
+    meta_table: Vec<(u16, u8)>,
     mask: u64,
+}
+
+impl PMHistory {
+    pub fn hash(&self) -> u32 {
+        let isym = (1 << self.align) | ((self.raw_history & 255) >> (8 - self.align));
+        let (code, len) = self.meta_table[usize!(isym)];
+        let ctx = (self.history << len) | u64::from(code);
+        u32!(ctx & self.mask)
+    }
+
+    pub fn update(&mut self, bit: u8) {
+        self.align = (self.align + 1) & 7;
+
+        if self.align == 0 {
+            let (code, len) = self.table[usize!(self.raw_history & 255)];
+            self.history <<= len;
+            self.history |= u64::from(code);
+        }
+        self.raw_history = (self.raw_history << 1) | u64::from(bit);
+    }
 }
 
 impl PMHash {
     pub fn build(buf: &[u8], bits: u8, tree_depth: u8, meta_tree_depth: u8) -> Self {
-        let timer = Instant::now();
+        // let timer = Instant::now();
         let counts = histogram(&buf);
         let code_lens = package_merge(&counts, tree_depth);
-        let codes = canonical(&code_lens);
-        // rev_codes(&mut code_lens);
+        let mut codes = canonical(&code_lens);
+        _rev_codes(&mut codes);
 
-        let meta_counts = meta_tree(&codes, &counts);
+        let meta_counts = meta_tree(&counts);
         let meta_code_lens = package_merge(&meta_counts, meta_tree_depth);
-        let meta_codes = canonical(&meta_code_lens);
-        // rev_codes(&mut meta_code_lens);
+        let mut meta_codes = canonical(&meta_code_lens);
+        _rev_codes(&mut meta_codes);
 
-        println!("[pm] build took {:?}", timer.elapsed());
+        // println!("[pm] build took {:?}", timer.elapsed());
         Self {
-            table: codes,
-            meta_table: meta_codes,
-            meta_state: 0,
             stats: vec![Counter::new(); 1 << bits],
-            mask: (1 << bits) - 1,
-            history: 0,
-            raw_history: 0,
+            history: PMHistory {
+                raw_history: 0,
+                history: 0,
+                align: 0,
+                table: codes,
+                meta_table: meta_codes,
+                mask: (1 << bits) - 1,
+            },
         }
     }
 }
@@ -59,28 +86,13 @@ pub fn _rev_codes(codes: &mut [(u16, u8)]) {
 
 impl Model for PMHash {
     fn predict(&self) -> u16 {
-        let (code, len) = self.meta_table[usize::from(self.meta_state)];
-        let ctx = (self.history << len) | u64::from(code);
-        let ctx = usize!(ctx & self.mask);
+        let ctx = usize!(self.history.hash());
         self.stats[ctx].p()
     }
 
     fn update(&mut self, bit: u8) {
-        let (code, len) = self.meta_table[usize::from(self.meta_state)];
-        let ctx = (self.history << len) | u64::from(code);
-        let ctx = usize!(ctx & self.mask);
+        let ctx = usize!(self.history.hash());
         self.stats[ctx].update(bit);
-
-        self.raw_history = (self.raw_history << 1) | u64::from(bit);
-        self.meta_state <<= 1;
-        self.meta_state |= u16::from(bit);
-        let (code, len) = self.meta_table[usize::from(self.meta_state)];
-        if code == 1 && len == 1 {
-            // decode prev_state or read fixed number of bits (8) from raw bitstream
-            let sym = usize!(self.raw_history & 255);
-            let (code, len) = self.table[sym];
-            self.history <<= len;
-            self.history |= u64::from(code);
-        }
+        self.history.update(bit);
     }
 }

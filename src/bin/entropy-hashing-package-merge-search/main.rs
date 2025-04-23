@@ -14,7 +14,7 @@ use weath3rb0i::{
 // AC over raw with alignment bits (0..4)
 // AC over raw with ctx hash (x PHI) with alignment bits
 
-// AC over Huffman (7..16) with alignment bits (0..4)
+//  AC over Huffman (7..16) with alignment bits (0..4)
 // AC over Huffman (7..16) with Huffman alignment bits (0..16)
 // AC over Huffman (7..16) with Huffman alignment bits (0..16) reversed codes
 // AC over raw with Huffman context (7..16) & prefix Huffman table (7..16) reversed codes
@@ -22,7 +22,7 @@ use weath3rb0i::{
 fn main() -> Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
-    for history_size in 4..24 {
+    for history_size in 7..24 {
         for tree_depth in 7..16 {
             for meta_tree_depth in 7..16 {
                 // for meta_tree_depth in [8] {
