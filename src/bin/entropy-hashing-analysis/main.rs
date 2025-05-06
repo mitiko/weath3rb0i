@@ -5,28 +5,45 @@ fn main() -> std::io::Result<()> {
 
     // calculate entropy at context for different level 1 histories
     let mut raw_history_stats_json = serde_json::Value::Array(Vec::new());
+    let max_stats = 32;
     for bits in 0..=24 {
         let mask = (1 << bits) - 1;
         let history = MaskedHistory::new(RawHistory::new(), mask);
+        // for each context, this stores entropy & bit count of level 2 history
         let entropy_counts = get_entropy(&buf, history);
-        if bits <= 6 {
-            let entropies = entropy_counts
-                .iter()
-                .map(|&(entropy, _)| entropy)
-                .collect::<Vec<_>>();
-            let counts = entropy_counts
-                .iter()
-                .map(|&(_, count)| count)
-                .collect::<Vec<_>>();
-            let obj = serde_json::json!({
-                "entropy": entropies,
-                "counts": counts,
-                "mask": mask,
-            });
-            raw_history_stats_json.as_array_mut().unwrap().push(obj);
-        }
+
+        // meta structure to store everything
+        let mut v = entropy_counts
+            .iter()
+            .enumerate()
+            .map(|(ctx, &(entropy, count))| (ctx, entropy, count, entropy * count as f64))
+            .collect::<Vec<_>>();
+        v.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        let most_predictable = v
+            .iter()
+            .filter(|x| x.1 != 0.0)
+            .take(max_stats)
+            .copied()
+            .collect::<Vec<_>>();
+        v.sort_by(|a, b| a.2.cmp(&b.2).reverse());
+        let most_common = v.iter().take(max_stats).copied().collect::<Vec<_>>();
+        v.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap().reverse());
+        let most_expensive = v.iter().take(max_stats).copied().collect::<Vec<_>>();
+        v.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap());
+
+        let obj = serde_json::json!({
+            "mask": mask,
+            "most_predictable": most_predictable,
+            "most_common": most_common,
+            "most_expensive": most_expensive,
+        });
+        raw_history_stats_json.as_array_mut().unwrap().push(obj);
+
         let weighted_entropy = weighted_sum(entropy_counts);
-        println!("Bitwise order-{} has entropy: {} bits/bit", bits, weighted_entropy);
+        println!(
+            "Bitwise order-{} has entropy: {} bits/bit",
+            bits, weighted_entropy
+        );
     }
     let json = serde_json::json!({
         "raw_history": raw_history_stats_json,
