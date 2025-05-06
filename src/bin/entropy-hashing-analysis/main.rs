@@ -4,16 +4,12 @@ fn main() -> std::io::Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
     // calculate entropy at context for different level 1 histories
-    let mut entropy_calculator = EntropyCalculator::new();
-    buf.iter().for_each(|&byte| entropy_calculator.add(byte));
-    println!("Initial entropy: {}", entropy_calculator.entropy());
-
-    for bits in 0..=16 {
+    for bits in 0..=24 {
         let mask = (1 << bits) - 1;
         let history = MaskedHistory::new(RawHistory::new(), mask);
         let entropy_counts = get_entropy(&buf, history);
         let weighted_entropy = weighted_sum(entropy_counts);
-        println!("Entropy for last {} bits: {}", bits, weighted_entropy);
+        println!("Bitwise order-{} has entropy: {} bits/bit", bits, weighted_entropy);
     }
 
     Ok(())
@@ -23,22 +19,28 @@ fn main() -> std::io::Result<()> {
 fn get_entropy(buf: &[u8], mut history: impl History) -> Vec<(f64, u32)> {
     let mut calculators = Vec::new();
 
-    for (&curr, &next) in buf.iter().zip(buf.iter().skip(1)) {
+    for &byte in buf.iter() {
         for i in (0..8).rev() {
-            let bit = (curr >> i) & 1;
+            let bit = (byte >> i) & 1;
+
+            let hash = history.hash();
+            if hash >= calculators.len() as u32 {
+                let new_size = if hash.is_power_of_two() {
+                    hash << 1
+                } else {
+                    hash.next_power_of_two()
+                };
+                calculators.resize(new_size as usize, EntropyCalculator::new());
+            }
+            calculators[hash as usize].update(bit);
+
             history.update(bit);
         }
-        let hash = history.hash();
-        if hash >= calculators.len() as u32 {
-            let new_size = if hash.is_power_of_two() { hash << 1 } else { hash.next_power_of_two() };
-            calculators.resize(new_size as usize, EntropyCalculator::new());
-        }
-        calculators[hash as usize].add(next);
     }
 
     calculators
         .into_iter()
-        .map(|ec| (ec.entropy(), ec.counts.len() as u32))
+        .map(|ec| (ec.entropy(), ec.total()))
         .collect()
 }
 
@@ -73,27 +75,36 @@ impl<H: History> History for MaskedHistory<H> {
 
 #[derive(Clone)]
 struct EntropyCalculator {
-    counts: Vec<u32>,
+    data: [u16; 2],
 }
 
 impl EntropyCalculator {
-    fn new() -> Self {
-        Self { counts: vec![0; 256] }
+    pub fn new() -> Self {
+        Self { data: [0; 2] }
     }
 
-    fn add(&mut self, byte: u8) {
-        self.counts[byte as usize] += 1;
+    pub fn entropy(&self) -> f64 {
+        let c0 = f64::from(self.data[0]);
+        let c1 = f64::from(self.data[1]);
+        if c0 + c1 == 0.0 {
+            return 0.0;
+        }
+        if c0 == 0.0 || c1 == 0.0 {
+            return 2.0 / (c0 + c1);
+        }
+        let p = c1 / (c0 + c1);
+        -p * p.log2() - (1.0 - p) * (1.0 - p).log2()
     }
 
-    fn entropy(&self) -> f64 {
-        let total = self.counts.iter().sum::<u32>() as f64;
-        self.counts
-            .iter()
-            .filter(|&&count| count > 0)
-            .map(|&count| {
-                let p = count as f64 / total;
-                -p * p.log2()
-            })
-            .sum()
+    pub fn total(&self) -> u32 {
+        u32::from(self.data[0]) + u32::from(self.data[1])
+    }
+
+    pub fn update(&mut self, bit: u8) {
+        self.data[usize::from(bit)] += 1;
+        if self.data[usize::from(bit)] == u16::MAX {
+            self.data[0] = (self.data[0] >> 1) + (self.data[0] & 1);
+            self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
+        }
     }
 }
