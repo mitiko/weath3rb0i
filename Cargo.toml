@@ -13,6 +13,7 @@ default-run = "weath3rb0i"
 
 [dependencies]
 rayon = "1.9.0" # MT only used for search, compression is single threaded
+serde_json = "1.0.140"
 
 [profile.dev]
 opt-level = 1

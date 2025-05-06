@@ -4,13 +4,35 @@ fn main() -> std::io::Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
     // calculate entropy at context for different level 1 histories
+    let mut raw_history_stats_json = serde_json::Value::Array(Vec::new());
     for bits in 0..=24 {
         let mask = (1 << bits) - 1;
         let history = MaskedHistory::new(RawHistory::new(), mask);
         let entropy_counts = get_entropy(&buf, history);
+        if bits <= 6 {
+            let entropies = entropy_counts
+                .iter()
+                .map(|&(entropy, _)| entropy)
+                .collect::<Vec<_>>();
+            let counts = entropy_counts
+                .iter()
+                .map(|&(_, count)| count)
+                .collect::<Vec<_>>();
+            let obj = serde_json::json!({
+                "entropy": entropies,
+                "counts": counts,
+                "mask": mask,
+            });
+            raw_history_stats_json.as_array_mut().unwrap().push(obj);
+        }
         let weighted_entropy = weighted_sum(entropy_counts);
         println!("Bitwise order-{} has entropy: {} bits/bit", bits, weighted_entropy);
     }
+    let json = serde_json::json!({
+        "raw_history": raw_history_stats_json,
+    });
+    let json = serde_json::to_string_pretty(&json).unwrap();
+    std::fs::write("stats.json", json.as_bytes())?;
 
     Ok(())
 }
