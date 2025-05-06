@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0); levels];
 
-    for ctx_bits in 8..=26 {
+    for ctx_bits in 8..=30 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
@@ -40,7 +40,30 @@ fn main() -> Result<()> {
 }
 
 fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
-    let timer = Instant::now();
+    let (res, time) = (0..3)
+        .map(|_| {
+            let timer = Instant::now();
+            let res = compress(buf, ctx_bits, alignment_bits).unwrap();
+            let time = timer.elapsed();
+            (res, time)
+        })
+        .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+        .unwrap();
+
+    println!(
+        "[ordern] [ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
+        ctx_bits,
+        alignment_bits,
+        res,
+        res as f64 / buf.len() as f64,
+        time,
+        time.div_f64(buf.len() as f64 * 8.0)
+    );
+
+    Ok(res)
+}
+
+fn compress(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
     let mut ac = ArithmeticCoder::new_coder();
     let mut model = OrderN::new(ctx_bits, alignment_bits);
     let mut writer = ACStats::new();
@@ -53,17 +76,5 @@ fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
         });
     }
     ac.flush(&mut writer)?;
-
-    let time = timer.elapsed();
-    println!(
-        "[ordern] [ctx: {:2}, align: {}] csize: {} (ratio: {:.3}), ctime: {:?} ({:?} per bit)",
-        ctx_bits,
-        alignment_bits,
-        writer.result(),
-        writer.result() as f64 / buf.len() as f64,
-        time,
-        time.div_f64(buf.len() as f64 * 8.0)
-    );
-
     Ok(writer.result())
 }
