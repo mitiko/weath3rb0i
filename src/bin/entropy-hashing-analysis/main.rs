@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use weath3rb0i::{
     history::{ACHistory, History, HuffHistory, RawHistory},
     models::ac_hash::StationaryModel,
@@ -5,19 +6,116 @@ use weath3rb0i::{
 
 fn main() -> std::io::Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let skip_stats = true;
+    let skip_locations = true;
 
-    let raw_history_stats = get_stats_for(RawHistory::new(), "raw")?;
-    let huff_history_stats = get_stats_for(HuffHistory::new(&buf, 12, 12), "huffman")?;
-    let ac_history_stats = get_stats_for(ACHistory::new(24, StationaryModel::new(&buf)), "ac")?;
-    let json = serde_json::json!({
-        "raw_history": raw_history_stats,
-        "huff_history": huff_history_stats,
-        "ac_history": ac_history_stats,
-    });
-    let json = serde_json::to_string_pretty(&json).unwrap();
-    std::fs::write("stats.json", json.as_bytes())?;
+    // for contexts of size o0-o24 (bitwise) =>
+    // get stats for level 2 history of
+    // most common, most predictable, and most expensive contexts
+    if !skip_stats {
+        let raw_history_stats = get_stats_for(RawHistory::new(), "raw")?;
+        let huff_history_stats = get_stats_for(HuffHistory::new(&buf, 12, 12), "huffman")?;
+        let ac_history_stats = get_stats_for(ACHistory::new(24, StationaryModel::new(&buf)), "ac")?;
+        let json = serde_json::json!({
+            "raw_history": raw_history_stats,
+            "huff_history": huff_history_stats,
+            "ac_history": ac_history_stats,
+        });
+        let json = serde_json::to_string_pretty(&json).unwrap();
+        std::fs::write("stats.json", json.as_bytes())?;
+    }
+
+    // find all locations where the huffman history hashes to X for
+    // most common, most predictable, and most expensive contexts
+    // so that we can decompress the context & see what is being hashed
+    if !skip_locations {
+        let raw_history_locs = get_locations_for(RawHistory::new(), "raw")?;
+        let huff_history_locs = get_locations_for(HuffHistory::new(&buf, 12, 12), "huffman")?;
+        let ac_history_locs =
+            get_locations_for(ACHistory::new(16, StationaryModel::new(&buf)), "ac")?;
+        let json = serde_json::json!({
+            "raw_history": raw_history_locs,
+            "huff_history": huff_history_locs,
+            "ac_history": ac_history_locs,
+        });
+        let json = serde_json::to_string_pretty(&json).unwrap();
+        std::fs::write("locations.json", json.as_bytes())?;
+    }
 
     Ok(())
+}
+
+fn get_locations_for<H: History + Clone>(
+    h: H,
+    history_name: &str,
+) -> std::io::Result<serde_json::Value> {
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let max_ctx = 32;
+    let max_locations = 100;
+
+    let mut stats = serde_json::Value::Array(Vec::new());
+    for bits in [4, 8, 12, 16] {
+        println!("[{history_name}] Finding important contexts of o{bits} ...");
+
+        let mask = (1 << bits) - 1;
+        let mut history = MaskedHistory::new(h.clone(), mask);
+        let entropy_counts = get_entropy(&buf, history.clone());
+
+        // get the contexts which are important
+        let mut v = entropy_counts
+            .iter()
+            .enumerate()
+            .map(|(ctx, &(entropy, count))| (ctx as u32, entropy, count, entropy * count as f64))
+            .collect::<Vec<_>>();
+        v.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap());
+        let most_predictable_ctx = v
+            .iter()
+            .filter(|x| x.1 != 0.0)
+            .map(|x| x.0)
+            .take(max_ctx)
+            .collect::<Vec<_>>();
+        v.sort_by(|a, b| a.2.cmp(&b.2).reverse());
+        let most_common_ctx = v.iter().map(|x| x.0).take(max_ctx).collect::<Vec<_>>();
+        v.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap().reverse());
+        let most_expensive_ctx = v.iter().map(|x| x.0).take(max_ctx).collect::<Vec<_>>();
+
+        println!("[{history_name}] Collecting locations for contexts of o{bits} ...");
+
+        // maps context to locations where it appears, capped at max_locations
+        let mut ctx_map: HashMap<u32, Vec<usize>> = most_common_ctx
+            .iter()
+            .chain(most_expensive_ctx.iter())
+            .chain(most_predictable_ctx.iter())
+            .map(|&ctx| (ctx, Vec::new()))
+            .collect();
+
+        // run history again & store the locations of the important contexts
+        let mut pos = 0;
+        for &byte in buf.iter() {
+            for i in (0..8).rev() {
+                let hash = history.hash();
+                if let Some(locations) = ctx_map.get_mut(&hash) {
+                    if locations.len() < max_locations {
+                        locations.push(pos);
+                    }
+                }
+                let bit = (byte >> i) & 1;
+                pos += 1;
+                history.update(bit);
+            }
+        }
+
+        let obj = serde_json::json!({
+            "mask": mask,
+            "most_predictable_ctx": most_predictable_ctx,
+            "most_common_ctx": most_common_ctx,
+            "most_expensive_ctx": most_expensive_ctx,
+            "locations": ctx_map,
+        });
+        stats.as_array_mut().unwrap().push(obj);
+    }
+
+    Ok(stats)
 }
 
 fn get_stats_for<H: History + Clone>(
@@ -25,10 +123,10 @@ fn get_stats_for<H: History + Clone>(
     history_name: &str,
 ) -> std::io::Result<serde_json::Value> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+    let max_stats = 32;
 
     // calculate entropy at context for different level 1 histories
     let mut stats = serde_json::Value::Array(Vec::new());
-    let max_stats = 32;
     for bits in 0..=24 {
         let mask = (1 << bits) - 1;
         let history = MaskedHistory::new(h.clone(), mask);
@@ -52,7 +150,6 @@ fn get_stats_for<H: History + Clone>(
         let most_common = v.iter().take(max_stats).copied().collect::<Vec<_>>();
         v.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap().reverse());
         let most_expensive = v.iter().take(max_stats).copied().collect::<Vec<_>>();
-        v.sort_by(|a, b| a.3.partial_cmp(&b.3).unwrap());
 
         let obj = serde_json::json!({
             "mask": mask,
@@ -108,6 +205,7 @@ fn weighted_sum(entropy_counts: Vec<(f64, u32)>) -> f64 {
         .sum()
 }
 
+#[derive(Clone)]
 struct MaskedHistory<H: History> {
     history: H,
     mask: u32,
