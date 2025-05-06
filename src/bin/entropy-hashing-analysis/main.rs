@@ -1,14 +1,37 @@
-use weath3rb0i::history::{History, RawHistory};
+use weath3rb0i::{
+    history::{ACHistory, History, HuffHistory, RawHistory},
+    models::ac_hash::StationaryModel,
+};
 
 fn main() -> std::io::Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
 
+    let raw_history_stats = get_stats_for(RawHistory::new(), "raw")?;
+    let huff_history_stats = get_stats_for(HuffHistory::new(&buf, 12, 12), "huffman")?;
+    let ac_history_stats = get_stats_for(ACHistory::new(24, StationaryModel::new(&buf)), "ac")?;
+    let json = serde_json::json!({
+        "raw_history": raw_history_stats,
+        "huff_history": huff_history_stats,
+        "ac_history": ac_history_stats,
+    });
+    let json = serde_json::to_string_pretty(&json).unwrap();
+    std::fs::write("stats.json", json.as_bytes())?;
+
+    Ok(())
+}
+
+fn get_stats_for<H: History + Clone>(
+    h: H,
+    history_name: &str,
+) -> std::io::Result<serde_json::Value> {
+    let buf = std::fs::read("/Users/mitiko/_data/book1")?;
+
     // calculate entropy at context for different level 1 histories
-    let mut raw_history_stats_json = serde_json::Value::Array(Vec::new());
+    let mut stats = serde_json::Value::Array(Vec::new());
     let max_stats = 32;
     for bits in 0..=24 {
         let mask = (1 << bits) - 1;
-        let history = MaskedHistory::new(RawHistory::new(), mask);
+        let history = MaskedHistory::new(h.clone(), mask);
         // for each context, this stores entropy & bit count of level 2 history
         let entropy_counts = get_entropy(&buf, history);
 
@@ -37,21 +60,15 @@ fn main() -> std::io::Result<()> {
             "most_common": most_common,
             "most_expensive": most_expensive,
         });
-        raw_history_stats_json.as_array_mut().unwrap().push(obj);
+        stats.as_array_mut().unwrap().push(obj);
 
         let weighted_entropy = weighted_sum(entropy_counts);
         println!(
-            "Bitwise order-{} has entropy: {} bits/bit",
+            "[{history_name}] Bitwise order-{} has entropy: {} bits/bit",
             bits, weighted_entropy
         );
     }
-    let json = serde_json::json!({
-        "raw_history": raw_history_stats_json,
-    });
-    let json = serde_json::to_string_pretty(&json).unwrap();
-    std::fs::write("stats.json", json.as_bytes())?;
-
-    Ok(())
+    Ok(stats)
 }
 
 // Calculates history at each byte boundary, then calculates entropy for the level 2 history of the context

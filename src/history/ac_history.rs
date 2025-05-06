@@ -6,6 +6,7 @@ use crate::{
 };
 use std::marker::PhantomData;
 
+#[derive(Clone)]
 pub struct ACHistory<M: ACHashModel> {
     pos: u64,
     bits: u64, // TODO: u128?

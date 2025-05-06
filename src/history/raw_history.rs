@@ -1,5 +1,6 @@
 use super::History;
 
+#[derive(Clone)]
 pub struct RawHistory {
     bits: u32,
 }
