@@ -33,51 +33,42 @@ pub fn package_merge(counts: &[u32], max_len: u8) -> Vec<u8> {
 // https://github.com/sellibitze/packagemerge-rs/blob/27adc64e3a8b51b86ea91449c6a4c1971af7c682/src/lib.rs
 fn package_merge_sorted(a: &[u32], max_len: u8) -> Vec<u8> {
     let mut package_depths: Vec<u32> = vec![0; a.len() * 2 - 1];
-    let mut prev: Vec<u32> = a.iter().copied().collect();
-    let mut curr = Vec::with_capacity(a.len() * 2 - 1);
+    let mut curr: Vec<u32> = a.iter().copied().collect();
+    let mut next = Vec::with_capacity(a.len() * 2 - 1);
 
     for depth in 1..max_len {
-        let mask = 1 << depth; // records at which depth it was packaged
         let mut seq = a.iter().peekable(); // always merge with the initial counts
-        let mut packages = prev.chunks_exact(2).map(|x| x[0] + x[1]).peekable();
-        curr.clear(); //
+        let mut packages = curr.chunks_exact(2).map(|x| x[0] + x[1]).peekable();
 
-        // merge packages from prev with initial sequence
+        // merge packages from curr with initial sequence
         loop {
-            let is_package = match (packages.peek(), seq.peek()) {
+            next.push(match (seq.peek(), packages.peek()) {
                 (None, None) => break,
-                (None, _) => false,
-                (_, None) => true,
-                (Some(a), Some(&b)) => a <= b,
-            };
-            let next_item = if is_package {
-                package_depths[curr.len()] |= mask;
-                packages.next().unwrap()
-            } else {
-                seq.next().copied().unwrap()
-            };
-            curr.push(next_item);
+                (Some(&a), Some(b)) if a < b => seq.next().copied().unwrap(),
+                (_, None) => seq.next().copied().unwrap(),
+                _ => {
+                    package_depths[next.len()] |= 1 << depth;
+                    packages.next().unwrap()
+                }
+            });
         }
-        std::mem::swap(&mut prev, &mut curr);
+
+        std::mem::swap(&mut curr, &mut next);
+        next.clear();
     }
 
     let mut code_lens = vec![0; a.len()];
-    let mut relevant_symbols = a.len() * 2 - 2;
-    for depth in (0..max_len).rev() {
-        if relevant_symbols == 0 {
-            break;
-        }
-        let mask = 1 << depth;
+    let (mut depth, mut relevant_symbols) = (max_len, a.len() * 2 - 2);
+    while relevant_symbols > 0 && depth > 0 {
+        depth -= 1;
         let mut sym = 0;
-        package_depths
-            .iter()
-            .take(relevant_symbols)
-            .filter(|&flag| flag & mask == 0)
-            .for_each(|_| {
+        for i in 0..relevant_symbols {
+            if package_depths[i] & (1 << depth) == 0 {
                 code_lens[sym] += 1;
                 sym += 1; // move to the next non-packaged symbol
-            });
-        relevant_symbols = (relevant_symbols - sym) * 2;
+            }
+        }
+        relevant_symbols = (relevant_symbols - sym) << 1;
     }
     code_lens
 }
