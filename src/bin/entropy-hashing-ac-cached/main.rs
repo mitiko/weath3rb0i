@@ -7,7 +7,7 @@ use std::{
 use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
-    history::{ACHistoryCached, History},
+    history::{ACRevHistoryCached, History},
     models::{ac_hash::StationaryModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
@@ -32,7 +32,7 @@ fn main() -> Result<()> {
                 .into_par_iter()
                 .map(|cache_size| {
                     let history =
-                        ACHistoryCached::new(ctx_bits - alignment_bits, model.clone(), cache_size);
+                        ACRevHistoryCached::new(ctx_bits - alignment_bits, model.clone(), cache_size);
                     let results =
                         exec(&buf, ctx_bits, alignment_bits, history, cache_size).unwrap();
                     (cache_size, results)

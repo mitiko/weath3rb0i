@@ -3,7 +3,7 @@ use std::{io::Result, time::Instant};
 use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
-    history::{ACHistory, History},
+    history::{ACRevHistory, History},
     models::{ac_hash::StationaryModel, Model, OrderNEntropy},
     u64, unroll_for,
 };
@@ -22,7 +22,7 @@ fn main() -> Result<()> {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            let history = ACHistory::new(ctx_bits - alignment_bits, model.clone());
+            let history = ACRevHistory::new(ctx_bits - alignment_bits, model.clone());
             let res = exec(&buf, ctx_bits, alignment_bits, history)?;
             for i in 0..levels {
                 if res > best[i] {
