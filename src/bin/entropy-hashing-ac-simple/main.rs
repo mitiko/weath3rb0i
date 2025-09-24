@@ -4,14 +4,50 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{Model, Order0, Order1, OrderNEntropy, StaticOrder0},
+    models::{Model, Order0, OrderNEntropy, StaticOrder0},
     u64, unroll_for,
 };
 
 fn main() -> Result<()> {
     let buf = std::fs::read("/Users/mitiko/_data/book1")?;
-    // let buf = std::fs::read("/Users/mitiko/_data/enwik7")?;
 
+    // optimize(&buf)?;
+    show_steps(&buf);
+
+    Ok(())
+}
+
+fn build_model(buf: &[u8]) -> StaticOrder0 {
+    let mut model = Order0::new();
+    for byte in buf {
+        unroll_for!(bit in byte, {
+            model.update(bit);
+        });
+    }
+    StaticOrder0::new(model)
+}
+
+#[allow(dead_code)]
+fn show_steps(buf: &[u8]) {
+    let model = build_model(buf);
+    let mut history = ACHistory::new(model);
+
+    for byte in buf.iter().skip(100).take(10) {
+        unroll_for!(bit in byte, {
+            history.update(bit);
+            let hash = history.hash();
+            let repr = match byte {
+                b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => *byte as char,
+                _ => '.',
+            };
+            println!("{bit} of {byte:08b} {repr} -> {:032b}", hash);
+        });
+    }
+}
+
+#[allow(dead_code)]
+fn optimize(buf: &[u8]) -> Result<()> {
+    // static model: csize: 387461 (ratio 0.504), ctime: 82.277083ms (13ns per bit)
     // TODO: add generic parameter optimizer
     let levels = 2;
     let mut best = vec![u64!(buf.len()); levels];
@@ -44,14 +80,8 @@ fn main() -> Result<()> {
 }
 
 fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
-    // train model
-    let mut model = Order0::new();
-    for byte in buf {
-        unroll_for!(bit in byte, {
-            model.update(bit);
-        });
-    }
-    let history = ACHistory::new(StaticOrder0::new(model));
+    let model = build_model(buf);
+    let history = ACHistory::new(model);
 
     let timer = Instant::now();
     let mut ac = ArithmeticCoder::new_coder();
