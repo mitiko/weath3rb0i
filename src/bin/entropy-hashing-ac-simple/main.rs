@@ -4,7 +4,7 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{Model, Order0, Order1, OrderNEntropy},
+    models::{Model, Order0, Order1, OrderNEntropy, StaticOrder0},
     u64, unroll_for,
 };
 
@@ -21,10 +21,7 @@ fn main() -> Result<()> {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
-            let model = Order1::new();
-            let _model = Order0::new();
-            let history = ACHistory::new(model);
-            let res = exec(&buf, ctx_bits, alignment_bits, history)?;
+            let res = exec(&buf, ctx_bits, alignment_bits)?;
             for i in 0..levels {
                 if res > best[i] {
                     continue;
@@ -46,7 +43,16 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8, history: impl History) -> Result<u64> {
+fn exec(buf: &[u8], ctx_bits: u8, alignment_bits: u8) -> Result<u64> {
+    // train model
+    let mut model = Order0::new();
+    for byte in buf {
+        unroll_for!(bit in byte, {
+            model.update(bit);
+        });
+    }
+    let history = ACHistory::new(StaticOrder0::new(model));
+
     let timer = Instant::now();
     let mut ac = ArithmeticCoder::new_coder();
     let mut model = OrderNEntropy::new(ctx_bits, alignment_bits, history);

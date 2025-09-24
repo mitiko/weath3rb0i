@@ -4,8 +4,9 @@ pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
+pub mod static_order0;
 
-pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*, static_order0::*};
 pub use crate::state_table::*;
 
 pub trait Model {
