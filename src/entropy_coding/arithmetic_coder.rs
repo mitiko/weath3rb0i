@@ -33,6 +33,7 @@ pub trait ACWrite {
     fn flush(&mut self, padding: u32) -> io::Result<()>;
 }
 
+// TODO: move the W: ACWrite restriction to function, so ArithmeticCoder is not generic
 impl<W: ACWrite> ArithmeticCoder<W> {
     pub fn new_coder() -> Self {
         Self { x1: 0, x2: u32::MAX, x: 0, _marker: PhantomData }
