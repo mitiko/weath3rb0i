@@ -29,6 +29,9 @@ impl<M: Model> History for ACHistory<M> {
     }
 
     fn hash(&mut self) -> u32 {
+        // the state is not enough, we need soem bits from low or high
+        // otherwise state is stuck for skewed prob bits
+        // self.ac.x1
         self.writer.state
     }
 }

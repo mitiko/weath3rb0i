@@ -29,18 +29,41 @@ fn build_model(buf: &[u8]) -> StaticOrder0 {
 
 #[allow(dead_code)]
 fn show_steps(buf: &[u8]) {
-    let model = build_model(buf);
-    let mut history = ACHistory::new(model);
+    let m1 = build_model(buf);
+    let m2 = build_model(buf);
+    let mut h1 = ACHistory::new(m1);
+    let mut h2 = ACHistory::new(m2);
 
     for byte in buf.iter().skip(100).take(10) {
         unroll_for!(bit in byte, {
-            history.update(bit);
-            let hash = history.hash();
+            h1.update(bit);
+        });
+    }
+    for byte in buf.iter().skip(200).take(10) {
+        unroll_for!(bit in byte, {
+            h2.update(bit);
+        });
+    }
+
+    for byte in buf.iter().skip(300).take(100) {
+        unroll_for!(bit in byte, {
+            h1.update(bit);
+            h2.update(bit);
+        });
+    }
+
+    for byte in b"the brown fox" {
+        unroll_for!(bit in byte, {
+            h1.update(bit);
+            h2.update(bit);
+            let hash1 = h1.hash();
+            let hash2 = h2.hash();
             let repr = match byte {
                 b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' => *byte as char,
                 _ => '.',
             };
-            println!("{bit} of {byte:08b} {repr} -> {:032b}", hash);
+            println!("{bit} of {byte:08b} {repr} -> {:032b}", hash1);
+            println!("                   {:032b}", hash2);
         });
     }
 }
