@@ -11,8 +11,8 @@ const RHI_MOD: u32 = (1 << PREC_SHIFT) + 1; // 0x80000001, range high modify
 /// The `ArithmeticCoder` encodes/decodes bits given a probability
 #[derive(Clone)]
 pub struct ArithmeticCoder<T> {
-    pub(crate) x1: u32,      // low
-    pub(crate) x2: u32,      // high
+    x1: u32,                 // low
+    x2: u32,                 // high
     x: u32,                  // state
     _marker: PhantomData<T>, // use for io
 }
@@ -56,11 +56,11 @@ impl<W: ACWrite> ArithmeticCoder<W> {
         }
 
         // E3 renorm (special case) -> increase parity
-        // while self.x1 >= Q1 && self.x2 < Q3 {
-        //     io.inc_parity();
-        //     self.x1 = (self.x1 << 1) & RLO_MOD;
-        //     self.x2 = (self.x2 << 1) | RHI_MOD;
-        // }
+        while self.x1 >= Q1 && self.x2 < Q3 {
+            io.inc_parity();
+            self.x1 = (self.x1 << 1) & RLO_MOD;
+            self.x2 = (self.x2 << 1) | RHI_MOD;
+        }
 
         Ok(())
     }
@@ -95,12 +95,12 @@ impl<R: ACRead> ArithmeticCoder<R> {
             self.x = (self.x << 1) | u32::from(io.read_bit()?);
         }
 
-        // // E3 renorm (special case) -> fix parity
-        // while self.x1 >= Q1 && self.x2 < Q3 {
-        //     self.x1 = (self.x1 << 1) & RLO_MOD;
-        //     self.x2 = (self.x2 << 1) | RHI_MOD;
-        //     self.x = ((self.x << 1) ^ Q2) | u32::from(io.read_bit()?);
-        // }
+        // E3 renorm (special case) -> fix parity
+        while self.x1 >= Q1 && self.x2 < Q3 {
+            self.x1 = (self.x1 << 1) & RLO_MOD;
+            self.x2 = (self.x2 << 1) | RHI_MOD;
+            self.x = ((self.x << 1) ^ Q2) | u32::from(io.read_bit()?);
+        }
 
         Ok(bit)
     }

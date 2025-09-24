@@ -80,17 +80,17 @@ impl crate::entropy_coding::arithmetic_coder::ACWrite for EntropyWriter {
 
         // self.state = (self.state >> 1) | (u32::from(bit) << 31);
         self.state = (self.state << 1) | u32::from(bit);
-        // while self.rev_bits > 0 {
-        //     self.rev_bits -= 1;
-        //     // self.state = (self.state >> 1) | (u32::from(bit ^ 1) << 31);
-        //     self.state = (self.state << 1) | u32::from(bit ^ 1);
-        // }
+        while self.rev_bits > 0 {
+            self.rev_bits -= 1;
+            // self.state = (self.state >> 1) | (u32::from(bit ^ 1) << 31);
+            self.state = (self.state << 1) | u32::from(bit ^ 1);
+        }
 
         Ok(())
     }
 
     fn inc_parity(&mut self) {
-        // self.rev_bits += 1;
+        self.rev_bits += 1;
     }
 
     fn flush(&mut self, _padding: u32) -> std::io::Result<()> {
