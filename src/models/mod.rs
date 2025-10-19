@@ -1,17 +1,37 @@
 pub mod ac_hash;
 pub mod counter;
+pub mod frozen;
 pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
 
-pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counter::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
 pub use crate::state_table::*;
 
 pub trait Model {
     fn predict(&self) -> u16;
     fn update(&mut self, bit: u8);
 }
+
+pub trait AdaptiveModel {
+    fn predict(&self) -> u16;
+    fn update(&mut self, bit: u8);
+    fn adapt(&mut self, bit: u8);
+}
+
+impl<T: AdaptiveModel> Model for T {
+    fn predict(&self) -> u16 {
+        T::predict(self)
+    }
+
+    fn update(&mut self, bit: u8) {
+        T::adapt(self, bit);
+        T::update(self, bit);
+    }
+}
+
+// ------------- unused -------------
 
 pub trait ACHashModel {
     fn predict(&mut self) -> u16;
