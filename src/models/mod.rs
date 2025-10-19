@@ -1,12 +1,12 @@
 pub mod ac_hash;
 pub mod counter;
+pub mod frozen;
 pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
-pub mod frozen;
 
-pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*, frozen::*};
+pub use self::{counter::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
 pub use crate::state_table::*;
 
 pub trait Model {
