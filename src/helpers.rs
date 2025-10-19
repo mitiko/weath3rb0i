@@ -89,33 +89,35 @@ impl entropy_coding::arithmetic_coder::ACWrite for ACStats {
     }
 }
 
-struct RotatingBuffer<const N: usize> {
-    buf: [u16; N],
+struct RotatingBuffer<T, const N: usize> {
+    buf: [T; N],
     pos: usize,
 }
 
-impl<const N: usize> Index<usize> for RotatingBuffer<N> {
-    type Output = u16;
+impl<T, const N: usize> Index<usize> for RotatingBuffer<T, N> {
+    type Output = T;
 
     fn index(&self, index: usize) -> &Self::Output {
         &self.buf[(self.pos + N - (index + 1)) % N]
     }
 }
 
-impl<const N: usize> IndexMut<usize> for RotatingBuffer<N> {
+impl<T, const N: usize> IndexMut<usize> for RotatingBuffer<T, N> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.buf[(self.pos + N - (index + 1)) % N]
     }
 }
 
-impl<const N: usize> RotatingBuffer<N> {
-    pub fn new() -> Self {
-        Self { buf: [0; N], pos: 0 }
-    }
-
-    pub fn push(&mut self, value: u16) {
+impl<T, const N: usize> RotatingBuffer<T, N> {
+    pub fn push(&mut self, value: T) {
         self.buf[self.pos] = value;
         self.pos = (self.pos + 1) % N;
+    }
+}
+
+impl<T: Default + Copy, const N: usize> RotatingBuffer<T, N> {
+    pub fn new() -> Self {
+        Self { buf: [T::default(); N], pos: 0 }
     }
 }
 
@@ -125,7 +127,7 @@ mod test {
 
     #[test]
     fn rotating_buffer() {
-        let mut rb= RotatingBuffer::<4>::new();
+        let mut rb= RotatingBuffer::<u16, 4>::new();
         rb.push(1);
         rb.push(2);
         rb.push(3);
@@ -152,7 +154,7 @@ mod test {
 
     #[test]
     fn rotating_buffer_assingment() {
-        let mut rb= RotatingBuffer::<4>::new();
+        let mut rb= RotatingBuffer::<u16, 4>::new();
         rb.push(10);
         rb.push(20);
         rb.push(30);
