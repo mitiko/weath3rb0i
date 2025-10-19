@@ -1,7 +1,7 @@
 use crate::entropy_coding;
 use std::{
     fs::File,
-    io::{self, BufReader, Read, Result},
+    io::{self, BufReader, Read, Result}, ops::{Index, IndexMut},
 };
 
 pub fn cmp(file1: &str, file2: &str) -> Result<()> {
@@ -86,5 +86,94 @@ impl entropy_coding::arithmetic_coder::ACWrite for ACStats {
 
     fn flush(&mut self, _padding: u32) -> io::Result<()> {
         Ok(())
+    }
+}
+
+struct RotatingBuffer<const N: usize> {
+    buf: [u16; N],
+    pos: usize,
+}
+
+impl<const N: usize> Index<usize> for RotatingBuffer<N> {
+    type Output = u16;
+
+    fn index(&self, index: usize) -> &Self::Output {
+        &self.buf[(self.pos + N - (index + 1)) % N]
+    }
+}
+
+impl<const N: usize> IndexMut<usize> for RotatingBuffer<N> {
+    fn index_mut(&mut self, index: usize) -> &mut Self::Output {
+        &mut self.buf[(self.pos + N - (index + 1)) % N]
+    }
+}
+
+impl<const N: usize> RotatingBuffer<N> {
+    pub fn new() -> Self {
+        Self { buf: [0; N], pos: 0 }
+    }
+
+    pub fn push(&mut self, value: u16) {
+        self.buf[self.pos] = value;
+        self.pos = (self.pos + 1) % N;
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn rotating_buffer() {
+        let mut rb= RotatingBuffer::<4>::new();
+        rb.push(1);
+        rb.push(2);
+        rb.push(3);
+        rb.push(4);
+        assert_eq!(rb[0], 4);
+        assert_eq!(rb[1], 3);
+        assert_eq!(rb[2], 2);
+        assert_eq!(rb[3], 1);
+
+        rb.push(5);
+        assert_eq!(rb[0], 5);
+        assert_eq!(rb[1], 4);
+        assert_eq!(rb[2], 3);
+        assert_eq!(rb[3], 2);
+
+        rb.push(6);
+        rb.push(7);
+        rb.push(8);
+        assert_eq!(rb[0], 8);
+        assert_eq!(rb[1], 7);
+        assert_eq!(rb[2], 6);
+        assert_eq!(rb[3], 5);
+    }
+
+    #[test]
+    fn rotating_buffer_assingment() {
+        let mut rb= RotatingBuffer::<4>::new();
+        rb.push(10);
+        rb.push(20);
+        rb.push(30);
+        rb.push(40);
+        assert_eq!(rb[0], 40);
+        assert_eq!(rb[1], 30);
+        assert_eq!(rb[2], 20);
+        assert_eq!(rb[3], 10);
+
+        rb[1] = 99;
+        assert_eq!(rb[0], 40);
+        assert_eq!(rb[1], 99);
+        assert_eq!(rb[2], 20);
+        assert_eq!(rb[3], 10);
+
+        rb[0] = 100;
+        rb[2] = 98;
+        rb[3] = 97;
+        assert_eq!(rb[0], 100);
+        assert_eq!(rb[1], 99);
+        assert_eq!(rb[2], 98);
+        assert_eq!(rb[3], 97);
     }
 }
