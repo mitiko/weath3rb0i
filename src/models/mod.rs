@@ -13,6 +13,27 @@ pub trait Model {
     fn update(&mut self, bit: u8);
 }
 
+pub trait AdaptiveModel {
+    fn predict(&self) -> u16;
+    fn update(&mut self, bit: u8);
+    fn adapt(&mut self, bit: u8);
+}
+
+impl<T: AdaptiveModel> Model for T {
+    fn predict(&self) -> u16 {
+        T::predict(self)
+    }
+
+    fn update(&mut self, bit: u8) {
+        T::adapt(self, bit);
+        T::update(self, bit);
+    }
+}
+
+pub trait StaticModel : Model {}
+
+// ------------- unused -------------
+
 pub trait ACHashModel {
     fn predict(&mut self) -> u16;
     fn align(&mut self, alignment: u8);
