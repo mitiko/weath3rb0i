@@ -4,8 +4,9 @@ pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
+pub mod frozen;
 
-pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counter::*, order0::*, order1::*, ordern::*, ordern_entropy::*, frozen::*};
 pub use crate::state_table::*;
 
 pub trait Model {
@@ -29,8 +30,6 @@ impl<T: AdaptiveModel> Model for T {
         T::update(self, bit);
     }
 }
-
-pub trait StaticModel : Model {}
 
 // ------------- unused -------------
 
