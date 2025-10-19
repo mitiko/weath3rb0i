@@ -1,4 +1,4 @@
-use super::{counter::Counter, Model};
+use super::{counter::Counter, AdaptiveModel};
 
 pub struct Order0 {
     stats: [Counter; 1 << 11],
@@ -18,13 +18,16 @@ impl Order0 {
     }
 }
 
-impl Model for Order0 {
+impl AdaptiveModel for Order0 {
     fn predict(&self) -> u16 {
         self.stats[usize::from(self.ctx)].p()
     }
 
-    fn update(&mut self, bit: u8) {
+    fn adapt(&mut self, bit: u8) {
         self.stats[usize::from(self.ctx)].update(bit);
+    }
+
+    fn update(&mut self, bit: u8) {
         self.history = (self.history << 1) | bit;
         self.alignment = (self.alignment + 1) % 8;
         self.ctx = u16::from(self.alignment) << 8 | u16::from(self.history);

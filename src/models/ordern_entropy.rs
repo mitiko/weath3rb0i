@@ -1,4 +1,4 @@
-use super::{counter::Counter, Model};
+use super::{counter::Counter, AdaptiveModel};
 use crate::history::History;
 use crate::usize;
 
@@ -24,14 +24,16 @@ impl<H: History> OrderNEntropy<H> {
     }
 }
 
-impl<H: History> Model for OrderNEntropy<H> {
+impl<H: History> AdaptiveModel for OrderNEntropy<H> {
     fn predict(&self) -> u16 {
         self.stats[usize!(self.ctx)].p()
     }
 
-    fn update(&mut self, bit: u8) {
+    fn adapt(&mut self, bit: u8) {
         self.stats[usize!(self.ctx)].update(bit);
+    }
 
+    fn update(&mut self, bit: u8) {
         let mask_bits = self.bits_in_context - self.alignment_bits;
         let mask = (1 << mask_bits) - 1;
         let alignment_mask = (1 << self.alignment_bits) - 1;
