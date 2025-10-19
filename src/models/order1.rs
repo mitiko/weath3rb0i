@@ -1,6 +1,7 @@
 use super::{counter::Counter, AdaptiveModel};
 use crate::usize;
 
+#[derive(Clone)]
 pub struct Order1 {
     stats: Vec<Counter>,
     history: u16,

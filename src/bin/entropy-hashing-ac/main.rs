@@ -4,7 +4,7 @@ use weath3rb0i::{
     entropy_coding::arithmetic_coder::ArithmeticCoder,
     helpers::ACStats,
     history::{ACHistory, History},
-    models::{ac_hash::StationaryModel, Model, OrderNEntropy},
+    models::{FrozenModel, Model, Order0, OrderNEntropy},
     u64, unroll_for,
 };
 
@@ -16,7 +16,8 @@ fn main() -> Result<()> {
     let mut best = vec![u64!(buf.len()); levels];
     let mut params = vec![(0, 0); levels];
 
-    let model = StationaryModel::new(&buf);
+    let mut model = FrozenModel::new(Order0::new());
+    model.train(&buf);
 
     for ctx_bits in 8..=30 {
         best[1] = u64!(buf.len());

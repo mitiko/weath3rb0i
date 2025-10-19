@@ -89,7 +89,7 @@ impl entropy_coding::arithmetic_coder::ACWrite for ACStats {
     }
 }
 
-struct RotatingBuffer<T, const N: usize> {
+pub struct RotatingBuffer<T, const N: usize> {
     buf: [T; N],
     pos: usize,
 }
@@ -118,6 +118,10 @@ impl<T, const N: usize> RotatingBuffer<T, N> {
 impl<T: Default + Copy, const N: usize> RotatingBuffer<T, N> {
     pub fn new() -> Self {
         Self { buf: [T::default(); N], pos: 0 }
+    }
+
+    pub fn init(value: T) -> Self {
+        Self { buf: [value; N], pos: 0 }
     }
 }
 
