@@ -38,6 +38,18 @@ impl<M: Model> History for ACHistory<M> {
     }
 
     fn hash(&mut self) -> u32 {
+        // if self.pos == 100 {
+        //     let mut entropy = 0.0;
+        //     for i in 0..64 {
+        //         let bit = u8!((self.bits >> i) & 1);
+        //         let p = self.cache[i];
+        //         let prob = f64::from(p) / 65536.0;
+        //         let prob = if bit == 1 { prob } else { 1.0 - prob };
+        //         entropy += -prob.log2();
+        //         println!("bit={}, p={}, h={}", bit, p, entropy);
+        //     }
+        // }
+
         let mut ac = ArithmeticCoder::new_coder();
         let mut writer = EntropyWriter {
             state: 0,
@@ -53,6 +65,7 @@ impl<M: Model> History for ACHistory<M> {
                 break;
             }
         }
+        // _ = ac.flush(&mut writer);
 
         writer.state >> (32 - writer.idx)
     }
@@ -96,6 +109,8 @@ impl ACWrite for EntropyWriter {
     }
 
     fn flush(&mut self, _padding: u32) -> std::io::Result<()> {
-        unimplemented!("Entropy writer doesn't implement flushing")
+        self.write_bit(1)?;
+        debug_assert!(self.rev_bits == 0);
+        Ok(())
     }
 }

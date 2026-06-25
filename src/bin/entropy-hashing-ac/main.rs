@@ -19,7 +19,7 @@ fn main() -> Result<()> {
     let mut model = FrozenModel::new(Order0::new());
     model.train(&buf);
 
-    for ctx_bits in 8..=30 {
+    for ctx_bits in 8..=25 {
         best[1] = u64!(buf.len());
         params[1] = (0, 0);
         for alignment_bits in 0..=4 {
