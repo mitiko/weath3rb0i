@@ -6,6 +6,7 @@
 data/
 TODO.md
 perf.data*
+*.jsonl
 
 # MacOS
 .DS_Store

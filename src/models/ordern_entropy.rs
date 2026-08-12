@@ -46,7 +46,7 @@ impl<H: History> AdaptiveModel for OrderNEntropy<H> {
     }
 }
 
-struct Order0Generic<H: History> {
+pub struct Order0Generic<H: History> {
     stats: [Counter; 1 << 11],
     history: H,
     alignment: u16,
