@@ -190,7 +190,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "No symbols provided")]
     fn no_symbols() {
-        assert_eq!(package_merge(&[], 8), &[]);
+        assert_eq!(package_merge(&[], 8), Vec::<u8>::new());
     }
 
     #[test]
