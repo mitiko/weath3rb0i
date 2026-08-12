@@ -1,4 +1,4 @@
-use crate::u16;
+use crate::{u16, Analytics};
 
 #[derive(Copy, Clone)]
 pub struct Counter {
@@ -23,6 +23,26 @@ impl Counter {
             self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
         }
         self.data[usize::from(bit)] += 1;
+    }
+}
+
+impl Analytics for Counter {
+    fn log(&mut self) -> serde_json::Value {
+        serde_json::json!({
+            "data": self.data,
+            // counter specific
+            "p": self.p(),
+        })
+    }
+
+    fn metadata() -> serde_json::Value {
+        serde_json::json!({
+            "type": "counter/Counter",
+            "description": "16-bit adaptive counter with rounding and renormalization",
+            "vars": { "data": "[u16; 2]" },
+            // counter specific
+            "size": 4,
+        })
     }
 }
 

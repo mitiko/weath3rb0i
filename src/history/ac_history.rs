@@ -1,17 +1,17 @@
 use super::History;
-use crate::helpers::RotatingBuffer;
-use crate::{entropy_coding, u8, usize};
 use crate::{
     entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder},
+    helpers::RotatingBuffer,
     models::Model,
+    u8, Analytics,
 };
-use std::marker::PhantomData;
 
 pub struct ACHistory<M: Model> {
     pos: usize,
     bits: u64,
     probs: RotatingBuffer<u16, 64>,
     max_bits: u8,
+    compressed_bits_count: usize,
     model: M,
 }
 
@@ -22,6 +22,7 @@ impl<M: Model> ACHistory<M> {
             bits: 0,
             probs: RotatingBuffer::init(1 << 15),
             max_bits,
+            compressed_bits_count: 0,
             model,
         }
     }
@@ -35,6 +36,7 @@ impl<M: Model> History for ACHistory<M> {
 
         self.bits = (self.bits << 1) | u64::from(bit);
         self.pos += 1;
+        self.compressed_bits_count = 0;
     }
 
     fn hash(&mut self) -> u32 {
@@ -62,6 +64,7 @@ impl<M: Model> History for ACHistory<M> {
             let p = self.probs[i];
             let res = ac.encode(bit, p, &mut writer);
             if res.is_err() {
+                self.compressed_bits_count = i + 1;
                 break;
             }
         }
@@ -113,5 +116,26 @@ impl ACWrite for EntropyWriter {
         self.write_bit(1)?;
         debug_assert!(self.rev_bits == 0);
         Ok(())
+    }
+}
+
+impl<M: Model + Analytics> Analytics for ACHistory<M> {
+    fn log(&mut self) -> serde_json::Value {
+        serde_json::json!({
+            "h": self.hash(),
+            "bits": self.compressed_bits_count,
+            "model": self.model.log(),
+        })
+    }
+
+    fn metadata() -> serde_json::Value {
+        serde_json::json!({
+            "type": "history/ACHistory",
+            "children": {
+                "model": M::metadata(),
+            },
+            "vars": { "bits": "usize", },
+            "description": "Compressed history with arithmetic coding using a static model",
+        })
     }
 }
