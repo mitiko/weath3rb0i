@@ -1,4 +1,7 @@
-use crate::{models::{AdaptiveModel, Model}, unroll_for};
+use crate::{
+    models::{AdaptiveModel, Model},
+    unroll_for,
+};
 
 pub struct FrozenModel<T: AdaptiveModel> {
     pub model: T,

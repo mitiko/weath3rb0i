@@ -1,7 +1,8 @@
 use crate::entropy_coding;
 use std::{
     fs::File,
-    io::{self, BufReader, Read, Result}, ops::{Index, IndexMut},
+    io::{self, BufReader, Read, Result},
+    ops::{Index, IndexMut},
 };
 
 pub fn cmp(file1: &str, file2: &str) -> Result<()> {
@@ -131,7 +132,7 @@ mod test {
 
     #[test]
     fn rotating_buffer() {
-        let mut rb= RotatingBuffer::<u16, 4>::new();
+        let mut rb = RotatingBuffer::<u16, 4>::new();
         rb.push(1);
         rb.push(2);
         rb.push(3);
@@ -158,7 +159,7 @@ mod test {
 
     #[test]
     fn rotating_buffer_assingment() {
-        let mut rb= RotatingBuffer::<u16, 4>::new();
+        let mut rb = RotatingBuffer::<u16, 4>::new();
         rb.push(10);
         rb.push(20);
         rb.push(30);

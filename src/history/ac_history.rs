@@ -1,10 +1,10 @@
 use super::History;
 use crate::helpers::RotatingBuffer;
+use crate::{entropy_coding, u8, usize};
 use crate::{
     entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder},
     models::{ACHashModel, Model},
 };
-use crate::{entropy_coding, u8, usize};
 use std::marker::PhantomData;
 
 pub struct ACHistory<M: Model> {
