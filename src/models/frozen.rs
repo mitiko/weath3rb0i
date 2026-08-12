@@ -1,4 +1,7 @@
-use crate::models::{AdaptiveModel, Model};
+use crate::{
+    models::{AdaptiveModel, Model},
+    unroll_for,
+};
 
 pub struct FrozenModel<T: AdaptiveModel> {
     pub model: T,
@@ -7,6 +10,21 @@ pub struct FrozenModel<T: AdaptiveModel> {
 impl<T: AdaptiveModel> FrozenModel<T> {
     pub fn new(model: T) -> Self {
         Self { model }
+    }
+
+    pub fn train(&mut self, data: &[u8]) {
+        for byte in data {
+            unroll_for!(bit in byte, {
+                self.model.adapt(bit);
+                self.model.update(bit);
+            });
+        }
+    }
+}
+
+impl<T: AdaptiveModel + Clone> Clone for FrozenModel<T> {
+    fn clone(&self) -> Self {
+        Self { model: self.model.clone() }
     }
 }
 

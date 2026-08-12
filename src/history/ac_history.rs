@@ -1,31 +1,55 @@
 use super::History;
-use crate::u8;
+use crate::helpers::RotatingBuffer;
+use crate::{entropy_coding, u8, usize};
 use crate::{
     entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder},
     models::{ACHashModel, Model},
 };
 use std::marker::PhantomData;
 
-pub struct ACHistory<M: ACHashModel> {
-    pos: u64,
-    bits: u64, // TODO: u128?
+pub struct ACHistory<M: Model> {
+    pos: usize,
+    bits: u64,
+    probs: RotatingBuffer<u16, 64>,
     max_bits: u8,
     model: M,
 }
 
-impl<M: ACHashModel> ACHistory<M> {
+impl<M: Model> ACHistory<M> {
     pub fn new(max_bits: u8, model: M) -> Self {
-        Self { pos: 0, bits: 0, max_bits, model }
+        Self {
+            pos: 0,
+            bits: 0,
+            probs: RotatingBuffer::init(1 << 15),
+            max_bits,
+            model,
+        }
     }
 }
 
-impl<M: ACHashModel> History for ACHistory<M> {
+impl<M: Model> History for ACHistory<M> {
     fn update(&mut self, bit: u8) {
+        let p = self.model.predict();
+        self.model.update(bit);
+        self.probs.push(p);
+
         self.bits = (self.bits << 1) | u64::from(bit);
         self.pos += 1;
     }
 
     fn hash(&mut self) -> u32 {
+        // if self.pos == 100 {
+        //     let mut entropy = 0.0;
+        //     for i in 0..64 {
+        //         let bit = u8!((self.bits >> i) & 1);
+        //         let p = self.cache[i];
+        //         let prob = f64::from(p) / 65536.0;
+        //         let prob = if bit == 1 { prob } else { 1.0 - prob };
+        //         entropy += -prob.log2();
+        //         println!("bit={}, p={}, h={}", bit, p, entropy);
+        //     }
+        // }
+
         let mut ac = ArithmeticCoder::new_coder();
         let mut writer = EntropyWriter {
             state: 0,
@@ -33,16 +57,18 @@ impl<M: ACHashModel> History for ACHistory<M> {
             idx: 0,
             max_bits: self.max_bits,
         };
-        self.model.align(u8!(self.pos & 7));
-        for i in 0..64 {
+        for i in 0..self.pos.min(64) {
             let bit = u8!((self.bits >> i) & 1);
-            let res = ac.encode(bit, self.model.predict(), &mut writer);
+            let p = self.probs[i];
+            let res = ac.encode(bit, p, &mut writer);
             if res.is_err() {
                 break;
             }
         }
+        // _ = ac.flush(&mut writer);
 
-        writer.state >> (32 - writer.idx)
+        // writer.state >> (32 - writer.idx)
+        writer.state.wrapping_shr(32 - writer.idx as u32)
     }
 }
 
@@ -84,6 +110,8 @@ impl ACWrite for EntropyWriter {
     }
 
     fn flush(&mut self, _padding: u32) -> std::io::Result<()> {
-        unimplemented!("Entropy writer doesn't implement flushing")
+        self.write_bit(1)?;
+        debug_assert!(self.rev_bits == 0);
+        Ok(())
     }
 }

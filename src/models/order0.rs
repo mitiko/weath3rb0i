@@ -1,5 +1,6 @@
 use super::{counter::Counter, AdaptiveModel};
 
+#[derive(Clone)]
 pub struct Order0 {
     stats: [Counter; 1 << 11],
     history: u8,
