@@ -18,10 +18,77 @@ impl Counter {
     }
 
     pub fn update(&mut self, bit: u8) {
-        self.data[usize::from(bit)] += 1;
         if self.data[usize::from(bit)] == u16::MAX {
             self.data[0] = (self.data[0] >> 1) + (self.data[0] & 1);
             self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
         }
+        self.data[usize::from(bit)] += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    const HALF: u16 = 1 << 15;
+
+    #[test]
+    fn empty() {
+        let counter = Counter::new();
+        assert_eq!(counter.p(), HALF);
+    }
+
+    #[test]
+    fn zero() {
+        let mut counter = Counter::new();
+        counter.update(0);
+        assert!(counter.p() < HALF);
+        counter.update(1);
+        assert_eq!(counter.p(), HALF);
+    }
+
+    #[test]
+    fn one() {
+        let mut counter = Counter::new();
+        counter.update(1);
+        assert!(counter.p() > HALF);
+        counter.update(0);
+        assert_eq!(counter.p(), HALF);
+    }
+
+    #[test]
+    fn only_zeros() {
+        let mut counter = Counter::new();
+        for _ in 0..u16::MAX {
+            counter.update(0);
+        }
+        assert_eq!(counter.p(), 1);
+        counter.update(0);
+        assert!(counter.p() > 1); // quirky
+    }
+
+    #[test]
+    fn only_ones() {
+        let mut counter = Counter::new();
+        for _ in 0..u16::MAX {
+            counter.update(1);
+        }
+        assert_eq!(counter.p(), u16::MAX);
+        counter.update(1);
+        assert!(counter.p() < u16::MAX); // quirky
+    }
+
+    #[test]
+    fn renorm() {
+        let mut counter = Counter::new();
+        for _ in 0..u16::MAX {
+            counter.update(0);
+        }
+        for _ in 0..u16::MAX {
+            counter.update(1);
+        }
+        assert_eq!(counter.p(), HALF);
+        counter.update(0);
+        counter.update(1);
+        assert_eq!(counter.p(), HALF);
     }
 }
