@@ -40,20 +40,15 @@ impl<T: AdaptiveModel> Model for FrozenModel<T> {
 
 impl<M: AdaptiveModel + Analytics> Analytics for FrozenModel<M> {
     fn log(&mut self) -> serde_json::Value {
-        serde_json::json!({
-            "p": self.model.predict(),
-            "s": 0, // frozen model does not have state
-            "model": self.model.log(),
-        })
+        self.model.log()
     }
 
     fn metadata() -> serde_json::Value {
-        serde_json::json!({
-            "type": "model/FrozenModel",
-            "description": "Adaptive model that is frozen after training. Does not adapt to new data.",
-            "children": {
-                "model": M::metadata(),
-            },
-        })
+        let mut value = M::metadata();
+        if let Some(description) = value["description"].as_str() {
+            let new_description = format!("Frozen model that does not adapt to new data. {description}");
+            value["description"] = serde_json::Value::String(new_description);
+        }
+        value
     }
 }

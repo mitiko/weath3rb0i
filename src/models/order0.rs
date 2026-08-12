@@ -59,7 +59,7 @@ impl Analytics for Order0 {
             "children": {
                 "counter": Counter::metadata(),
             },
-            "vars": { "align": "u8", "history": "u8", "ctx": "u16" },
+            "vars": { "align": "u8" },
             // model-specific
             "is_adaptive": true,
         })
