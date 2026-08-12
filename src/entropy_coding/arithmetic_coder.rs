@@ -66,7 +66,7 @@ impl<W: ACWrite> ArithmeticCoder<W> {
 
     pub fn flush(&mut self, io: &mut W) -> io::Result<()> {
         // assert state is normalized
-        // debug_assert!(self.x1 >> PREC_SHIFT == 0 && self.x2 >> PREC_SHIFT == 1);
+        debug_assert!(self.x1 >> PREC_SHIFT == 0 && self.x2 >> PREC_SHIFT == 1);
         io.flush(self.x2)
     }
 }
