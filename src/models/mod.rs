@@ -14,12 +14,15 @@ pub trait Model {
     fn update(&mut self, bit: u8);
 }
 
+// stricter interface for adaptive models
+// prefer implementing this trait over Model for adaptive models
 pub trait AdaptiveModel {
     fn predict(&self) -> u16;
     fn update(&mut self, bit: u8);
     fn adapt(&mut self, bit: u8);
 }
 
+// adaptive models are automatically models
 impl<T: AdaptiveModel> Model for T {
     fn predict(&self) -> u16 {
         T::predict(self)
@@ -29,13 +32,6 @@ impl<T: AdaptiveModel> Model for T {
         T::adapt(self, bit);
         T::update(self, bit);
     }
-}
-
-// ------------- unused -------------
-
-pub trait ACHashModel {
-    fn predict(&mut self) -> u16;
-    fn align(&mut self, alignment: u8);
 }
 
 use crate::mixers::opinion_mixer2::OpinionMixer2;

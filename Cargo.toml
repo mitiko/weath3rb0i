@@ -43,6 +43,4 @@ name = "ordern"
 [[bin]]
 name = "entropy-hashing-ac"
 [[bin]]
-name = "entropy-hashing-ac-cached"
-[[bin]]
 name = "entropy-hashing-huff"

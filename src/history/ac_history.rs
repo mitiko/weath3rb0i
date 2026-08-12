@@ -3,7 +3,7 @@ use crate::helpers::RotatingBuffer;
 use crate::{entropy_coding, u8, usize};
 use crate::{
     entropy_coding::arithmetic_coder::{ACWrite, ArithmeticCoder},
-    models::{ACHashModel, Model},
+    models::Model,
 };
 use std::marker::PhantomData;
 

@@ -1,5 +1,5 @@
 use crate::{
-    models::{ACHashModel, Counter},
+    models::{Counter, Model},
     unroll_for,
 };
 
@@ -46,13 +46,12 @@ impl StationaryModel {
     }
 }
 
-impl ACHashModel for StationaryModel {
-    fn align(&mut self, alignment: u8) {
-        self.alignment = alignment;
+impl Model for StationaryModel {
+    fn predict(&self) -> u16 {
+        self.table[usize::from(self.alignment)]
     }
 
-    fn predict(&mut self) -> u16 {
-        self.alignment = (self.alignment + 7) & 7; // -1 = 7 (mod 8)
-        self.table[usize::from(self.alignment)]
+    fn update(&mut self, _bit: u8) {
+        self.alignment = (self.alignment + 1) % 8;
     }
 }
