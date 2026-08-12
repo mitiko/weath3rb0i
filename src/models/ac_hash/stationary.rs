@@ -55,3 +55,26 @@ impl Model for StationaryModel {
         self.alignment = (self.alignment + 1) % 8;
     }
 }
+
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_stationary_model() {
+        // repeating d for 2**16 bytes, then a 0
+        let d = 0b0000_1000;
+        let i = u16::MAX as usize - 1;
+        let buf = std::iter::repeat(d).take(i).chain(std::iter::once(0)).collect::<Vec<u8>>();
+        
+        let mut model = StationaryModel::new(&buf);
+        assert_eq!(model.predict(), 1);
+        model.update(1);
+        assert_eq!(model.predict(), 1);
+        model.update(1);
+        assert_eq!(model.predict(), 1);
+        model.update(1);
+        assert_eq!(model.predict(), 1);
+        model.update(0);
+        assert_eq!(model.predict(), u16::MAX - 1);
+    }
+}
