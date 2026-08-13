@@ -21,6 +21,9 @@ with:
 
 `./run.py <binary> <...options>`
 
+`entropy-hashing-ac-simple` also logs what the coder did per bit. See
+[docs/analytics-viewer.md](docs/analytics-viewer.md) for the browser view over it.
+
 <!-- Main binary: -->
 <!--
 `weath3rb0i <Action> <Path>`
