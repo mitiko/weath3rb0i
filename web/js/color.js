@@ -61,6 +61,21 @@ export function bucket(cost) {
   return Math.round(badness(cost) * (BUCKETS - 1));
 }
 
+/** Inverse of badness: the cost in bits that maps to `t`. */
+export function costFor(t) {
+  const last = curve.length - 1;
+  if (t <= 0) return 0;
+  if (t >= 1) return curve[last][0];
+  for (let i = 1; i <= last; i++) {
+    const [c1, t1] = curve[i];
+    if (t <= t1) {
+      const [c0, t0] = curve[i - 1];
+      return c0 + ((t - t0) / (t1 - t0)) * (c1 - c0);
+    }
+  }
+  return curve[last][0];
+}
+
 /** Bucket index for a single bit's cost: same curve, scaled to a per-bit baseline. */
 export function bitBucket(cost) {
   return bucket(cost * 8);
@@ -83,6 +98,7 @@ export function bucketColor(i) {
 }
 
 let sheet = null;
+let legend = null;
 const text = (s) => document.createTextNode(s);
 
 function injectStyles() {
@@ -93,18 +109,31 @@ function injectStyles() {
   let css = '';
   for (let i = 0; i < BUCKETS; i++) css += `.e${i}{background:${bucketColor(i)}}`;
   sheet.textContent = css;
+  if (legend) buildLegend();
 }
 
-/** Build the 32 rules and a legend ramp. Call once at startup. */
-export function initColors(legendEl) {
-  injectStyles();
-  if (!legendEl) return;
+/** The cost range a bucket covers, since bucket() rounds to the nearest step. */
+function bucketRange(i) {
+  const step = 1 / (BUCKETS - 1);
+  const lo = costFor(Math.max(0, (i - 0.5) * step));
+  const hi = costFor(Math.min(1, (i + 0.5) * step));
+  return i === BUCKETS - 1 ? `${lo.toFixed(2)}+ bits per char` : `${lo.toFixed(2)} to ${hi.toFixed(2)} bits per char`;
+}
+
+function buildLegend() {
   const ramp = document.createElement('span');
   ramp.className = 'ramp';
   for (let i = 0; i < BUCKETS; i++) {
     const s = document.createElement('span');
     s.style.background = bucketColor(i);
+    s.title = bucketRange(i);
     ramp.append(s);
   }
-  legendEl.replaceChildren(text('compressible'), ramp, text('worse than raw'));
+  legend.replaceChildren(text('compressible'), ramp, text('random'));
+}
+
+/** Build the 32 rules and the legend ramp. Call once at startup. */
+export function initColors(legendEl) {
+  legend = legendEl;
+  injectStyles();
 }

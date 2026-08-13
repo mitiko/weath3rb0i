@@ -35,7 +35,7 @@
   <span class="stat"><b id="s-source">—</b><i>source</i></span>
   <span class="stat"><b id="s-entropy">—</b><i>&Sigma; entropy</i></span>
   <span class="stat"><b id="s-ratio">—</b><i>ratio</i></span>
-  <span class="stat"><b id="s-pos">—</b><i>pos</i></span>
+  <span class="stat jump" id="jump" title="jump back to the anchored character"><b id="s-pos">—</b><i>pos</i></span>
   <span class="stat"><b id="s-byte">—</b><i>byte</i></span>
   <span class="stat"><b id="s-off">—</b><i>bit offset</i></span>
   <span class="stat baseline">
@@ -91,9 +91,10 @@
 </div>
 
 <div id="meters" hidden>
-  <span title="JS heap, Chrome only">mem <b id="m-mem">—</b></span>
+  <span title="bytes this page is holding: source, probabilities and the row index">data <b id="m-data">—</b></span>
+  <span title="elements in the document: the virtual scroller should hold this near 4000">dom <b id="m-dom">—</b></span>
+  <span title="JS heap, only where the browser reports it. Safari and Firefox expose no such API">heap <b id="m-heap">—</b></span>
   <span title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">—</b></span>
-  <span title="frames per second">fps <b id="m-fps">—</b></span>
 </div>
 
 <script type="module" src="js/main.js"></script>

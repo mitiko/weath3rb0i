@@ -43,6 +43,8 @@ el('pick-source').onchange = (e) => e.target.files[0] && loadSource(e.target.fil
 el('pick-probs').onchange = (e) => e.target.files[0] && loadProbs(e.target.files[0]);
 el('pick-jsonl').onchange = (e) => e.target.files[0] && startIndex(e.target.files[0]);
 
+el('jump').onclick = () => view.scrollToAnchor();
+
 el('baseline').onchange = (e) => {
   setBaseline(Math.max(0.001, +e.target.value || 0.586) * 8);
   view.invalidate();
@@ -56,7 +58,8 @@ function reveal() {
     el('landing').hidden = true;
     document.body.classList.add('loaded');
     el('bar').hidden = el('main').hidden = el('dock').hidden = el('scanbar').hidden = false;
-    startMeters();
+    // row starts are plain numbers in a JS array, so 8 bytes each is the honest estimate
+    startMeters(() => state.bytes.byteLength + state.probs.byteLength + state.layout.starts.length * 8);
   }
 }
 

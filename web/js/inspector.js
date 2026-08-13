@@ -10,8 +10,9 @@ const DEPTH = 3; // context depths beyond the character itself
 // What each class in the metadata contract carries as its own primary fields.
 const PRIMARY = { model: ['p', 's'], counter: ['p'], history: ['h'] };
 
-const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-const escape = (s) => String(s).replace(/[&<>]/g, (c) => ESC_HTML[c]);
+// quotes matter too: descriptions from the metadata end up inside title attributes
+const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
+const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ESC_HTML[c]);
 
 export class Inspector {
   constructor(state, { getLine, onPick }) {
@@ -97,7 +98,7 @@ export class Inspector {
       if (at >= nProbs) {
         known = false;
         html += `<div class="bit eu" data-pos="${at}"><div class="v">${bit}</div>` +
-                `<div class="p">—</div><div class="c">—</div></div>`;
+                `<div class="u">—</div><div class="p">—</div><div class="c">—</div></div>`;
         continue;
       }
       const p = probs[at];
@@ -105,8 +106,9 @@ export class Inspector {
       total += cost;
       const on = at === pos ? ' on' : '';
       html += `<div class="bit e${bitBucket(cost)}${on}" data-pos="${at}" ` +
-              `title="bit ${at}">` +
+              `title="bit ${at}: p ${p}/65536 = ${prob(p)}, costs ${cost} bits">` +
               `<div class="v">${bit}</div>` +
+              `<div class="u">${p}</div>` +
               `<div class="p">${fixed3(prob(p))}</div>` +
               `<div class="c">${fixed3(cost)}</div></div>`;
     }
@@ -114,9 +116,12 @@ export class Inspector {
 
     const g = glyph(bytes[byte]);
     const hex = bytes[byte].toString(16).padStart(2, '0');
+    // P(byte) is what the 8 predictions jointly assigned to this character
+    const joint = 2 ** -total;
     this.el.bitsSummary.textContent = known
-      ? `'${g.text}' 0x${hex} · ${fixed3(total)} bits, raw is 8 · rows are value, p, cost`
-      : `'${g.text}' 0x${hex} · not fully scanned`;
+      ? `'${g.text}' 0x${hex} · ${fixed3(total)} bpc · P(byte) ` +
+        (joint >= 0.001 ? fixed3(joint) : joint.toExponential(2))
+      : `'${g.text}' 0x${hex} · not fully loaded`;
   }
 
   renderContext(i) {
@@ -147,12 +152,16 @@ export class Inspector {
     this.el.ctxStats.innerHTML = html;
   }
 
-  /** One node of the state tree, labelled from the metadata but driven by the log. */
+  /**
+   * One node of the state tree. The label is the property name the state was logged
+   * under, because that is what identifies it in the tree; the class and its description
+   * live in the tooltip. Only the root starts open.
+   */
   nodeHtml(key, log, meta, open) {
     const type = meta && typeof meta.type === 'string' ? meta.type : '';
     const slash = type.indexOf('/');
     const cls = slash > 0 ? type.slice(0, slash) : '';
-    const name = slash > 0 ? type.slice(slash + 1) : (type || key || 'node');
+    const name = slash > 0 ? type.slice(slash + 1) : type;
     const primary = PRIMARY[cls] || [];
     const children = (meta && meta.children) || {};
 
@@ -168,16 +177,16 @@ export class Inspector {
       .map((k) => `<span class="k">${k}</span> ${fmt(k, log[k])}`)
       .join(' · ');
 
+    const label = key || name || 'state';
+    const tip = [cls ? `${name} (${cls})` : name, meta && meta.description].filter(Boolean).join('\n');
+
     let html = `<details class="node"${open ? ' open' : ''}><summary>`;
-    if (key) html += `<span class="ctag">${escape(key)}:</span> `;
-    html += `<span class="cname">${escape(name)}</span>`;
-    if (cls) html += ` <span class="ctag">${escape(cls)}</span>`;
+    html += `<span class="cname" title="${escape(tip)}">${escape(label)}</span>`;
     if (head) html += ` <span class="prim">${head}</span>`;
     html += '</summary>';
 
-    if (meta && meta.description) html += `<p class="desc">${escape(meta.description)}</p>`;
     for (const [k, v] of vars) html += `<div class="kv"><span class="k">${escape(k)}</span> ${fmt(k, v)}</div>`;
-    for (const [k, v] of kids) html += this.nodeHtml(k, v, children[k], true);
+    for (const [k, v] of kids) html += this.nodeHtml(k, v, children[k], false);
     return html + '</details>';
   }
 

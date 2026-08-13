@@ -87,6 +87,9 @@ progress { width: 100%; height: .5rem; }
 .stat.baseline label { font-size: 12px; color: var(--dim); }
 .stat.baseline input { width: 5rem; font: 600 13px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 1px 3px; }
 
+.stat.jump { cursor: pointer; }
+.stat.jump:hover b { text-decoration: underline; }
+
 .legend { margin-left: auto; display: flex; align-items: center; gap: .4rem; font-size: 10px; color: var(--dim); }
 .legend .ramp { display: flex; }
 .legend .ramp span { width: 8px; height: 12px; }
@@ -125,7 +128,18 @@ body.loaded #meters { right: calc(var(--dock-w) + 1rem); }
 .trow span[data-i] { cursor: pointer; }
 .trow span[data-i]:hover { outline: 1px solid var(--ink); outline-offset: -1px; }
 .eu { background: #f0f0f4; color: #b8b8c2; }
+
+/* the anchored character, and its row flagged so it stays findable while scrolling */
 .anchor { outline: 2px solid var(--ink); outline-offset: -1px; }
+.anchor-row::before {
+  content: '';
+  position: absolute;
+  left: -10.5ch;
+  top: 2px; bottom: 2px;
+  width: 3px;
+  background: var(--ink);
+}
+.anchor-row .gutter { color: var(--ink); font-weight: 700; }
 
 /* ---------- dock ---------- */
 
@@ -157,7 +171,8 @@ body.loaded #meters { right: calc(var(--dock-w) + 1rem); }
   cursor: pointer;
 }
 .bit .v { font-weight: 700; font-size: 14px; }
-.bit .p, .bit .c { color: #55555f; font-size: 9.5px; }
+.bit .u { color: #33333c; font-size: 9.5px; }
+.bit .p, .bit .c { color: #6a6a75; font-size: 9.5px; }
 .bit.on { outline: 2px solid var(--ink); outline-offset: -1px; }
 
 /* state tree */
@@ -166,9 +181,8 @@ body.loaded #meters { right: calc(var(--dock-w) + 1rem); }
 #statetree details { margin-left: .25rem; border-left: 1px solid var(--line); padding-left: .6rem; }
 #statetree > .node { border-left: none; padding-left: 0; margin-left: 0; }
 #statetree summary { cursor: pointer; }
-#statetree .cname { font-weight: 700; }
+#statetree .cname { font-weight: 700; cursor: help; text-decoration: underline dotted var(--line); }
 #statetree .ctag { color: var(--dim); font-size: 10px; }
-#statetree .desc { color: var(--dim); font-size: 10.5px; font-family: system-ui, sans-serif; margin: 0 0 .2rem; }
 #statetree .kv { color: #33333c; }
 #statetree .k { color: var(--dim); font-style: normal; }
 #statetree .prim .k { color: #b03a00; }

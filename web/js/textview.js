@@ -35,7 +35,8 @@ export class TextView {
     this.rows.addEventListener('mouseleave', () => this.onHover(null));
     this.rows.addEventListener('click', (e) => {
       const i = e.target.dataset && e.target.dataset.i;
-      if (i !== undefined) this.onPick(+i);
+      // every callback speaks in bit positions; a character click lands on its first bit
+      if (i !== undefined) this.onPick(+i * 8);
     });
   }
 
@@ -53,6 +54,13 @@ export class TextView {
   invalidate() {
     this.first = this.last = -1;
     this.schedule();
+  }
+
+  /** Scroll the anchored character back into view. */
+  scrollToAnchor() {
+    if (this.state.anchor === null) return;
+    const row = this.state.layout.rowOf(this.state.anchor >> 3);
+    scrollTo({ top: this.main.offsetTop + row * ROW_H - innerHeight / 3, behavior: 'smooth' });
   }
 
   render() {
@@ -89,13 +97,16 @@ export class TextView {
     return out + '</div>';
   }
 
-  /** Outline the anchored byte, if it is on screen. */
+  /** Outline the anchored byte and flag its whole row, so it stays findable when scrolling. */
   markAnchor() {
-    const prev = this.rows.querySelector('.anchor');
-    if (prev) prev.classList.remove('anchor');
+    for (const prev of this.rows.querySelectorAll('.anchor, .anchor-row')) {
+      prev.classList.remove('anchor', 'anchor-row');
+    }
     const anchor = this.state.anchor;
     if (anchor === null) return;
     const el = this.rows.querySelector(`span[data-i="${anchor >> 3}"]`);
-    if (el) el.classList.add('anchor');
+    if (!el) return;
+    el.classList.add('anchor');
+    el.parentElement.classList.add('anchor-row');
   }
 }

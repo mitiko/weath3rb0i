@@ -13,10 +13,10 @@ ES modules and workers do not load over `file://`.
 
 `entropy-hashing-ac-simple` writes two files next to each other:
 
-| File               | Contents                                                       |
-|--------------------|----------------------------------------------------------------|
-| `analytics.p16`    | one little-endian u16 per coded bit: the probability it was coded with |
-| `analytics.jsonl`  | line 0 is the metadata header, data line k is the full model state entering bit k |
+| File              | Contents                                                    |
+|-------------------|-------------------------------------------------------------|
+| `analytics.p16`   | one little-endian u16 per bit: the probability it was coded with |
+| `analytics.jsonl` | line 0 is the metadata header, data line k is the state entering bit k |
 
 `.p16` is what every colour on screen is computed from, so it loads in one read and
 costs 2 bytes per bit. The JSONL is only needed for the state panel and is optional in
@@ -74,3 +74,21 @@ reads fail. Reload and pick the files again.
 The scanning and entropy code sits behind `web/js/analyzer.js` so a wasm-bindgen crate
 reusing `Counter`, `Model` and `History` can replace it. That is what extracting L1
 histories out of the logged state, and replaying models over them, will need.
+
+### If the text grid ever needs to get cheaper
+
+Draw the rows to a `<canvas>` instead of one span per character. The grid is virtualized
+to about 4000 nodes, which is a rounding error next to the probabilities, so there is no
+reason to do this yet. If it becomes one, canvas is the lever: it takes the grid to one
+node per row, or one for the whole view.
+
+`layout.js` already assigns every byte a row and a column, so mapping a click back to a
+byte is arithmetic we have. What it costs is text selection, accessibility, and per-span
+hover, all of which come free from real elements today.
+
+Custom elements are the wrong direction here. They cannot reduce the node count, every
+instance carries a JS wrapper because its constructor is JS, and a shadow root per
+instance costs more than the node. They also put thousands of constructor calls on the
+scroll path, where `render()` currently hands the parser one string and runs no JS per
+node. They are worth considering only in the dock, where instances number in the tens and
+are rebuilt on click rather than on scroll.
