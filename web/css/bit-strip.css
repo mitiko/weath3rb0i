@@ -1,0 +1,17 @@
+/* The 8 bits of the anchored byte. Each tile carries a bucket class, so its background
+   comes from the injected colour rules rather than from here. */
+
+#bitstrip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+
+.bit {
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 3px 2px;
+  text-align: center;
+  font: 11px/1.35 var(--mono);
+  cursor: pointer;
+}
+.bit .v { font-weight: 700; font-size: 14px; }
+.bit .u { color: #33333c; font-size: 9.5px; }
+.bit .p, .bit .c { color: #6a6a75; font-size: 9.5px; }
+.bit.on { outline: 2px solid var(--ink); outline-offset: -1px; }

@@ -5,7 +5,14 @@
 // baseline colour has to be pale or half the page shouts. Chroma stays low around the
 // median and only climbs for the tail, which is what makes the outliers findable.
 
+import { on } from './core/bus.js';
+import { view } from './core/view.js';
+
 export const BUCKETS = 32;
+
+// buckets outside the selected band are painted this, which is how the grid narrows to
+// just the predictable or just the random end
+const MUTED = '#eeeef1';
 
 const ANCHORS = [
   { t: 0.00, L: 0.970, C: 0.030, h: 150 }, // free
@@ -33,16 +40,7 @@ function stops(baseline) {
   ];
 }
 
-// no compression at all, until main.js measures a real ratio off the files
-let baselineBits = 8;
-let curve = stops(baselineBits);
-
-/** Set the baseline in bits per character. Restyles every span already in the DOM. */
-export function setBaseline(bitsPerChar) {
-  baselineBits = bitsPerChar;
-  curve = stops(bitsPerChar);
-  injectStyles();
-}
+let curve = stops(8);
 
 /** Badness in [0, 1] for a character cost in bits. */
 export function badness(cost) {
@@ -101,112 +99,26 @@ export function bucketColor(i) {
 }
 
 let sheet = null;
-let ramp = null;
 
-// Buckets outside the selected band are painted this instead of their colour, which is
-// how the grid narrows to just the predictable or just the random end.
-const MUTED = '#eeeef1';
-let sel = [0, BUCKETS - 1];
-
-function injectStyles() {
+// One stylesheet write recolours the text grid and the bit strip together, so a change of
+// CR or filter costs no re-render anywhere. Only possible because we stay in light DOM.
+function apply() {
+  curve = stops(view.cr * 8);
   if (!sheet) {
     sheet = document.createElement('style');
     document.head.append(sheet);
   }
+  const [lo, hi] = view.filter || [0, BUCKETS - 1];
   let css = '';
   for (let i = 0; i < BUCKETS; i++) {
-    const on = i >= sel[0] && i <= sel[1];
-    css += `.e${i}{background:${on ? bucketColor(i) : MUTED}}`;
+    css += `.e${i}{background:${i >= lo && i <= hi ? bucketColor(i) : MUTED}}`;
   }
   sheet.textContent = css;
-  if (ramp) for (const s of ramp.children) s.classList.toggle('off', +s.dataset.b < sel[0] || +s.dataset.b > sel[1]);
 }
 
-function select(lo, hi) {
-  sel = [lo, hi];
-  injectStyles();
-}
-
-// The band of bits per bit a bucket covers, and the same band against the baseline.
-// bucket() rounds to nearest, so a bucket reaches half a step either side of its colour.
-function bucketTip(i) {
-  const step = 1 / (BUCKETS - 1);
-  const b = baselineBits / 8;
-  const lo = costFor(Math.max(0, (i - 0.5) * step)) / 8;
-  const hi = costFor(Math.min(1, (i + 0.5) * step)) / 8;
-  const top = i === BUCKETS - 1;
-  return `<b>${lo.toFixed(2)}${top ? '+' : ` - ${hi.toFixed(2)}`}</b> bits per bit`
-    + `<br>${(lo / b).toFixed(2)}${top ? '×+' : ` - ${(hi / b).toFixed(2)}×`} baseline`;
-}
-
-let tip = null;
-
-function showTip(seg, i) {
-  if (!tip) {
-    tip = document.createElement('div');
-    tip.id = 'ramp-tip';
-    document.body.append(tip);
-  }
-  tip.innerHTML = bucketTip(i);
-  tip.hidden = false;
-  const r = seg.getBoundingClientRect();
-  tip.style.left = `${r.left + r.width / 2}px`;
-  tip.style.top = `${r.bottom + 8}px`;
-}
-
-const hideTip = () => { if (tip) tip.hidden = true; };
-
-// Which bucket a page x sits over. Read from geometry rather than the event target so a
-// drag keeps tracking once the pointer leaves the ramp.
-function bucketAtX(x) {
-  const r = ramp.getBoundingClientRect();
-  return Math.min(BUCKETS - 1, Math.max(0, Math.floor(((x - r.left) / r.width) * BUCKETS)));
-}
-
-function label(name) {
-  const el = document.createElement('span');
-  el.className = 'lab';
-  el.textContent = name;
-  el.title = 'show the whole range again';
-  el.onclick = () => select(0, BUCKETS - 1);
-  return el;
-}
-
-function buildLegend(legend) {
-  ramp = document.createElement('span');
-  ramp.className = 'ramp';
-  for (let i = 0; i < BUCKETS; i++) {
-    const s = document.createElement('span');
-    s.style.background = bucketColor(i);
-    s.dataset.b = i;
-    ramp.append(s);
-  }
-
-  ramp.addEventListener('mouseover', (e) => {
-    const seg = e.target.closest('span[data-b]');
-    if (seg) showTip(seg, +seg.dataset.b);
-  });
-  ramp.addEventListener('mouseleave', hideTip);
-
-  // drag on the document, so a drag that runs past either end still clamps and tracks
-  let from = null;
-  ramp.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    from = bucketAtX(e.clientX);
-    select(from, from);
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (from === null) return;
-    const i = bucketAtX(e.clientX);
-    select(Math.min(from, i), Math.max(from, i));
-  });
-  document.addEventListener('mouseup', () => { from = null; });
-
-  legend.replaceChildren(label('predictable'), ramp, label('random'));
-}
-
-/** Build the 32 rules and the legend ramp. Call once at startup. */
-export function initColors(legendEl) {
-  buildLegend(legendEl);
-  injectStyles();
+/** Build the 32 rules and keep them in step with the view. Call once at startup. */
+export function initColors() {
+  on('cr', apply);
+  on('filter', apply);
+  apply();
 }

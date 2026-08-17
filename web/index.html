@@ -4,7 +4,16 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>weath3rb0i · compression debugger</title>
-<link rel="stylesheet" href="css/style.css">
+<!-- base first, the rest in page order. Separate links so they load in parallel. -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/landing.css">
+<link rel="stylesheet" href="css/bar.css">
+<link rel="stylesheet" href="css/heat-map.css">
+<link rel="stylesheet" href="css/text-grid.css">
+<link rel="stylesheet" href="css/dock.css">
+<link rel="stylesheet" href="css/bit-strip.css">
+<link rel="stylesheet" href="css/encoder-state.css">
+<link rel="stylesheet" href="css/scan-footer.css">
 </head>
 <body>
 
@@ -32,72 +41,25 @@
 </div>
 
 <header id="bar" hidden>
-  <span class="stat"><b id="s-source">—</b><i>source</i></span>
-  <span class="stat jump" id="jump" title="jump back to the anchored character"><b id="s-pos">—</b><i>pos</i></span>
-  <span class="stat baseline">
-    <input type="number" id="baseline" step="0.001" min="0.001" max="4"
-           title="colour scale midpoint, in bits per bit. Type a value to pin it">
-    <i id="cr-reset" title="reset to the ratio measured from the files">CR</i>
-  </span>
-  <span class="legend" id="legend"></span>
+  <x-status-bar></x-status-bar>
+  <x-cr-input class="stat baseline"></x-cr-input>
+  <x-heat-map class="legend"></x-heat-map>
 </header>
 
 <main id="main" hidden>
-  <div id="sizer"><div id="rows"></div></div>
+  <x-text-grid></x-text-grid>
 </main>
 
 <aside id="dock" hidden>
-  <!-- the pickers move in here once the first file is chosen -->
-  <section id="sec-files">
-    <h2>files</h2>
-    <div id="files-slot"></div>
-    <!-- one row per whole file today, one per component once the model reports them -->
-    <table id="file-stats" hidden>
-      <thead><tr><th></th><th>size</th><th>&Sigma; entropy</th><th>ratio</th></tr></thead>
-      <tbody>
-        <tr><th>total</th><td id="f-size">—</td><td id="f-entropy">—</td><td id="f-ratio">—</td></tr>
-      </tbody>
-    </table>
-  </section>
-
+  <!-- the pickers move into the source panel once the first file is chosen -->
+  <x-source-panel></x-source-panel>
   <p class="hint" id="dock-hint">Click a character to anchor a position.</p>
-
-  <section id="sec-bits" hidden>
-    <h2>bits</h2>
-    <div id="bitstrip"></div>
-    <p class="sub" id="bits-summary"></p>
-  </section>
-
-  <section id="sec-state" hidden>
-    <h2>encoder state</h2>
-    <div id="statetree"></div>
-  </section>
-
-  <section id="sec-ctx" hidden>
-    <h2>context</h2>
-    <div id="ctxstats"></div>
-  </section>
-
-  <section id="sec-copy" hidden>
-    <h2>copy</h2>
-    <div class="row-buttons">
-      <button id="copy-one">Copy position</button>
-      <button id="copy-append">Append</button>
-      <button id="copy-all">Copy all (<span id="copy-count">0</span>)</button>
-      <button id="copy-clear">Clear</button>
-    </div>
-    <p class="sub" id="copy-status"></p>
-  </section>
+  <x-bit-strip></x-bit-strip>
+  <x-encoder-state></x-encoder-state>
+  <x-context-stats></x-context-stats>
 </aside>
 
-<div id="scanbar" hidden>
-  <span class="prog">source <progress id="src-progress" value="0" max="1"></progress></span>
-  <span class="prog">probs <progress id="probs-progress" value="0" max="1"></progress></span>
-  <span class="prog">index <progress id="index-progress" value="0" max="1"></progress></span>
-  <span id="scan-status"></span>
-  <span class="meter" title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">—</b></span>
-  <span class="meter" title="no portable way to read it: performance.memory is Chrome-only and measureUserAgentSpecificMemory() needs COOP/COEP headers">mem <b id="m-mem">N/A</b></span>
-</div>
+<x-scan-footer id="scanbar" hidden></x-scan-footer>
 
 <script type="module" src="js/main.js"></script>
 </body>

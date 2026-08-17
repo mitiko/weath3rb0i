@@ -1,231 +1,60 @@
-// Wiring: keep one shared state object that everything else reads, and start each file
-// the moment it is picked. Three independent inputs, any order:
+// Three independent inputs, any order:
 //
-//   source      the compressed data. Enough on its own for the text grid and context
-//               stats, which need no model output at all
-//   .p16        one u16 per bit, the probability it was coded with, drives every colour
-//   .jsonl      full model state per bit, only the state panel needs it (optional)
+//   source   the data that was compressed. Enough on its own for the text grid and the
+//            context stats, which need no model output at all
+//   .p16     one u16 per bit, the probability it was coded with, drives every colour
+//   .jsonl   the model's state per bit, only the encoder state panel needs it (optional)
+//
+// Everything past this file talks over the bus in core/bus.js. What is left here is the
+// pickers, the landing card, and the one rule that ties the two files to the colour scale.
 
-import { costRange, commas, fixed3 } from './analyzer.js';
-import { initColors, setBaseline } from './color.js';
-import { Layout } from './layout.js';
-import { TextView } from './textview.js';
-import { Inspector } from './inspector.js';
-import { startMeters } from './meters.js';
-
-const state = {
-  source: { name: '', size: 0, sha256: '' },
-  bytes: new Uint8Array(0),
-  layout: new Layout(),
-  probs: new Uint16Array(0),
-  nProbs: 0,       // bits usable now: probability loaded and source byte present
-  entropy: 0,      // sum of costs over those bits
-  metadata: null,
-  anchor: null,    // anchored bit position
-};
+import { initColors } from './color.js';
+import { on } from './core/bus.js';
+import { model } from './core/model.js';
+import { loadSource, source } from './core/source.js';
+import { JsonlMachine } from './core/time-machine.js';
+import { setMeasured, view } from './core/view.js';
+import './components/index.js';
 
 const el = (id) => document.getElementById(id);
 
-let worker = null;
-let loadedProbs = 0;   // u16 entries read from the sidecar
-let probsSize = 0;
-let sourceDone = false;
-let probsDone = false;
-let lineSeq = 0;
-const linePending = new Map();
+initColors();
 
-initColors(el('legend'));
-const view = new TextView(state, {
-  onHover: (i) => showPosition(i === null ? state.anchor : i * 8),
-  onPick: pick,
+pick('pick-source', (file) => loadSource(file));
+pick('pick-probs', (file) => model.load(file));
+pick('pick-jsonl', (file) => {
+  model.state?.close();
+  model.state = new JsonlMachine(file);
 });
-const inspector = new Inspector(state, { getLine, onPick: pick });
 
-el('pick-source').onchange = (e) => e.target.files[0] && loadSource(e.target.files[0]);
-el('pick-probs').onchange = (e) => e.target.files[0] && loadProbs(e.target.files[0]);
-el('pick-jsonl').onchange = (e) => e.target.files[0] && startIndex(e.target.files[0]);
-
-el('jump').onclick = () => view.scrollToAnchor();
-
-let baselinePinned = false;
-let measuredCR = 0;    // kept so the CR label can put the baseline back
-
-el('baseline').onchange = (e) => {
-  baselinePinned = +e.target.value > 0;
-  if (!baselinePinned) return useMeasuredCR();
-  setBaseline(+e.target.value * 8);
-  view.invalidate();
-  inspector.refresh();
-};
-
-el('cr-reset').onclick = useMeasuredCR;
+// reveal first: the grid sizes itself against the layout, which is wrong while it is hidden
+function pick(id, load) {
+  el(id).onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    reveal();
+    load(file);
+  };
+}
 
 // The colour midpoint is the file's compression ratio, so yellow is an average prediction.
 // Measured once both files are in: a ratio against a partial sum drifts every chunk.
-function measureBaseline() {
-  if (!sourceDone || !probsDone || !state.bytes.length) return;
-  measuredCR = state.entropy / (state.bytes.length * 8);
-  if (!baselinePinned) useMeasuredCR();
-}
+const measure = () => {
+  if (source.complete && model.complete && source.bytes.length) {
+    setMeasured(model.entropy / (source.bytes.length * 8));
+  }
+};
+on('source:done', measure);
+on('model:done', measure);
 
-function useMeasuredCR() {
-  if (!measuredCR) return;
-  baselinePinned = false;
-  el('baseline').value = fixed3(measuredCR);
-  setBaseline(measuredCR * 8);
-  view.invalidate();
-  inspector.refresh();
-}
+on('anchor', () => { el('dock-hint').hidden = view.anchor !== null; });
 
 /** First file picked reveals the app and moves the pickers into the dock. */
 function reveal() {
-  if (!el('landing').hidden) {
-    el('files-slot').append(el('pickers'));
-    el('landing').hidden = true;
-    document.body.classList.add('loaded');
-    el('bar').hidden = el('main').hidden = el('dock').hidden = el('scanbar').hidden = false;
-    startMeters();
-  }
-}
-
-/** Stream the source so the first rows appear well before the read finishes. */
-async function loadSource(file) {
-  reveal();
-  state.source = { name: file.name, size: file.size, sha256: 'computing…' };
-  state.bytes = new Uint8Array(file.size);
-  state.layout = new Layout();
-  state.nProbs = 0;
-  state.entropy = 0;
-  sourceDone = false;
-  el('s-source').textContent = file.name;
-  el('f-size').textContent = commas(file.size) + ' B';
-  el('file-stats').hidden = false;
-  checkPair();
-
-  await stream(file, el('src-progress'), (chunk, at) => {
-    state.bytes.set(chunk, at);
-    state.layout.extend(state.bytes, at + chunk.length);
-    advance();
-    view.invalidate();
-  });
-  sourceDone = true;
-  measureBaseline();
-
-  const digest = await crypto.subtle.digest('SHA-256', state.bytes);
-  state.source.sha256 = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
-  el('s-source').title = 'sha256 ' + state.source.sha256;
-}
-
-/** Little-endian u16 per bit. Every platform a browser runs on is little-endian. */
-async function loadProbs(file) {
-  reveal();
-  const raw = new Uint8Array(file.size + (file.size & 1));
-  state.probs = new Uint16Array(raw.buffer);
-  loadedProbs = 0;
-  probsSize = file.size;
-  probsDone = false;
-  checkPair();
-
-  await stream(file, el('probs-progress'), (chunk, at) => {
-    raw.set(chunk, at);
-    loadedProbs = (at + chunk.length) >> 1;
-    advance();
-  });
-  probsDone = true;
-  measureBaseline();
-}
-
-function startIndex(file) {
-  reveal();
-  inspector.hasState = true;
-  if (worker) worker.terminate();
-  worker = new Worker('js/index-worker.js', { type: 'module' });
-
-  worker.onmessage = (e) => {
-    const m = e.data;
-    switch (m.type) {
-      case 'meta':
-        state.metadata = m.metadata;
-        break;
-      case 'progress':
-        el('index-progress').value = m.bytesRead / m.total;
-        break;
-      case 'done':
-        el('index-progress').value = 1;
-        note(m.lines === state.bytes.length * 8 ? ''
-          : `state file has ${commas(m.lines)} lines for ${commas(state.bytes.length * 8)} bits`);
-        break;
-      case 'line': {
-        const resolve = linePending.get(m.id);
-        if (resolve) { linePending.delete(m.id); resolve(m.json); }
-        break;
-      }
-      case 'error':
-        note('index failed: ' + m.message);
-        break;
-    }
-  };
-  worker.postMessage({ cmd: 'index', file });
-}
-
-async function stream(file, progress, onChunk) {
-  const reader = file.stream().getReader();
-  let at = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) { progress.value = 1; return; }
-    onChunk(value, at);
-    at += value.length;
-    progress.value = at / file.size;
-  }
-}
-
-/**
- * A bit is usable once its probability has loaded and the source byte holding it has too.
- * Either side can be behind, so both call this.
- */
-function advance() {
-  const limit = Math.min(loadedProbs, state.layout.done * 8);
-  if (limit <= state.nProbs) return;
-  state.entropy += costRange(state.probs, state.nProbs, limit, state.bytes);
-  state.nProbs = limit;
-
-  el('f-entropy').textContent = commas(Math.round(state.entropy / 8)) + ' B';
-  el('f-ratio').textContent = fixed3(state.entropy / state.nProbs);
-  view.invalidate();
-  inspector.refresh();
-}
-
-/** Warn when the probability count cannot match the source. */
-function checkPair() {
-  if (!probsSize || !state.bytes.length) return;
-  note(probsSize === state.bytes.length * 16 ? ''
-    : `${commas(probsSize / 2)} probabilities for ${commas(state.bytes.length * 8)} bits, the files may not match`);
-}
-
-function note(msg) {
-  el('scan-status').textContent = msg ? '⚠ ' + msg : '';
-}
-
-/** Data line `k` of the JSONL, which is the state entering bit `k`. */
-function getLine(k) {
-  if (!worker) return Promise.resolve(null);
-  const id = ++lineSeq;
-  return new Promise((resolve) => {
-    linePending.set(id, resolve);
-    worker.postMessage({ cmd: 'line', id, line: k });
-  });
-}
-
-function pick(pos) {
-  state.anchor = pos;
-  showPosition(pos);
-  view.markAnchor();
-  inspector.show(pos);
-}
-
-/** Hover updates the readout only; a pick moves the anchor with it. */
-function showPosition(pos) {
-  if (pos === null) return;
-  el('s-pos').textContent = commas(pos);
+  if (el('landing').hidden) return;
+  el('files-slot').append(el('pickers'));
+  el('landing').hidden = true;
+  document.body.classList.add('loaded');
+  for (const id of ['bar', 'main', 'dock', 'scanbar']) el(id).hidden = false;
+  dispatchEvent(new Event('resize')); // everything just moved, so let the grid re-measure
 }

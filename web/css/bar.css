@@ -1,0 +1,29 @@
+/* The top bar and its stats: x-status-bar and x-cr-input. */
+
+#bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--bar-h);
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  padding: 0 1rem;
+  background: rgba(251, 251, 253, .92);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--line);
+  z-index: 10;
+}
+
+/* the bar lays out the stats, so the wrapper element must not become a box of its own */
+x-status-bar { display: contents; }
+
+.stat { display: flex; flex-direction: column; line-height: 1.25; white-space: nowrap; }
+.stat b { font: 600 13px var(--mono); }
+.stat i { font-style: normal; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; color: var(--dim); }
+
+.stat.jump { cursor: pointer; }
+.stat.jump:hover b { text-decoration: underline; }
+
+.stat.baseline input { width: 5rem; font: 600 13px var(--mono); border: 1px solid var(--line); border-radius: 4px; padding: 0 3px; }
+.stat.baseline i { width: max-content; cursor: pointer; }
+.stat.baseline i:hover { color: var(--ink); text-decoration: underline; }

@@ -1,0 +1,21 @@
+/* Load progress and tab health, pinned to the bottom edge. */
+
+#scanbar {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .3rem .75rem;
+  background: rgba(251, 251, 253, .95);
+  border-top: 1px solid var(--line);
+  font: 11px var(--mono);
+  color: var(--dim);
+  z-index: 11;
+}
+
+#scanbar .prog { display: flex; align-items: center; gap: .4rem; flex: 1; max-width: 14rem; }
+#scanbar progress { flex: 1; }
+#scan-status { flex: 2; text-align: right; }
+#scanbar .meter { white-space: nowrap; }
+#scanbar .meter b { color: var(--ink); }

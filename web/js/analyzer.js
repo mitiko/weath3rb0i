@@ -54,14 +54,5 @@ export function costRange(probs, from, to, bytes) {
   return sum;
 }
 
-/** Grow a typed array to hold at least `need` elements, keeping its contents. */
-export function grow(arr, need) {
-  if (arr.length >= need) return arr;
-  const next = new arr.constructor(Math.max(need, Math.ceil(arr.length * 1.5)));
-  next.set(arr);
-  return next;
-}
-
-export const round3 = (x) => Math.round(x * 1000) / 1000;
 export const fixed3 = (x) => x.toFixed(3);
 export const commas = (n) => n.toLocaleString('en-US');
