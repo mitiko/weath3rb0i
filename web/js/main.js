@@ -58,8 +58,7 @@ function reveal() {
     el('landing').hidden = true;
     document.body.classList.add('loaded');
     el('bar').hidden = el('main').hidden = el('dock').hidden = el('scanbar').hidden = false;
-    // row starts are plain numbers in a JS array, so 8 bytes each is the honest estimate
-    startMeters(() => state.bytes.byteLength + state.probs.byteLength + state.layout.starts.length * 8);
+    startMeters();
   }
 }
 

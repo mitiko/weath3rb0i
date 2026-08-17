@@ -21,7 +21,7 @@
       </label>
       <label>Probabilities
         <input type="file" id="pick-probs" accept=".p16">
-        <em>analytics.p16, one u16 per bit, drives every colour</em>
+        <em>analytics.p16, one u16 per bit from the model, creates heatmap</em>
       </label>
       <label>Encoder state <span class="opt">optional</span>
         <input type="file" id="pick-jsonl" accept=".jsonl">
@@ -88,13 +88,8 @@
   <span class="prog">probs <progress id="probs-progress" value="0" max="1"></progress></span>
   <span class="prog" id="prog-index">index <progress id="index-progress" value="0" max="1"></progress></span>
   <span id="scan-status"></span>
-</div>
-
-<div id="meters" hidden>
-  <span title="bytes this page is holding: source, probabilities and the row index">data <b id="m-data">—</b></span>
-  <span title="elements in the document: the virtual scroller should hold this near 4000">dom <b id="m-dom">—</b></span>
-  <span title="JS heap, only where the browser reports it. Safari and Firefox expose no such API">heap <b id="m-heap">—</b></span>
-  <span title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">—</b></span>
+  <span class="meter" title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">—</b></span>
+  <span class="meter" title="no portable way to read it: performance.memory is Chrome-only and measureUserAgentSpecificMemory() needs COOP/COEP headers">mem <b id="m-mem">N/A</b></span>
 </div>
 
 <script type="module" src="js/main.js"></script>
