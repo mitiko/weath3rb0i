@@ -1,7 +1,7 @@
 /* The 8 bits of the anchored byte. Each tile carries a bucket class, so its background
    comes from the injected colour rules rather than from here. */
 
-#bitstrip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; }
+#bitstrip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 3px; margin-bottom: 1.5rem; }
 
 .bit {
   border: 1px solid var(--line);

@@ -1,10 +1,10 @@
-// The file pickers and what the loaded files add up to. One row per whole file today, one
-// per component once the model reports them.
+// The file pickers and what the loaded files add up to.
 
 import { commas, fixed3 } from '../analyzer.js';
 import { on } from '../core/bus.js';
 import { model } from '../core/model.js';
 import { source } from '../core/source.js';
+import { rank } from '../ltcb.js';
 
 export class SourcePanel extends HTMLElement {
   connectedCallback() {
@@ -12,8 +12,12 @@ export class SourcePanel extends HTMLElement {
       <h2>files</h2>
       <div id="files-slot"></div>
       <table hidden>
-        <thead><tr><th></th><th>size</th><th>&Sigma; entropy</th><th>ratio</th></tr></thead>
-        <tbody><tr><th>total</th><td class="size">-</td><td class="entropy">-</td><td class="ratio">-</td></tr></tbody>
+        <tbody>
+          <tr><th>size</th><td class="size">-</td></tr>
+          <tr><th>entropy sum</th><td class="entropy">-</td></tr>
+          <tr><th>ratio</th><td class="ratio">-</td></tr>
+          <tr><th>LTCB position</th><td class="ltcb">-</td></tr>
+        </tbody>
       </table>`;
 
     this.table = this.querySelector('table');
@@ -32,10 +36,23 @@ export class SourcePanel extends HTMLElement {
   render() {
     this.table.hidden = !source.size;
     if (this.table.hidden) return;
-    this.querySelector('.size').textContent = commas(source.size) + ' B';
-    this.querySelector('.entropy').textContent = model.nProbs
+
+    const cell = (sel) => this.querySelector(sel);
+    cell('.size').textContent = commas(source.size) + ' B';
+    cell('.entropy').textContent = model.nProbs
       ? commas(Math.round(model.entropy / 8)) + ' B' : '-';
-    this.querySelector('.ratio').textContent = model.nProbs ? fixed3(model.cr) : '-';
+    cell('.ratio').textContent = model.nProbs ? fixed3(model.cr) : '-';
+
+    const ltcb = cell('.ltcb');
+    if (!model.nProbs) {
+      ltcb.textContent = '-';
+      ltcb.title = '';
+      return;
+    }
+    const { position, total, near } = rank(model.cr);
+    ltcb.textContent = `~${position} / ${total}`;
+    ltcb.title = `about where ${near} lands on enwik9. Different corpus, so this places the `
+      + 'ratio against the benchmark, it is not a score on it';
   }
 }
 

@@ -10,9 +10,14 @@ import { glyph } from '../layout.js';
 
 export class BitStrip extends HTMLElement {
   connectedCallback() {
-    this.innerHTML = '<h2>bits</h2><div id="bitstrip"></div><p class="sub"></p>';
+    this.innerHTML = `
+      <h2>bits</h2>
+      <p class="hint">Click a character to anchor a position.</p>
+      <div id="bitstrip" hidden></div>
+      <table class="kv" hidden></table>`;
+    this.hint = this.querySelector('.hint');
     this.strip = this.querySelector('#bitstrip');
-    this.summary = this.querySelector('.sub');
+    this.summary = this.querySelector('.kv');
 
     this.ac = new AbortController();
     const { signal } = this.ac;
@@ -32,8 +37,11 @@ export class BitStrip extends HTMLElement {
   }
 
   render() {
-    this.hidden = view.anchor === null;
-    if (this.hidden) return;
+    const idle = view.anchor === null;
+    this.hint.hidden = !idle;
+    this.strip.hidden = idle;
+    this.summary.hidden = idle;
+    if (idle) return;
 
     const byte = view.anchor >> 3;
     const base = byte << 3;
@@ -53,8 +61,8 @@ export class BitStrip extends HTMLElement {
       const p = model.probs[at];
       const cost = costBits(p, bit);
       total += cost;
-      const on_ = at === view.anchor ? ' on' : '';
-      html += `<div class="bit e${bitBucket(cost)}${on_}" data-pos="${at}" ` +
+      const here = at === view.anchor ? ' on' : '';
+      html += `<div class="bit e${bitBucket(cost)}${here}" data-pos="${at}" ` +
               `title="bit ${at}: p ${p}/65536 = ${prob(p)}, costs ${cost} bits">` +
               `<div class="v">${bit}</div>` +
               `<div class="u">${p}</div>` +
@@ -63,15 +71,21 @@ export class BitStrip extends HTMLElement {
     }
     this.strip.innerHTML = html;
 
-    const g = glyph(source.bytes[byte]);
-    const hex = source.bytes[byte].toString(16).padStart(2, '0');
-    // P(byte) is what the 8 predictions jointly assigned to this character
-    const joint = 2 ** -total;
-    this.summary.textContent = known
-      ? `'${g.text}' 0x${hex} - ${fixed3(total)} bpc - P(byte) ` +
-        (joint >= 0.001 ? fixed3(joint) : joint.toExponential(2))
-      : `'${g.text}' 0x${hex} - not fully loaded`;
+    const b = source.bytes[byte];
+    // P(byte) is what the 8 predictions jointly assigned to this character. Three decimals
+    // of a percent: anything smaller reads as 0.000% rather than as an exponent.
+    const joint = known ? `${(100 * 2 ** -total).toFixed(3)}%` : '-';
+    this.summary.innerHTML = rows([
+      ['character', `'${escape(glyph(b).text)}'`],
+      ['hex code', '0x' + b.toString(16).padStart(2, '0')],
+      ['bpc', known ? fixed3(total) : '-'],
+      ['P(byte)', joint],
+    ]);
   }
 }
+
+const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
+const escape = (s) => String(s).replace(/[&<>]/g, (c) => ESC_HTML[c]);
+const rows = (pairs) => pairs.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
 
 customElements.define('x-bit-strip', BitStrip);

@@ -13,7 +13,7 @@ import { on } from './core/bus.js';
 import { model } from './core/model.js';
 import { loadSource, source } from './core/source.js';
 import { JsonlMachine } from './core/time-machine.js';
-import { setMeasured, view } from './core/view.js';
+import { setMeasured } from './core/view.js';
 import './components/index.js';
 
 const el = (id) => document.getElementById(id);
@@ -46,8 +46,6 @@ const measure = () => {
 };
 on('source:done', measure);
 on('model:done', measure);
-
-on('anchor', () => { el('dock-hint').hidden = view.anchor !== null; });
 
 /** First file picked reveals the app and moves the pickers into the dock. */
 function reveal() {

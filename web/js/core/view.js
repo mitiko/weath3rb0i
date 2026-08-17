@@ -10,6 +10,7 @@ export const view = {
   filter: null,      // [lo, hi] bucket band, null means the whole ramp
   anchor: null,      // bit position, held until another is picked
   hover: null,       // bit position under the pointer, transient
+  tab: 'source',     // which dock tab is showing
 };
 
 export function setCR(cr, pinned = false) {
@@ -37,4 +38,9 @@ export function setAnchor(pos) {
 export function setHover(pos) {
   view.hover = pos;
   emit('hover');
+}
+
+export function setTab(tab) {
+  view.tab = tab;
+  emit('tab');
 }

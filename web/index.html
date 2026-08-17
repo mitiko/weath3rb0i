@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/text-grid.css">
 <link rel="stylesheet" href="css/dock.css">
 <link rel="stylesheet" href="css/bit-strip.css">
+<link rel="stylesheet" href="css/context-stats.css">
 <link rel="stylesheet" href="css/encoder-state.css">
 <link rel="stylesheet" href="css/scan-footer.css">
 </head>
@@ -50,13 +51,15 @@
   <x-text-grid></x-text-grid>
 </main>
 
-<aside id="dock" hidden>
+<!-- data-tab decides what shows; the panels themselves know nothing about tabs -->
+<aside id="dock" hidden data-tab="source">
+  <x-dock-tabs></x-dock-tabs>
   <!-- the pickers move into the source panel once the first file is chosen -->
-  <x-source-panel></x-source-panel>
-  <p class="hint" id="dock-hint">Click a character to anchor a position.</p>
-  <x-bit-strip></x-bit-strip>
-  <x-encoder-state></x-encoder-state>
-  <x-context-stats></x-context-stats>
+  <x-source-panel data-tab="source"></x-source-panel>
+  <x-bit-strip data-tab="state"></x-bit-strip>
+  <x-encoder-state data-tab="state"></x-encoder-state>
+  <x-context-stats data-tab="analysis"></x-context-stats>
+  <x-about-panel data-tab="about"></x-about-panel>
 </aside>
 
 <x-scan-footer id="scanbar" hidden></x-scan-footer>
