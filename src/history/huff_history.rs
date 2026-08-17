@@ -1,7 +1,7 @@
 use crate::{
     entropy_coding::package_merge::{canonical, package_merge},
     helpers::histogram,
-    u8,
+    u8, Analytics,
 };
 
 use super::History;
@@ -69,5 +69,22 @@ impl History for HuffHistory {
         let rem_sym = rem_bits | (1 << alignment);
         let (code, len) = self.rem_table[usize::from(rem_sym)];
         (self.compressed_bits << len) | u32::from(code)
+    }
+}
+
+impl Analytics for HuffHistory {
+    // TODO: add more properties
+    fn log(&mut self) -> serde_json::Value {
+        serde_json::json!({
+            "h": self.hash()
+        })
+    }
+
+    // TODO: make generic over huff size and rem huff size
+    fn metadata() -> serde_json::Value {
+        serde_json::json!({
+            "type": "history/HuffHistory",
+            "description": "Stores history in Huffman compressed bitstream. Full bytes use Huff tree, partial bytes use special Huff tree.",
+        })
     }
 }

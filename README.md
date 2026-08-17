@@ -1,36 +1,24 @@
-# weath3rb0i - lightweight CM text compressor
+# weath3rb0i
 
-weath3rb0i is an experimental CM single-file text compressor aimed at delivering
-high compression ratios with novel modeling approaches.
+Experimental CM single-file text compressor aimed at
+high compression ratio with novel modeling approaches.
 
-The goal for v1.0:
-- 12-bit state table
-- written in 100% safe rust
-- output stats from contexts for use by external neural nets
+Learning the [bitter lesson](http://www.incompleteideas.net/IncIdeas/BitterLesson.html) and
+implementing the basic compressor building block to easily experiment & compare model -> learn.
+
+- `src/` has the library with models, mixers, entropy coders, etc.
+- `src/bin/` has examples & experimental coders
+- `web/` is a time-machine compressor debugger / web viewer
+  - uses same lib models & components compiled to WASM
+  - runs statically in browser - no server
+
+wishlist / todo:
+- state table gen 12-bit
+- 12-bit hash table (impl WIP)
 - APM mixers
-
-Wishing to futher experiment with:
-- entropy based hashing
-- CM parsing optimization
-- MT
-
-## Usage
-
-The main binary is WIP but there are many test-only scenarios you can execute
-with:
-
-`./run.py <binary> <...options>`
-
-<!-- Main binary: -->
-<!--
-`weath3rb0i <Action> <Path>`
-**Action**: c (compress), d (decompress), t (test = c + d)
-**Path** can be a single file or a directory
-Directories are shallow traversed and each file is compressed individually
--->
+- pre-processing (dictionaries, flag streams)
+- tokenization & attention
 
 ## License
 
 GPLv3.0
-
-Please contact me [@x_mitiko](https://twitter.com/x_mitiko) if you need a copy under a different license.

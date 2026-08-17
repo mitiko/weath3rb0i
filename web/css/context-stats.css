@@ -1,0 +1,5 @@
+/* Two ranked tables, so they need air between the caption and its rows, and between the
+   tables themselves, or they read as one block. */
+
+#ctxstats caption { padding-bottom: .5rem; }
+#ctxstats table + table { margin-top: 2rem; }

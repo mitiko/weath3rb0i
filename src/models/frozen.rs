@@ -1,6 +1,6 @@
 use crate::{
     models::{AdaptiveModel, Model},
-    unroll_for,
+    unroll_for, Analytics,
 };
 
 pub struct FrozenModel<T: AdaptiveModel> {
@@ -35,5 +35,21 @@ impl<T: AdaptiveModel> Model for FrozenModel<T> {
 
     fn update(&mut self, bit: u8) {
         self.model.update(bit);
+    }
+}
+
+impl<M: AdaptiveModel + Analytics> Analytics for FrozenModel<M> {
+    fn log(&mut self) -> serde_json::Value {
+        self.model.log()
+    }
+
+    fn metadata() -> serde_json::Value {
+        let mut value = M::metadata();
+        if let Some(description) = value["description"].as_str() {
+            let new_description =
+                format!("Frozen model that does not adapt to new data. {description}");
+            value["description"] = serde_json::Value::String(new_description);
+        }
+        value
     }
 }

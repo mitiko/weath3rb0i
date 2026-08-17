@@ -1,0 +1,29 @@
+/* The file picker card, and how the pickers look once they move into the dock. */
+
+#landing {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--bg);
+  z-index: 20;
+}
+
+.card {
+  width: 26rem;
+  padding: 2rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.card h1 { margin: 0; font: 600 1.4rem/1.2 var(--mono); }
+.card .sub { margin: .25rem 0 1rem; color: var(--dim); }
+
+/* the pickers keep their own styling because they move into the dock later */
+#pickers label { display: block; margin-bottom: 1rem; font-weight: 600; }
+#pickers em { display: block; font-weight: 400; font-style: normal; color: var(--dim); }
+#pickers input[type=file] { display: block; margin: .4rem 0 .2rem; max-width: 100%; }
+#pickers .opt { font-weight: 400; font-size: 11px; color: var(--dim); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; }
+#files-slot #pickers label { font-size: 12px; margin-bottom: .7rem; }
+#files-slot #pickers em { font-size: 11px; }

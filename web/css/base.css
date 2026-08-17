@@ -1,0 +1,38 @@
+/* Variables, reset and the shared elements. Loaded first: everything else builds on it. */
+
+:root {
+  --row-h: 24px;
+  --dock-w: 27rem;
+  --bar-h: 3.25rem;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --ink: #1b1b1f;
+  --dim: #7a7a85;
+  --line: #e2e2e8;
+  --bg: #fbfbfd;
+  --panel: #fff;
+}
+
+* { box-sizing: border-box; }
+
+/* an author `display` beats the UA stylesheet, so [hidden] has to win explicitly */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font: 14px/1.5 system-ui, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+/* the dock is fixed, so everything else has to step aside for it */
+body.loaded { padding-right: var(--dock-w); }
+body.loaded #bar, body.loaded #scanbar { right: var(--dock-w); }
+
+progress { width: 100%; height: .5rem; }
+
+/* every panel that shows numbers uses these, so they stay here rather than with one of them */
+table { border-collapse: collapse; width: 100%; font: 11.5px/1.5 var(--mono); }
+th, td { text-align: right; padding: 1px 4px; border-bottom: 1px solid var(--line); }
+th { color: var(--dim); font-weight: 400; font-size: 10px; text-transform: uppercase; }
+td:first-child, th:first-child { text-align: left; }
+caption { text-align: left; color: var(--dim); font-size: 10px; text-transform: uppercase; letter-spacing: .06em; padding-top: .5rem; }

@@ -22,7 +22,7 @@ impl HashMap {
     }
 
     // Uses high bits of hash first
-    pub fn get_slot(&mut self, hash: u64) -> Slot {
+    pub fn get_slot(&mut self, hash: u64) -> Slot<'_> {
         let index = hash >> (u64::BITS - self.log_cell_count);
         self.arr[index as usize].get_slot(hash)
     }

@@ -1,0 +1,43 @@
+/* The 80-column text grid and its offset gutter. */
+
+main {
+  max-width: 80ch;
+  margin-inline: auto;
+  padding-top: calc(var(--bar-h) + 1.5rem);
+  padding-bottom: 4rem;
+  font: 14px/var(--row-h) var(--mono);
+  font-variant-ligatures: none;
+}
+
+/* the element is the sizer: its height is the whole file, only the window is in the DOM */
+x-text-grid { display: block; position: relative; }
+#rows { position: absolute; left: 0; right: 0; }
+
+.trow { position: relative; height: var(--row-h); white-space: pre; }
+
+/* hangs into the left margin, which is why the window scrolls and not an inner box */
+.gutter {
+  position: absolute;
+  left: -9ch;
+  width: 8ch;
+  text-align: right;
+  color: #c2c2cc;
+  font-size: 11px;
+  user-select: none;
+}
+
+.trow span[data-i] { cursor: pointer; }
+.trow span[data-i]:hover { outline: 1px solid var(--ink); outline-offset: -1px; }
+.eu { background: #f0f0f4; color: #b8b8c2; }
+
+/* the anchored character, and its row flagged so it stays findable while scrolling */
+.anchor { outline: 2px solid var(--ink); outline-offset: -1px; }
+.anchor-row::before {
+  content: '';
+  position: absolute;
+  left: -10.5ch;
+  top: 2px; bottom: 2px;
+  width: 3px;
+  background: var(--ink);
+}
+.anchor-row .gutter { color: var(--ink); font-weight: 700; }

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>weath3rb0i · compression debugger</title>
+<!-- base first, the rest in page order. Separate links so they load in parallel. -->
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/landing.css">
+<link rel="stylesheet" href="css/bar.css">
+<link rel="stylesheet" href="css/heat-map.css">
+<link rel="stylesheet" href="css/text-grid.css">
+<link rel="stylesheet" href="css/search-box.css">
+<link rel="stylesheet" href="css/dock.css">
+<link rel="stylesheet" href="css/bit-strip.css">
+<link rel="stylesheet" href="css/context-stats.css">
+<link rel="stylesheet" href="css/encoder-state.css">
+<link rel="stylesheet" href="css/scan-footer.css">
+</head>
+<body>
+
+<div id="landing">
+  <div class="card">
+    <h1>weath3rb0i</h1>
+    <p class="sub">compression time-machine debugger</p>
+    <p class="sub">Each file starts loading as you pick it. The source alone is enough to
+      read the text and its context stats.</p>
+    <div id="pickers">
+      <label>Source file
+        <input type="file" id="pick-source">
+        <em>the data that was compressed</em>
+      </label>
+      <label>Probabilities
+        <input type="file" id="pick-probs" accept=".p16">
+        <em>analytics.p16, one u16 per bit from the model, creates heatmap</em>
+      </label>
+      <label>Encoder state <span class="opt">optional</span>
+        <input type="file" id="pick-jsonl" accept=".jsonl">
+        <em>analytics.jsonl, needed for the state panel</em>
+      </label>
+    </div>
+  </div>
+</div>
+
+<header id="bar" hidden>
+  <x-status-bar></x-status-bar>
+  <x-cr-input class="stat baseline"></x-cr-input>
+  <x-heat-map class="legend"></x-heat-map>
+</header>
+
+<main id="main" hidden>
+  <x-search-box></x-search-box>
+  <x-text-grid></x-text-grid>
+</main>
+
+<!-- data-tab decides what shows; the panels themselves know nothing about tabs -->
+<aside id="dock" hidden data-tab="source">
+  <x-dock-tabs></x-dock-tabs>
+  <!-- the pickers move into the source panel once the first file is chosen -->
+  <x-source-panel data-tab="source"></x-source-panel>
+  <x-bit-strip data-tab="state"></x-bit-strip>
+  <x-encoder-state data-tab="state"></x-encoder-state>
+  <x-context-stats data-tab="analysis"></x-context-stats>
+  <x-about-panel data-tab="about"></x-about-panel>
+</aside>
+
+<x-scan-footer id="scanbar" hidden></x-scan-footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

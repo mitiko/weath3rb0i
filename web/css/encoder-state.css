@@ -1,0 +1,11 @@
+/* The state tree. Nesting is <details> inside <details>, so the indent rule is recursive. */
+
+#statetree { font: 12px/1.5 var(--mono); }
+#statetree details { margin-left: .25rem; border-left: 1px solid var(--line); padding-left: .6rem; }
+#statetree > .node { border-left: none; padding-left: 0; margin-left: 0; }
+#statetree summary { cursor: pointer; }
+#statetree .cname { font-weight: 700; cursor: help; text-decoration: underline dotted var(--line); }
+#statetree .ctag { color: var(--dim); font-size: 10px; }
+#statetree .kv { color: #33333c; }
+#statetree .k { color: var(--dim); font-style: normal; }
+#statetree .prim .k { color: #b03a00; }
