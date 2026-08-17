@@ -1,7 +1,7 @@
 // The file pickers and what the loaded files add up to.
 
-import { commas, fixed3 } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { commas, fixed3 } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { source } from '../core/source.js';
 import { rank } from '../ltcb.js';

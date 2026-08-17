@@ -1,8 +1,8 @@
 // Source name and the position readout. Hovering a character previews its position; a
 // click holds it, and the stat jumps back to the held one.
 
-import { commas } from '../analyzer.js';
 import { emit, on } from '../core/bus.js';
+import { commas } from '../core/helpers.js';
 import { source } from '../core/source.js';
 import { view } from '../core/view.js';
 

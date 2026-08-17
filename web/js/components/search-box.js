@@ -3,8 +3,8 @@
 // Typing only recounts and re-marks; the view moves when you ask it to with next or
 // previous, so the page does not jump around under a half-typed query.
 
-import { commas } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { commas } from '../core/helpers.js';
 import { clear, search, setQuery, step } from '../core/search.js';
 import { source } from '../core/source.js';
 

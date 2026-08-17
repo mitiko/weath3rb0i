@@ -5,16 +5,13 @@
 // this share was preceded by 'e'", is a fact about the corpus but not about how hard the
 // character was to predict, which is the question the rest of the page is asking.
 
-import { commas } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { commas, escape, pct } from '../core/helpers.js';
 import { source } from '../core/source.js';
 import { view } from '../core/view.js';
 import { glyph } from '../layout.js';
 
 const DEPTH = 5; // context characters beyond the one anchored
-
-const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ESC_HTML[c]);
 
 export class ContextStats extends HTMLElement {
   connectedCallback() {
@@ -93,7 +90,6 @@ const text = (pat) => escape(Array.from(pat, (b) => glyph(b).text).join(''));
 const show = (pat) => `'${text(pat)}'`;
 const quote = (b) => `'${escape(glyph(b).text)}'`;
 const cond = (char, ctx) => (ctx.length ? `P(${char} | '${text(ctx)}')` : `P(${char})`);
-const pct = (a, b) => (b > 0 ? (100 * a / b).toFixed(3) + '%' : '-');
 
 function table(caption, head, rows) {
   let html = `<table><caption>${caption}</caption><tr>`;

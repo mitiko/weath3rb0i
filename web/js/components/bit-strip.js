@@ -1,8 +1,9 @@
 // The 8 bits of the anchored byte: what was coded, what the model thought, what it cost.
 
-import { bitAt, costBits, fixed3, prob } from '../analyzer.js';
+import { bitAt, costBits, prob } from '../analyzer.js';
 import { bitBucket } from '../color.js';
 import { on } from '../core/bus.js';
+import { escape, fixed3, hex, pct } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { source } from '../core/source.js';
 import { setAnchor, view } from '../core/view.js';
@@ -74,18 +75,16 @@ export class BitStrip extends HTMLElement {
     const b = source.bytes[byte];
     // P(byte) is what the 8 predictions jointly assigned to this character. Three decimals
     // of a percent: anything smaller reads as 0.000% rather than as an exponent.
-    const joint = known ? `${(100 * 2 ** -total).toFixed(3)}%` : '-';
+    const joint = known ? pct(2 ** -total) : '-';
     this.summary.innerHTML = rows([
       ['character', `'${escape(glyph(b).text)}'`],
-      ['hex code', '0x' + b.toString(16).padStart(2, '0')],
+      ['hex code', '0x' + hex(b)],
       ['bpc', known ? fixed3(total) : '-'],
       ['P(byte)', joint],
     ]);
   }
 }
 
-const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-const escape = (s) => String(s).replace(/[&<>]/g, (c) => ESC_HTML[c]);
 const rows = (pairs) => pairs.map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`).join('');
 
 customElements.define('x-bit-strip', BitStrip);

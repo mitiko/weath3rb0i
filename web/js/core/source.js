@@ -3,6 +3,7 @@
 
 import { Layout } from '../layout.js';
 import { emit } from './bus.js';
+import { hex } from './helpers.js';
 import { stream } from './stream.js';
 
 export const source = {
@@ -37,7 +38,6 @@ export async function loadSource(file) {
   });
 
   const digest = await crypto.subtle.digest('SHA-256', source.bytes);
-  const hex = (b) => b.toString(16).padStart(2, '0');
   source.sha256 = Array.from(new Uint8Array(digest), hex).join('');
   source.complete = true;
   emit('source:done');

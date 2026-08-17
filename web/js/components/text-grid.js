@@ -7,6 +7,7 @@
 import { charCost } from '../analyzer.js';
 import { bucket } from '../color.js';
 import { on } from '../core/bus.js';
+import { escape } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { hitAt, search } from '../core/search.js';
 import { source } from '../core/source.js';
@@ -15,9 +16,6 @@ import { glyph } from '../layout.js';
 
 const ROW_H = 24;
 const OVERSCAN = 8;
-
-const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;' };
-const escape = (s) => s.replace(/[&<>]/g, (c) => ESC_HTML[c]);
 
 export class TextGrid extends HTMLElement {
   connectedCallback() {

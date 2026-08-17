@@ -32,9 +32,7 @@ export function bitAt(bytes, pos) {
   return (bytes[pos >> 3] >> (7 - (pos & 7))) & 1;
 }
 
-/**
- * Cost of byte `i` in bits, or -1 when any of its 8 bits has not been scanned yet.
- */
+/** Cost of byte `i` in bits, or -1 when any of its 8 bits has not been scanned yet. */
 export function charCost(probs, nProbs, bytes, i) {
   const base = i << 3;
   if (base + 8 > nProbs) return -1;
@@ -53,6 +51,3 @@ export function costRange(probs, from, to, bytes) {
   }
   return sum;
 }
-
-export const fixed3 = (x) => x.toFixed(3);
-export const commas = (n) => n.toLocaleString('en-US');

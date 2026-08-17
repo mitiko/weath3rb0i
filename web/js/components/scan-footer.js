@@ -4,8 +4,8 @@
 // main-thread blocking and is most useful while scrolling. Memory has no portable API at
 // all, so that counter reads N/A.
 
-import { commas } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { commas } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { source } from '../core/source.js';
 

@@ -3,17 +3,14 @@
 // The tree is generic: any JSON object renders. The metadata header only supplies labels
 // and descriptions, so a node it does not describe still shows up.
 
-import { commas, fixed3, prob } from '../analyzer.js';
+import { prob } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { commas, escape, fixed3 } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { view } from '../core/view.js';
 
 // What each class in the metadata contract carries as its own primary fields.
 const PRIMARY = { model: ['p', 's'], counter: ['p'], history: ['h'] };
-
-// quotes matter too: descriptions from the metadata end up inside title attributes
-const ESC_HTML = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' };
-const escape = (s) => String(s).replace(/[&<>"]/g, (c) => ESC_HTML[c]);
 
 export class EncoderState extends HTMLElement {
   connectedCallback() {

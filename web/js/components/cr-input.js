@@ -1,8 +1,8 @@
 // The colour scale midpoint, in bits per bit. It shows the ratio measured off the files;
 // type a value to pin it, click the CR label to go back to the measured one.
 
-import { fixed3 } from '../analyzer.js';
 import { on } from '../core/bus.js';
+import { fixed3 } from '../core/helpers.js';
 import { setCR, view } from '../core/view.js';
 
 export class CrInput extends HTMLElement {

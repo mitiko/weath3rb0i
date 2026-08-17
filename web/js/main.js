@@ -9,12 +9,12 @@
 // pickers, the landing card, and the one rule that ties the two files to the colour scale.
 
 import { initColors } from './color.js';
+import './components/index.js';
 import { on } from './core/bus.js';
 import { model } from './core/model.js';
 import { loadSource, source } from './core/source.js';
 import { JsonlMachine } from './core/time-machine.js';
 import { setMeasured } from './core/view.js';
-import './components/index.js';
 
 const el = (id) => document.getElementById(id);
 
