@@ -1,0 +1,45 @@
+/* Find bar, pinned to the top right of the text column. */
+
+x-search-box {
+  position: fixed;
+  top: calc(var(--bar-h) + .75rem);
+  right: 1.5rem;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .3rem .4rem;
+  background: rgba(255, 255, 255, .95);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  font: 11px var(--mono);
+  color: var(--dim);
+}
+body.loaded x-search-box { right: calc(var(--dock-w) + 1.5rem); }
+
+x-search-box input {
+  width: 11rem;
+  font: 12px var(--mono);
+  border: none;
+  outline: none;
+  background: none;
+  color: var(--ink);
+}
+x-search-box .count { min-width: 5rem; text-align: right; }
+x-search-box.empty .count { color: #b03a00; }
+
+x-search-box button {
+  font: inherit;
+  width: 1.4rem;
+  padding: .1rem 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+x-search-box button:hover { background: #f2f2f6; }
+
+/* hits keep their cost colour, so the marker has to be a bar rather than a background */
+.trow span.hit { box-shadow: inset 0 -2px 0 #5b5bd6; }
+.trow span.now { box-shadow: inset 0 -3px 0 #b03a00; font-weight: 700; }

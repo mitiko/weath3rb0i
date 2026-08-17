@@ -8,6 +8,7 @@ import { charCost } from '../analyzer.js';
 import { bucket } from '../color.js';
 import { on } from '../core/bus.js';
 import { model } from '../core/model.js';
+import { hitAt, search } from '../core/search.js';
 import { source } from '../core/source.js';
 import { setAnchor, setHover, view } from '../core/view.js';
 import { glyph } from '../layout.js';
@@ -42,7 +43,9 @@ export class TextGrid extends HTMLElement {
     on('cr', () => this.repaint(), signal);
     // a filter change is 32 rewritten CSS rules and nothing else, so there is nothing to do
     on('anchor', () => this.markAnchor(), signal);
-    on('jump', () => this.scrollToAnchor(), signal);
+    on('jump', () => this.scrollTo(view.anchor >> 3), signal);
+    on('search', () => this.repaint(), signal);
+    on('search:goto', () => this.scrollTo(search.matches[search.at]), signal);
 
     this.rows.addEventListener('mouseover', (e) => {
       const i = e.target.dataset && e.target.dataset.i;
@@ -50,6 +53,8 @@ export class TextGrid extends HTMLElement {
     }, { signal });
     this.rows.addEventListener('mouseleave', () => setHover(null), { signal });
     this.rows.addEventListener('click', (e) => {
+      // a drag-select ends in a click, and moving the anchor then is never what was meant
+      if (!getSelection().isCollapsed) return;
       const i = e.target.dataset && e.target.dataset.i;
       // every listener speaks in bit positions; a character click lands on its first bit
       if (i !== undefined) setAnchor(+i * 8);
@@ -78,9 +83,10 @@ export class TextGrid extends HTMLElement {
     this.schedule();
   }
 
-  scrollToAnchor() {
-    if (view.anchor === null) return;
-    const row = source.layout.rowOf(view.anchor >> 3);
+  /** Bring the row holding `byte` a third of the way down the window. */
+  scrollTo(byte) {
+    if (byte === undefined || byte === null) return;
+    const row = source.layout.rowOf(byte);
     scrollTo({ top: this.offsetTop + row * ROW_H - innerHeight / 3, behavior: 'smooth' });
   }
 
@@ -111,7 +117,9 @@ export class TextGrid extends HTMLElement {
     for (let i = from; i < to; i++) {
       const g = glyph(source.bytes[i]);
       const cost = charCost(model.probs, model.nProbs, source.bytes, i);
-      const cls = cost < 0 ? 'eu' : 'e' + bucket(cost);
+      const hit = hitAt(i);
+      let cls = cost < 0 ? 'eu' : 'e' + bucket(cost);
+      if (hit) cls += hit === 2 ? ' hit now' : ' hit';
       out += `<span class="${cls}" data-i="${i}">${escape(g.text)}</span>`;
     }
     return out + '</div>';
