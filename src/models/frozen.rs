@@ -46,7 +46,8 @@ impl<M: AdaptiveModel + Analytics> Analytics for FrozenModel<M> {
     fn metadata() -> serde_json::Value {
         let mut value = M::metadata();
         if let Some(description) = value["description"].as_str() {
-            let new_description = format!("Frozen model that does not adapt to new data. {description}");
+            let new_description =
+                format!("Frozen model that does not adapt to new data. {description}");
             value["description"] = serde_json::Value::String(new_description);
         }
         value
