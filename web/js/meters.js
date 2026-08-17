@@ -1,13 +1,8 @@
 // Tab health, shown next to the scan progress.
 //
-// There is no CPU API at all. The figure comes from how late a fixed-interval timer fires,
-// which tracks main-thread blocking, so it is worth refreshing often: it is most useful
-// while scrolling.
-//
-// Memory has no reading to give. Every browser API for it is optional and none is
-// portable -- performance.memory is Chrome-only, and measureUserAgentSpecificMemory()
-// additionally needs COOP/COEP headers that `python3 -m http.server` cannot send -- so the
-// counter sits at N/A rather than reporting a number on one browser and nothing elsewhere.
+// There is no CPU API. The figure is how late a fixed-interval timer fires, which tracks
+// main-thread blocking and is most useful while scrolling. Memory has no portable API at
+// all, so that counter reads N/A.
 
 const CPU_TICK = 500;
 

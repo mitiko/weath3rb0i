@@ -52,12 +52,18 @@ cost = -log2(1 - p / 65536)    for a 0
 ```
 
 Summed over book1 this is 450_361 bytes, exactly what the coder emitted, which is the
-end-to-end check the header bar shows as `sum entropy`. A character costs the sum of its
+end-to-end check the files table shows as `sum entropy`. A character costs the sum of its
 8 bits, so 8 bits per character means no compression at all.
 
-Colours run green to red over 32 buckets. The green half ends at the baseline, editable
-in the header bar and 0.586 bits per bit by default. Roughly 57% of book1 lands in the
-green half and 6% costs more than 8 bits per character.
+Colours run green to red over 32 buckets, centred on the baseline shown in the header bar
+as `CR`. That is the file's compression ratio, total entropy over the source's bit count,
+measured once both files finish loading. Yellow is a prediction as good as the model
+managed on average, green is better and red is worse. Type a value to pin it, then click
+the `CR` label to go back to the measured one. On book1 the ratio is 0.586, where 57% of
+characters land in the green half and 6% cost more than 8 bits.
+
+Hovering a segment of the ramp in the header bar shows the band of bits per bit that
+colour covers, and the same band as a multiple of the baseline.
 
 ## Memory
 

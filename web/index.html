@@ -33,14 +33,11 @@
 
 <header id="bar" hidden>
   <span class="stat"><b id="s-source">—</b><i>source</i></span>
-  <span class="stat"><b id="s-entropy">—</b><i>&Sigma; entropy</i></span>
-  <span class="stat"><b id="s-ratio">—</b><i>ratio</i></span>
   <span class="stat jump" id="jump" title="jump back to the anchored character"><b id="s-pos">—</b><i>pos</i></span>
-  <span class="stat"><b id="s-byte">—</b><i>byte</i></span>
-  <span class="stat"><b id="s-off">—</b><i>bit offset</i></span>
   <span class="stat baseline">
-    <label>baseline <input type="number" id="baseline" value="0.586" step="0.001" min="0.001" max="4"></label>
-    <i>bits per bit</i>
+    <input type="number" id="baseline" step="0.001" min="0.001" max="4"
+           title="colour scale midpoint, in bits per bit. Type a value to pin it">
+    <i id="cr-reset" title="reset to the ratio measured from the files">CR</i>
   </span>
   <span class="legend" id="legend"></span>
 </header>
@@ -51,7 +48,17 @@
 
 <aside id="dock" hidden>
   <!-- the pickers move in here once the first file is chosen -->
-  <section id="sec-files"><h2>files</h2><div id="files-slot"></div></section>
+  <section id="sec-files">
+    <h2>files</h2>
+    <div id="files-slot"></div>
+    <!-- one row per whole file today, one per component once the model reports them -->
+    <table id="file-stats" hidden>
+      <thead><tr><th></th><th>size</th><th>&Sigma; entropy</th><th>ratio</th></tr></thead>
+      <tbody>
+        <tr><th>total</th><td id="f-size">—</td><td id="f-entropy">—</td><td id="f-ratio">—</td></tr>
+      </tbody>
+    </table>
+  </section>
 
   <p class="hint" id="dock-hint">Click a character to anchor a position.</p>
 
@@ -86,7 +93,7 @@
 <div id="scanbar" hidden>
   <span class="prog">source <progress id="src-progress" value="0" max="1"></progress></span>
   <span class="prog">probs <progress id="probs-progress" value="0" max="1"></progress></span>
-  <span class="prog" id="prog-index">index <progress id="index-progress" value="0" max="1"></progress></span>
+  <span class="prog">index <progress id="index-progress" value="0" max="1"></progress></span>
   <span id="scan-status"></span>
   <span class="meter" title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">—</b></span>
   <span class="meter" title="no portable way to read it: performance.memory is Chrome-only and measureUserAgentSpecificMemory() needs COOP/COEP headers">mem <b id="m-mem">N/A</b></span>

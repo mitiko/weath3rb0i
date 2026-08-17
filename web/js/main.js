@@ -29,6 +29,8 @@ const el = (id) => document.getElementById(id);
 let worker = null;
 let loadedProbs = 0;   // u16 entries read from the sidecar
 let probsSize = 0;
+let sourceDone = false;
+let probsDone = false;
 let lineSeq = 0;
 const linePending = new Map();
 
@@ -45,11 +47,35 @@ el('pick-jsonl').onchange = (e) => e.target.files[0] && startIndex(e.target.file
 
 el('jump').onclick = () => view.scrollToAnchor();
 
+let baselinePinned = false;
+let measuredCR = 0;    // kept so the CR label can put the baseline back
+
 el('baseline').onchange = (e) => {
-  setBaseline(Math.max(0.001, +e.target.value || 0.586) * 8);
+  baselinePinned = +e.target.value > 0;
+  if (!baselinePinned) return useMeasuredCR();
+  setBaseline(+e.target.value * 8);
   view.invalidate();
   inspector.refresh();
 };
+
+el('cr-reset').onclick = useMeasuredCR;
+
+// The colour midpoint is the file's compression ratio, so yellow is an average prediction.
+// Measured once both files are in: a ratio against a partial sum drifts every chunk.
+function measureBaseline() {
+  if (!sourceDone || !probsDone || !state.bytes.length) return;
+  measuredCR = state.entropy / (state.bytes.length * 8);
+  if (!baselinePinned) useMeasuredCR();
+}
+
+function useMeasuredCR() {
+  if (!measuredCR) return;
+  baselinePinned = false;
+  el('baseline').value = fixed3(measuredCR);
+  setBaseline(measuredCR * 8);
+  view.invalidate();
+  inspector.refresh();
+}
 
 /** First file picked reveals the app and moves the pickers into the dock. */
 function reveal() {
@@ -70,7 +96,10 @@ async function loadSource(file) {
   state.layout = new Layout();
   state.nProbs = 0;
   state.entropy = 0;
-  el('s-source').textContent = `${file.name} · ${commas(file.size)} B`;
+  sourceDone = false;
+  el('s-source').textContent = file.name;
+  el('f-size').textContent = commas(file.size) + ' B';
+  el('file-stats').hidden = false;
   checkPair();
 
   await stream(file, el('src-progress'), (chunk, at) => {
@@ -79,6 +108,8 @@ async function loadSource(file) {
     advance();
     view.invalidate();
   });
+  sourceDone = true;
+  measureBaseline();
 
   const digest = await crypto.subtle.digest('SHA-256', state.bytes);
   state.source.sha256 = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
@@ -92,6 +123,7 @@ async function loadProbs(file) {
   state.probs = new Uint16Array(raw.buffer);
   loadedProbs = 0;
   probsSize = file.size;
+  probsDone = false;
   checkPair();
 
   await stream(file, el('probs-progress'), (chunk, at) => {
@@ -99,6 +131,8 @@ async function loadProbs(file) {
     loadedProbs = (at + chunk.length) >> 1;
     advance();
   });
+  probsDone = true;
+  measureBaseline();
 }
 
 function startIndex(file) {
@@ -156,8 +190,8 @@ function advance() {
   state.entropy += costRange(state.probs, state.nProbs, limit, state.bytes);
   state.nProbs = limit;
 
-  el('s-entropy').textContent = commas(Math.round(state.entropy / 8)) + ' B';
-  el('s-ratio').textContent = fixed3(state.entropy / state.nProbs);
+  el('f-entropy').textContent = commas(Math.round(state.entropy / 8)) + ' B';
+  el('f-ratio').textContent = fixed3(state.entropy / state.nProbs);
   view.invalidate();
   inspector.refresh();
 }
@@ -194,6 +228,4 @@ function pick(pos) {
 function showPosition(pos) {
   if (pos === null) return;
   el('s-pos').textContent = commas(pos);
-  el('s-byte').textContent = commas(pos >> 3);
-  el('s-off').textContent = pos & 7;
 }

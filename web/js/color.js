@@ -33,10 +33,13 @@ function stops(baseline) {
   ];
 }
 
-let curve = stops(4.688);
+// no compression at all, until main.js measures a real ratio off the files
+let baselineBits = 8;
+let curve = stops(baselineBits);
 
 /** Set the baseline in bits per character. Restyles every span already in the DOM. */
 export function setBaseline(bitsPerChar) {
+  baselineBits = bitsPerChar;
   curve = stops(bitsPerChar);
   injectStyles();
 }
@@ -112,23 +115,50 @@ function injectStyles() {
   if (legend) buildLegend();
 }
 
-/** The cost range a bucket covers, since bucket() rounds to the nearest step. */
-function bucketRange(i) {
+// The band of bits per bit a bucket covers, and the same band against the baseline.
+// bucket() rounds to nearest, so a bucket reaches half a step either side of its colour.
+function bucketTip(i) {
   const step = 1 / (BUCKETS - 1);
-  const lo = costFor(Math.max(0, (i - 0.5) * step));
-  const hi = costFor(Math.min(1, (i + 0.5) * step));
-  return i === BUCKETS - 1 ? `${lo.toFixed(2)}+ bits per char` : `${lo.toFixed(2)} to ${hi.toFixed(2)} bits per char`;
+  const b = baselineBits / 8;
+  const lo = costFor(Math.max(0, (i - 0.5) * step)) / 8;
+  const hi = costFor(Math.min(1, (i + 0.5) * step)) / 8;
+  const top = i === BUCKETS - 1;
+  return `<b>${lo.toFixed(2)}${top ? '+' : ` - ${hi.toFixed(2)}`}</b> bits per bit`
+    + `<br>${(lo / b).toFixed(2)}${top ? '×+' : ` - ${(hi / b).toFixed(2)}×`} baseline`;
 }
 
+let tip = null;
+
+function showTip(seg, i) {
+  if (!tip) {
+    tip = document.createElement('div');
+    tip.id = 'ramp-tip';
+    document.body.append(tip);
+  }
+  tip.innerHTML = bucketTip(i);
+  tip.hidden = false;
+  const r = seg.getBoundingClientRect();
+  tip.style.left = `${r.left + r.width / 2}px`;
+  tip.style.top = `${r.bottom + 8}px`;
+}
+
+const hideTip = () => { if (tip) tip.hidden = true; };
+
 function buildLegend() {
+  hideTip(); // the ramp under the pointer is about to be replaced
   const ramp = document.createElement('span');
   ramp.className = 'ramp';
   for (let i = 0; i < BUCKETS; i++) {
     const s = document.createElement('span');
     s.style.background = bucketColor(i);
-    s.title = bucketRange(i);
+    s.dataset.b = i;
     ramp.append(s);
   }
+  ramp.addEventListener('mouseover', (e) => {
+    const seg = e.target.closest('span[data-b]');
+    if (seg) showTip(seg, +seg.dataset.b);
+  });
+  ramp.addEventListener('mouseleave', hideTip);
   legend.replaceChildren(text('compressible'), ramp, text('random'));
 }
 
