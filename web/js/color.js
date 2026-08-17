@@ -1,9 +1,7 @@
 // Cost in bits -> one of BUCKETS background colours.
 //
-// Anchors come from the measured per-character cost distribution of book1: median 4.37,
-// mean 4.69, p90 7.17, p99 11.39. 43% of characters sit above the baseline, so the
-// baseline colour has to be pale or half the page shouts. Chroma stays low around the
-// median and only climbs for the tail, which is what makes the outliers findable.
+// 43% of book1 sits above the baseline, so the middle of the ramp has to stay pale or half
+// the page shouts. Chroma only climbs for the tail, which is what makes outliers findable.
 
 import { on } from './core/bus.js';
 import { view } from './core/view.js';
@@ -14,13 +12,15 @@ export const BUCKETS = 32;
 // just the predictable or just the random end
 const MUTED = '#eeeef1';
 
+// Spaced so blue, green, yellow, orange and red get about six buckets each, and picked to
+// stay inside sRGB: light blue and light orange both hold very little chroma.
 const ANCHORS = [
-  { t: 0.00, L: 0.970, C: 0.030, h: 150 }, // free
-  { t: 0.35, L: 0.930, C: 0.100, h: 148 }, // well predicted
-  { t: 0.50, L: 0.940, C: 0.090, h: 100 }, // baseline
-  { t: 0.70, L: 0.860, C: 0.160, h: 55 },  // no better than raw
-  { t: 0.90, L: 0.750, C: 0.190, h: 28 },  // badly mispredicted
-  { t: 1.00, L: 0.620, C: 0.220, h: 20 },  // worst
+  { t: 0.00, L: 0.915, C: 0.042, h: 245 }, // free
+  { t: 0.14, L: 0.920, C: 0.052, h: 222 }, // very predictable
+  { t: 0.30, L: 0.925, C: 0.105, h: 150 }, // well predicted
+  { t: 0.50, L: 0.935, C: 0.098, h: 100 }, // baseline
+  { t: 0.70, L: 0.815, C: 0.100, h: 52 },  // no better than raw
+  { t: 1.00, L: 0.620, C: 0.200, h: 22 },  // worst
 ];
 
 /**
