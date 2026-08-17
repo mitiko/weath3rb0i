@@ -7,8 +7,7 @@ use weath3rb0i::{
         arithmetic_coder::ArithmeticCoder,
         io::{ACReader, ACWriter},
     },
-    history::ACHistory,
-    models::{ac_hash::StationaryModel, Model},
+    models::Model,
 };
 
 const MAGIC_STR: &[u8; 4] = b"w30i";
