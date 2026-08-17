@@ -80,8 +80,10 @@ export class HeatMap extends HTMLElement {
     const lo = costFor(Math.max(0, (i - 0.5) * step)) / 8;
     const hi = costFor(Math.min(1, (i + 0.5) * step)) / 8;
     const top = i === BUCKETS - 1;
-    return `<b>${lo.toFixed(2)}${top ? '+' : ` - ${hi.toFixed(2)}`}</b> bits per bit`
-      + `<br>${(lo / view.cr).toFixed(2)}${top ? '×+' : ` - ${(hi / view.cr).toFixed(2)}×`} baseline`;
+    const band = top ? `${lo.toFixed(2)}+` : `${lo.toFixed(2)} - ${hi.toFixed(2)}`;
+    const rel = top ? `${(lo / view.cr).toFixed(2)}×+`
+      : `${(lo / view.cr).toFixed(2)} - ${(hi / view.cr).toFixed(2)}×`;
+    return `<b>${band}</b> bits per bit<br>${rel} baseline`;
   }
 
   showTip(seg, i) {

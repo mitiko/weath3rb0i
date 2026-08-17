@@ -37,7 +37,8 @@ export async function loadSource(file) {
   });
 
   const digest = await crypto.subtle.digest('SHA-256', source.bytes);
-  source.sha256 = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, '0')).join('');
+  const hex = (b) => b.toString(16).padStart(2, '0');
+  source.sha256 = Array.from(new Uint8Array(digest), hex).join('');
   source.complete = true;
   emit('source:done');
 }

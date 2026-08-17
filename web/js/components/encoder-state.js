@@ -51,11 +51,8 @@ export class EncoderState extends HTMLElement {
   }
 }
 
-/**
- * One node of the state tree. The label is the property name the state was logged under,
- * because that is what identifies it in the tree; the class and its description live in
- * the tooltip. Only the root starts open.
- */
+// One node of the tree. The label is the property the state was logged under, since that
+// is what identifies it; the class and description go in the tooltip. Only the root opens.
 function nodeHtml(key, log, meta, open) {
   const type = meta && typeof meta.type === 'string' ? meta.type : '';
   const slash = type.indexOf('/');
@@ -77,7 +74,8 @@ function nodeHtml(key, log, meta, open) {
     .join(' - ');
 
   const label = key || name || 'state';
-  const tip = [cls ? `${name} (${cls})` : name, meta && meta.description].filter(Boolean).join('\n');
+  const title = cls ? `${name} (${cls})` : name;
+  const tip = [title, meta && meta.description].filter(Boolean).join('\n');
 
   let html = `<details class="node"${open ? ' open' : ''}><summary>`;
   html += `<span class="cname" title="${escape(tip)}">${escape(label)}</span>`;

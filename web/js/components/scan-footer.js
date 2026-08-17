@@ -11,6 +11,13 @@ import { source } from '../core/source.js';
 
 const CPU_TICK = 500;
 
+const CPU_TIP = 'main-thread blocking, estimated from timer drift';
+const MEM_TIP = 'no portable way to read it: performance.memory is Chrome-only and '
+  + 'measureUserAgentSpecificMemory() needs COOP/COEP headers';
+
+const FILE_EVENTS = ['source:grow', 'source:done', 'model:grow', 'model:done',
+                     'machine:grow', 'machine:done'];
+
 export class ScanFooter extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
@@ -18,8 +25,8 @@ export class ScanFooter extends HTMLElement {
       <span class="prog">probs <progress id="probs-progress" value="0" max="1"></progress></span>
       <span class="prog">index <progress id="index-progress" value="0" max="1"></progress></span>
       <span id="scan-status"></span>
-      <span class="meter" title="main-thread blocking, estimated from timer drift">cpu <b id="m-cpu">-</b></span>
-      <span class="meter" title="no portable way to read it: performance.memory is Chrome-only and measureUserAgentSpecificMemory() needs COOP/COEP headers">mem <b>N/A</b></span>`;
+      <span class="meter" title="${CPU_TIP}">cpu <b id="m-cpu">-</b></span>
+      <span class="meter" title="${MEM_TIP}">mem <b>N/A</b></span>`;
 
     this.src = this.querySelector('#src-progress');
     this.probs = this.querySelector('#probs-progress');
@@ -28,9 +35,7 @@ export class ScanFooter extends HTMLElement {
     this.cpu = this.querySelector('#m-cpu');
 
     this.ac = new AbortController();
-    for (const name of ['source:grow', 'source:done', 'model:grow', 'model:done', 'machine:grow', 'machine:done']) {
-      on(name, () => this.render(), this.ac.signal);
-    }
+    for (const name of FILE_EVENTS) on(name, () => this.render(), this.ac.signal);
 
     let last = performance.now();
     this.timer = setInterval(() => {
@@ -62,11 +67,13 @@ export class ScanFooter extends HTMLElement {
   warning() {
     const machine = model.state;
     if (machine && machine.error) return 'index failed: ' + machine.error;
+    const bits = commas(source.size * 8);
     if (model.size && source.size && model.size !== source.size * 16) {
-      return `${commas(model.size / 2)} probabilities for ${commas(source.size * 8)} bits, the files may not match`;
+      return `${commas(model.size / 2)} probabilities for ${bits} bits, the files may not match`;
     }
-    if (machine && machine.complete && source.complete && machine.lines !== source.bytes.length * 8) {
-      return `state file has ${commas(machine.lines)} lines for ${commas(source.bytes.length * 8)} bits`;
+    if (machine && machine.complete && source.complete
+        && machine.lines !== source.bytes.length * 8) {
+      return `state file has ${commas(machine.lines)} lines for ${bits} bits`;
     }
     return '';
   }

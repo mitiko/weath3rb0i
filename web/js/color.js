@@ -23,11 +23,8 @@ const ANCHORS = [
   { t: 1.00, L: 0.620, C: 0.200, h: 22 },  // worst
 ];
 
-/**
- * Breakpoints mapping cost (bits per character) to badness. Scaled by the baseline so
- * the ramp follows the model, with 8 bits, the cost of not compressing at all, kept
- * as a fixed landmark. The max() calls keep the stops ordered for any baseline.
- */
+// Cost in bits to badness, scaled by the baseline, with 8 bits kept as a fixed landmark.
+// The max() calls keep the stops ordered for any baseline.
 function stops(baseline) {
   const b = baseline;
   return [

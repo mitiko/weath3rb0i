@@ -10,7 +10,8 @@ export class StatusBar extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
       <span class="stat"><b id="s-source">-</b><i>source</i></span>
-      <span class="stat jump" title="jump back to the anchored character"><b id="s-pos">-</b><i>pos</i></span>`;
+      <span class="stat jump" title="jump back to the anchored character">
+        <b id="s-pos">-</b><i>pos</i></span>`;
 
     this.name = this.querySelector('#s-source');
     this.pos = this.querySelector('#s-pos');
