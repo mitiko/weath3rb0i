@@ -101,8 +101,12 @@ export function bucketColor(i) {
 }
 
 let sheet = null;
-let legend = null;
-const text = (s) => document.createTextNode(s);
+let ramp = null;
+
+// Buckets outside the selected band are painted this instead of their colour, which is
+// how the grid narrows to just the predictable or just the random end.
+const MUTED = '#eeeef1';
+let sel = [0, BUCKETS - 1];
 
 function injectStyles() {
   if (!sheet) {
@@ -110,9 +114,17 @@ function injectStyles() {
     document.head.append(sheet);
   }
   let css = '';
-  for (let i = 0; i < BUCKETS; i++) css += `.e${i}{background:${bucketColor(i)}}`;
+  for (let i = 0; i < BUCKETS; i++) {
+    const on = i >= sel[0] && i <= sel[1];
+    css += `.e${i}{background:${on ? bucketColor(i) : MUTED}}`;
+  }
   sheet.textContent = css;
-  if (legend) buildLegend();
+  if (ramp) for (const s of ramp.children) s.classList.toggle('off', +s.dataset.b < sel[0] || +s.dataset.b > sel[1]);
+}
+
+function select(lo, hi) {
+  sel = [lo, hi];
+  injectStyles();
 }
 
 // The band of bits per bit a bucket covers, and the same band against the baseline.
@@ -144,9 +156,24 @@ function showTip(seg, i) {
 
 const hideTip = () => { if (tip) tip.hidden = true; };
 
-function buildLegend() {
-  hideTip(); // the ramp under the pointer is about to be replaced
-  const ramp = document.createElement('span');
+// Which bucket a page x sits over. Read from geometry rather than the event target so a
+// drag keeps tracking once the pointer leaves the ramp.
+function bucketAtX(x) {
+  const r = ramp.getBoundingClientRect();
+  return Math.min(BUCKETS - 1, Math.max(0, Math.floor(((x - r.left) / r.width) * BUCKETS)));
+}
+
+function label(name) {
+  const el = document.createElement('span');
+  el.className = 'lab';
+  el.textContent = name;
+  el.title = 'show the whole range again';
+  el.onclick = () => select(0, BUCKETS - 1);
+  return el;
+}
+
+function buildLegend(legend) {
+  ramp = document.createElement('span');
   ramp.className = 'ramp';
   for (let i = 0; i < BUCKETS; i++) {
     const s = document.createElement('span');
@@ -154,16 +181,32 @@ function buildLegend() {
     s.dataset.b = i;
     ramp.append(s);
   }
+
   ramp.addEventListener('mouseover', (e) => {
     const seg = e.target.closest('span[data-b]');
     if (seg) showTip(seg, +seg.dataset.b);
   });
   ramp.addEventListener('mouseleave', hideTip);
-  legend.replaceChildren(text('compressible'), ramp, text('random'));
+
+  // drag on the document, so a drag that runs past either end still clamps and tracks
+  let from = null;
+  ramp.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    from = bucketAtX(e.clientX);
+    select(from, from);
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (from === null) return;
+    const i = bucketAtX(e.clientX);
+    select(Math.min(from, i), Math.max(from, i));
+  });
+  document.addEventListener('mouseup', () => { from = null; });
+
+  legend.replaceChildren(label('predictable'), ramp, label('random'));
 }
 
 /** Build the 32 rules and the legend ramp. Call once at startup. */
 export function initColors(legendEl) {
-  legend = legendEl;
+  buildLegend(legendEl);
   injectStyles();
 }

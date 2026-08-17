@@ -63,7 +63,13 @@ the `CR` label to go back to the measured one. On book1 the ratio is 0.586, wher
 characters land in the green half and 6% cost more than 8 bits.
 
 Hovering a segment of the ramp in the header bar shows the band of bits per bit that
-colour covers, and the same band as a multiple of the baseline.
+colour covers, and the same band as a multiple of the baseline. The black line down the
+middle of the ramp is the baseline, where a prediction is exactly as good as `CR`.
+
+Dragging across the ramp keeps only that band of colours in the grid and greys the rest,
+which is how you look at just the predictable or just the random characters. Click either
+label to go back to the whole range. The filter is 32 injected CSS rules, so it costs one
+stylesheet swap and no re-render.
 
 ## Memory
 

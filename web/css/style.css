@@ -91,9 +91,22 @@ progress { width: 100%; height: .5rem; }
 .stat.jump { cursor: pointer; }
 .stat.jump:hover b { text-decoration: underline; }
 
-.legend { margin-left: auto; display: flex; align-items: center; gap: .4rem; font-size: 10px; color: var(--dim); }
-.legend .ramp { display: flex; }
+.legend { margin-left: auto; display: flex; align-items: center; gap: .4rem; font-size: 10px; color: var(--dim); user-select: none; }
+.legend .lab { cursor: pointer; }
+.legend .lab:hover { color: var(--ink); text-decoration: underline; }
+.legend .ramp { position: relative; display: flex; }
 .legend .ramp span { width: 8px; height: 12px; cursor: crosshair; }
+.legend .ramp span.off { opacity: .25; }
+
+/* the baseline itself: 32 buckets means the two middle ones meet at the halfway mark */
+.legend .ramp::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: -2px; bottom: -2px;
+  width: 1px;
+  background: var(--ink);
+  pointer-events: none;
+}
 
 #ramp-tip {
   position: fixed;
