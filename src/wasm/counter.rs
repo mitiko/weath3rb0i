@@ -18,3 +18,14 @@ impl Counter for WasmCounter {
         }
     }
 }
+
+impl WasmCounter {
+    pub fn parse(dsl: String) -> Result<Self, String> {
+        let name = dsl.split('(').next().unwrap_or("");
+
+        match name {
+            "Counter4" => Ok(WasmCounter::Counter4(Counter4::new())),
+            _ => Err(format!("could not parse counter: {name} from '{dsl}'")),
+        }
+    }
+}

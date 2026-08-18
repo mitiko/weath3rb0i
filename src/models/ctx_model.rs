@@ -29,3 +29,11 @@ impl<T: CtxModel> AdaptiveModel for RawModel<T> {
         self.model.adapt(bit);
     }
 }
+
+impl<T: CtxModel> RawModel<T> {
+    pub fn new(model: T) -> Self {
+        let mut m = Self { model, history: 0 };
+        m.model.set_ctx(m.history);
+        m
+    }
+}
