@@ -14,3 +14,6 @@ perf.data*
 
 # PGO builds and others
 builds/
+
+# wasm-pack output
+/web/wasm

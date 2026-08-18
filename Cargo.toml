@@ -11,9 +11,22 @@ categories = ["compression"]
 
 default-run = "weath3rb0i"
 
+[lib]
+crate-type = ["cdylib", "rlib"] # cdylib for wasm, rlib for the bins and tests
+
 [dependencies]
-rayon = "1.9.0" # MT only used for search, compression is single threaded
 serde_json = "1.0.151"
+
+# rayon has no threads to use on wasm, and the viewer never needs it
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+rayon = "1.9.0" # MT only used for search, compression is single threaded
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen = "0.2"
+
+# rustc emits these by default, but wasm-opt does not enable them unless told
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O', '--enable-bulk-memory', '--enable-nontrapping-float-to-int', '--enable-sign-ext']
 
 [profile.dev]
 opt-level = 1
