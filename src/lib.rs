@@ -12,6 +12,9 @@ mod hashmap;
 mod mixers;
 mod state_table;
 
+#[cfg(target_arch = "wasm32")]
+pub mod wasm;
+
 pub trait Analytics {
     fn log(&mut self) -> serde_json::Value;
     fn metadata() -> serde_json::Value;
