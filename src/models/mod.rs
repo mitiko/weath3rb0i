@@ -5,8 +5,9 @@ pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
+pub mod ctx_model;
 
-pub use self::{counter::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counter::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*, ctx_model::*};
 pub use crate::state_table::*;
 
 pub trait Model {
@@ -18,8 +19,8 @@ pub trait Model {
 // prefer implementing this trait over Model for adaptive models
 pub trait AdaptiveModel {
     fn predict(&self) -> u16;
-    fn update(&mut self, bit: u8);
     fn adapt(&mut self, bit: u8);
+    fn update(&mut self, bit: u8);
 }
 
 // adaptive models are automatically models
