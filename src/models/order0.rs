@@ -1,9 +1,9 @@
-use super::{counter::Counter, AdaptiveModel};
-use crate::Analytics;
+use super::{counters::Counter4, AdaptiveModel};
+use crate::{Analytics, models::Counter};
 
 #[derive(Clone)]
 pub struct Order0 {
-    stats: [Counter; 1 << 11],
+    stats: [Counter4; 1 << 11],
     history: u8,
     alignment: u8,
     ctx: u16,
@@ -12,7 +12,7 @@ pub struct Order0 {
 impl Order0 {
     pub fn new() -> Self {
         Self {
-            stats: [Counter::new(); 1 << 11],
+            stats: [Counter4::new(); 1 << 11],
             history: 0,
             alignment: 0,
             ctx: 0,
@@ -57,7 +57,7 @@ impl Analytics for Order0 {
             "type": "model/Order0",
             "description": "Order-0 model with 8-bit history and 11-bit counter",
             "children": {
-                "counter": Counter::metadata(),
+                "counter": Counter4::metadata(),
             },
             "vars": { "align": "u8" },
             // model-specific

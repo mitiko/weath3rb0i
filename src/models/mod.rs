@@ -1,5 +1,5 @@
 pub mod ac_hash;
-pub mod counter;
+pub mod counters;
 pub mod ctx_model;
 pub mod frozen;
 pub mod order0;
@@ -9,7 +9,7 @@ pub mod ordern_entropy;
 pub mod runner;
 
 pub use self::{
-    counter::*, ctx_model::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*,
+    counters::*, ctx_model::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*,
     runner::*,
 };
 pub use crate::state_table::*;

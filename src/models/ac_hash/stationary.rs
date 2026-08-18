@@ -1,5 +1,5 @@
 use crate::{
-    models::{Counter, Model},
+    models::{Counter, Counter4, Model},
     unroll_for,
 };
 
@@ -12,7 +12,7 @@ pub struct StationaryModel {
 
 impl StationaryModel {
     pub fn new(buf: &[u8]) -> Self {
-        let mut model = [Counter::new(); 8];
+        let mut model = [Counter4::new(); 8];
         for byte in buf {
             let mut i = 7;
             unroll_for!(bit in byte, {
