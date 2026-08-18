@@ -1,7 +1,6 @@
 use crate::{u16, Analytics};
 
 pub trait Counter: Sized + Clone {
-    fn new() -> Self;
     fn p(&self) -> u16;
     fn update(&mut self, bit: u8);
 }
@@ -11,11 +10,13 @@ pub struct Counter4 {
     data: [u16; 2],
 }
 
-impl Counter for Counter4 {
-    fn new() -> Self {
+impl Counter4 {
+    pub fn new() -> Self {
         Self { data: [0; 2] }
     }
+}
 
+impl Counter for Counter4 {
     fn p(&self) -> u16 {
         let c0 = u64::from(self.data[0]);
         let c1 = u64::from(self.data[1]);

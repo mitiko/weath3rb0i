@@ -9,8 +9,8 @@ macro_rules! define {
         }
 
         impl<C: Counter> $name<C> {
-            pub fn new() -> Self {
-                Self { stats: vec![C::new(); 1 << ($bits + 1)], ctx: 0 }
+            pub fn new(counter: C) -> Self {
+                Self { stats: vec![counter; 1 << ($bits + 1)], ctx: 0 }
             }
         }
 
