@@ -11,7 +11,11 @@ macro_rules! define {
 
         impl<C: Counter> $name<C> {
             pub fn new(counter: C) -> Self {
-                Self { stats: vec![counter; 1 << ($bits + 2)], ctx: 0, alignment: 0 }
+                Self {
+                    stats: vec![counter; 1 << ($bits + 2)],
+                    ctx: 0,
+                    alignment: 0,
+                }
             }
         }
 

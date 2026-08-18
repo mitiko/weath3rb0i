@@ -6,12 +6,12 @@ pub mod order0;
 pub mod order1;
 pub mod ordern;
 pub mod ordern_entropy;
-pub mod runner;
 pub mod prefix_models;
+pub mod runner;
 
 pub use self::{
     counters::*, ctx_model::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*,
-    runner::*, prefix_models::*,
+    prefix_models::*, runner::*,
 };
 pub use crate::state_table::*;
 

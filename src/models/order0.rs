@@ -1,5 +1,5 @@
 use super::{counters::Counter4, AdaptiveModel};
-use crate::{Analytics, models::Counter};
+use crate::{models::Counter, Analytics};
 
 #[derive(Clone)]
 pub struct Order0 {

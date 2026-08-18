@@ -1,9 +1,9 @@
+pub mod bit_aligned;
 pub mod byte_aligned;
 pub mod nibble_aligned;
 pub mod unaligned;
-pub mod bit_aligned;
 
-pub use self::{byte_aligned::*, nibble_aligned::*, unaligned::*, bit_aligned::*};
+pub use self::{bit_aligned::*, byte_aligned::*, nibble_aligned::*, unaligned::*};
 
 // Shelwien's
 // state = 1<<8 | byte
