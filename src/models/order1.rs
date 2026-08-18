@@ -1,9 +1,9 @@
-use super::{counter::Counter, AdaptiveModel};
-use crate::usize;
+use super::{counters::Counter4, AdaptiveModel};
+use crate::{models::Counter, usize};
 
 #[derive(Clone)]
 pub struct Order1 {
-    stats: Vec<Counter>,
+    stats: Vec<Counter4>,
     history: u16,
     alignment: u8,
     ctx: u32,
@@ -12,7 +12,7 @@ pub struct Order1 {
 impl Order1 {
     pub fn new() -> Self {
         Self {
-            stats: vec![Counter::new(); 1 << 19],
+            stats: vec![Counter4::new(); 1 << 19],
             history: 0,
             alignment: 0,
             ctx: 0,

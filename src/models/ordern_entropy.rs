@@ -1,10 +1,10 @@
-use super::{counter::Counter, AdaptiveModel};
+use super::{counters::Counter4, AdaptiveModel};
 use crate::history::History;
-use crate::models::Order0;
+use crate::models::{Counter, Order0};
 use crate::{u16, usize, Analytics};
 
 pub struct OrderNEntropy<H: History> {
-    stats: Vec<Counter>,
+    stats: Vec<Counter4>,
     ctx: u32,
     history: H,
     alignment: u8,
@@ -15,7 +15,7 @@ pub struct OrderNEntropy<H: History> {
 impl<H: History> OrderNEntropy<H> {
     pub fn new(bits_in_context: u8, alignment_bits: u8, history: H) -> Self {
         Self {
-            stats: vec![Counter::new(); 1 << bits_in_context],
+            stats: vec![Counter4::new(); 1 << bits_in_context],
             ctx: 0,
             alignment: 0,
             history,
@@ -47,7 +47,7 @@ impl<H: History> AdaptiveModel for OrderNEntropy<H> {
 }
 
 pub struct Order0Generic<H: History> {
-    stats: [Counter; 1 << 11],
+    stats: [Counter4; 1 << 11],
     history: H,
     alignment: u16,
     ctx: u16,
@@ -56,7 +56,7 @@ pub struct Order0Generic<H: History> {
 impl<H: History> Order0Generic<H> {
     pub fn new(history: H) -> Self {
         Self {
-            stats: [Counter::new(); 1 << 11],
+            stats: [Counter4::new(); 1 << 11],
             history,
             alignment: 0,
             ctx: 0,
@@ -104,7 +104,7 @@ impl<H: History + Analytics> Analytics for Order0Generic<H> {
             "description": "Order-0 model with generic history and counter",
             "children": {
                 "history": H::metadata(),
-                "counter": Counter::metadata(),
+                "counter": Counter4::metadata(),
             },
             "vars": { "align": "u16" },
         })

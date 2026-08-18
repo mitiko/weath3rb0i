@@ -1,8 +1,8 @@
-use super::{counter::Counter, AdaptiveModel};
-use crate::usize;
+use super::{counters::Counter4, AdaptiveModel};
+use crate::{models::Counter, usize};
 
 pub struct OrderN {
-    stats: Vec<Counter>,
+    stats: Vec<Counter4>,
     ctx: u32,
     history: u32,
     alignment: u8,
@@ -13,7 +13,7 @@ pub struct OrderN {
 impl OrderN {
     pub fn new(bits_in_context: u8, alignment_bits: u8) -> Self {
         Self {
-            stats: vec![Counter::new(); 1 << bits_in_context],
+            stats: vec![Counter4::new(); 1 << bits_in_context],
             ctx: 0,
             history: 0,
             alignment: 0,
