@@ -6,6 +6,11 @@ pub struct CtxModelRunner<H: History, M: CtxModel> {
 }
 
 impl<H: History, M: CtxModel> CtxModelRunner<H, M> {
+    pub fn new(history: H, model: M) -> Self {
+        Self { history, model }
+    }
+
+    /// Keeps its state, so consecutive buffers continue one run.
     pub fn run(&mut self, buf: &[u8]) -> Vec<u16> {
         let mut probs = Vec::with_capacity(buf.len() * 8);
         for &byte in buf {
