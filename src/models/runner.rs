@@ -40,9 +40,9 @@ where
         })
     }
 
-    fn metadata() -> serde_json::Value {
-        let model = M::metadata();
-        let history = H::metadata();
+    fn metadata(&self) -> serde_json::Value {
+        let model = self.model.metadata();
+        let history = self.history.metadata();
         serde_json::json!({
             "type": "runner/CtxModelRunner",
             "description": "Runner for CtxModel with history",

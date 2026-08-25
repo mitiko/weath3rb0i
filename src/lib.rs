@@ -15,5 +15,5 @@ mod state_table;
 
 pub trait Analytics {
     fn log(&mut self) -> serde_json::Value;
-    fn metadata() -> serde_json::Value;
+    fn metadata(&self) -> serde_json::Value;
 }

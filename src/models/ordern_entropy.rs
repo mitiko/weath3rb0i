@@ -98,13 +98,13 @@ impl<H: History + Analytics> Analytics for Order0Generic<H> {
         })
     }
 
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "model/Order0Generic",
             "description": "Order-0 model with generic history and counter",
             "children": {
-                "history": H::metadata(),
-                "counter": Counter4::metadata(),
+                "history": self.history.metadata(),
+                "counter": self.stats[0].metadata(),
             },
             "vars": { "align": "u16" },
         })

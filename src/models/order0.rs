@@ -52,12 +52,12 @@ impl Analytics for Order0 {
         })
     }
 
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "model/Order0",
             "description": "Order-0 model with 8-bit history and 11-bit counter",
             "children": {
-                "counter": Counter4::metadata(),
+                "counter": self.stats[0].metadata(),
             },
             "vars": { "align": "u8" },
             // model-specific

@@ -38,7 +38,7 @@ fn exec<H: History + Analytics>(buf: &[u8], history: H, out: &str) -> Result<u64
     let mut probs = BufWriter::with_capacity(1 << 16, File::create(format!("{out}.p16"))?);
 
     // first line is the metadata header, the rest are per-bit logs
-    writeln!(states, "{}", Order0Generic::<H>::metadata())?;
+    writeln!(states, "{}", model.metadata())?;
 
     for byte in buf {
         unroll_for!(bit in byte, {
