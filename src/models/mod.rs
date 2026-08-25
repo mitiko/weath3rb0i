@@ -1,12 +1,11 @@
 pub mod ac_hash;
-pub mod counter;
+pub mod counters;
+pub mod ctx_model;
 pub mod frozen;
-pub mod order0;
-pub mod order1;
-pub mod ordern;
-pub mod ordern_entropy;
+pub mod prefix_models;
+pub mod runner;
 
-pub use self::{counter::*, frozen::*, order0::*, order1::*, ordern::*, ordern_entropy::*};
+pub use self::{counters::*, ctx_model::*, frozen::*, prefix_models::*, runner::*};
 pub use crate::state_table::*;
 
 pub trait Model {
@@ -18,8 +17,8 @@ pub trait Model {
 // prefer implementing this trait over Model for adaptive models
 pub trait AdaptiveModel {
     fn predict(&self) -> u16;
-    fn update(&mut self, bit: u8);
     fn adapt(&mut self, bit: u8);
+    fn update(&mut self, bit: u8);
 }
 
 // adaptive models are automatically models
@@ -32,6 +31,17 @@ impl<T: AdaptiveModel> Model for T {
         T::adapt(self, bit);
         T::update(self, bit);
     }
+}
+
+pub trait StaticModel {
+    fn write(&self) -> Vec<u8>;
+    fn read(data: &[u8]) -> Self;
+}
+
+pub trait FreezeModel {
+    type Frozen: StaticModel;
+
+    fn freeze(&self) -> Self::Frozen;
 }
 
 use crate::mixers::opinion_mixer2::OpinionMixer2;

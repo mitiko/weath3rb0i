@@ -128,11 +128,11 @@ impl<M: Model + Analytics> Analytics for ACHistory<M> {
         })
     }
 
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "history/ACHistory",
             "children": {
-                "model": M::metadata(),
+                "model": self.model.metadata(),
             },
             "vars": { "bits": "usize", },
             "description": "Compressed history with arithmetic coding using a static model",

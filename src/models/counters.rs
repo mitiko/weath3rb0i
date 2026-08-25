@@ -1,23 +1,30 @@
 use crate::{u16, Analytics};
 
+pub trait Counter: Sized + Clone {
+    fn p(&self) -> u16;
+    fn update(&mut self, bit: u8);
+}
+
 #[derive(Copy, Clone)]
-pub struct Counter {
+pub struct Counter4 {
     data: [u16; 2],
 }
 
-impl Counter {
+impl Counter4 {
     pub fn new() -> Self {
         Self { data: [0; 2] }
     }
+}
 
-    pub fn p(&self) -> u16 {
+impl Counter for Counter4 {
+    fn p(&self) -> u16 {
         let c0 = u64::from(self.data[0]);
         let c1 = u64::from(self.data[1]);
         let p = (1 << 17) * (c1 + 1) / (c0 + c1 + 2);
         u16!((p >> 1) + (p & 1)) // rounding
     }
 
-    pub fn update(&mut self, bit: u8) {
+    fn update(&mut self, bit: u8) {
         if self.data[usize::from(bit)] == u16::MAX {
             self.data[0] = (self.data[0] >> 1) + (self.data[0] & 1);
             self.data[1] = (self.data[1] >> 1) + (self.data[1] & 1);
@@ -26,7 +33,16 @@ impl Counter {
     }
 }
 
-impl Analytics for Counter {
+/// static probability
+impl Counter for u16 {
+    fn p(&self) -> u16 {
+        *self
+    }
+
+    fn update(&mut self, _bit: u8) {}
+}
+
+impl Analytics for Counter4 {
     fn log(&mut self) -> serde_json::Value {
         serde_json::json!({
             "data": self.data,
@@ -35,10 +51,10 @@ impl Analytics for Counter {
         })
     }
 
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
-            "type": "counter/Counter",
-            "description": "16-bit adaptive counter with rounding and renormalization",
+            "type": "counter/Counter4",
+            "description": "16-bit counter with rounding and renormalization",
             "vars": { "data": "[u16; 2]" },
             // counter specific
             "size": 4,
@@ -53,13 +69,13 @@ mod tests {
 
     #[test]
     fn empty() {
-        let counter = Counter::new();
+        let counter = Counter4::new();
         assert_eq!(counter.p(), HALF);
     }
 
     #[test]
     fn zero() {
-        let mut counter = Counter::new();
+        let mut counter = Counter4::new();
         counter.update(0);
         assert!(counter.p() < HALF);
         counter.update(1);
@@ -68,7 +84,7 @@ mod tests {
 
     #[test]
     fn one() {
-        let mut counter = Counter::new();
+        let mut counter = Counter4::new();
         counter.update(1);
         assert!(counter.p() > HALF);
         counter.update(0);
@@ -77,7 +93,7 @@ mod tests {
 
     #[test]
     fn only_zeros() {
-        let mut counter = Counter::new();
+        let mut counter = Counter4::new();
         for _ in 0..u16::MAX {
             counter.update(0);
         }
@@ -88,7 +104,7 @@ mod tests {
 
     #[test]
     fn only_ones() {
-        let mut counter = Counter::new();
+        let mut counter = Counter4::new();
         for _ in 0..u16::MAX {
             counter.update(1);
         }
@@ -99,7 +115,7 @@ mod tests {
 
     #[test]
     fn renorm() {
-        let mut counter = Counter::new();
+        let mut counter = Counter4::new();
         for _ in 0..u16::MAX {
             counter.update(0);
         }
