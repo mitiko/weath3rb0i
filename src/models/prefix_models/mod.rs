@@ -1,12 +1,11 @@
-pub mod bit_aligned;
-pub mod byte_aligned;
-pub mod nibble_aligned;
-pub mod unaligned;
+pub mod prefix_model13;
+pub mod prefix_model16;
+pub mod prefix_model5;
+pub mod prefix_model8;
+pub mod prefix_model9;
 
-pub use self::{bit_aligned::*, byte_aligned::*, nibble_aligned::*, unaligned::*};
+// nibble trees
+pub use self::{prefix_model13::*, prefix_model5::*, prefix_model9::*};
 
-// Shelwien's
-// state = 1<<8 | byte
-// for bit in byte: state = state << 1 | bit
-// state = ((state << 1 | bit) & mask) | (1 << 8)
-// ^ bit updates, byte adaptation
+// byte trees
+pub use self::{prefix_model16::*, prefix_model8::*};
