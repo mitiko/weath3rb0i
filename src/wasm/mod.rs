@@ -95,7 +95,7 @@ mod tests {
     fn parses_the_pieces() {
         assert!(WasmCounter::parse("Counter4".into()).is_ok());
         assert!(WasmModel::parse("PM8(Counter4)".into()).is_ok());
-        assert!(WasmModel::parse("NibblePM16(Counter4)".into()).is_ok());
+        assert!(WasmModel::parse("PM16(Counter4)".into()).is_ok());
         assert!(WasmHistory::parse("Raw".into(), b"data").is_ok());
         // the nested model has to survive being an argument
         assert!(WasmHistory::parse("AC(12, PM8(Counter4))".into(), b"data").is_ok());
@@ -104,7 +104,7 @@ mod tests {
     #[test]
     fn bad_names_are_errors_not_panics() {
         assert!(WasmCounter::parse("Nope".into()).is_err());
-        assert!(WasmModel::parse("PM9(Counter4)".into()).is_err());
+        assert!(WasmModel::parse("PM7(Counter4)".into()).is_err());
         assert!(WasmModel::parse("PM8(Nope)".into()).is_err());
         assert!(WasmHistory::parse("Nope".into(), b"data").is_err());
         assert!(WasmHistory::parse("AC(notanumber, PM8(Counter4))".into(), b"data").is_err());
