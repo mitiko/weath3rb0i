@@ -148,7 +148,7 @@ fn init_model() -> impl Model {
     // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
     // BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
     // OrderNEntropy::new(11, 3, ACHistory::new(8, StationaryModel::for_book1()))
-    Order0::new()
+    RawModel::new(PrefixModel8::new(Counter4::new()))
 }
 
 fn print_usage_and_exit(msg: &str) -> ! {
