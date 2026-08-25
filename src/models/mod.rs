@@ -40,6 +40,17 @@ impl<T: AdaptiveModel> Model for T {
     }
 }
 
+pub trait StaticModel {
+    fn write(&self) -> Vec<u8>;
+    fn read(data: &[u8]) -> Self;
+}
+
+pub trait FreezeModel {
+    type Frozen: StaticModel;
+
+    fn freeze(&self) -> Self::Frozen;
+}
+
 use crate::mixers::opinion_mixer2::OpinionMixer2;
 pub struct BestOfTwoModel<T, U>
 where

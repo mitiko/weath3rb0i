@@ -1,5 +1,7 @@
-use crate::models::{Counter, CtxModel};
+use crate::models::{Counter, CtxModel, FreezeModel, StaticModel};
 use crate::usize;
+
+pub type StaticPrefixModel13 = PrefixModel13<u16>;
 
 /// order-2 nibble tree, 13-bit context
 /// ```text
@@ -21,7 +23,12 @@ pub struct PrefixModel13<C: Counter> {
 
 impl<C: Counter> PrefixModel13<C> {
     pub fn new(counter: C) -> Self {
-        Self { stats: vec![counter; 1 << 13], ctx: 1 << 8, lead: 1 << 8, nibble: 0 }
+        Self {
+            stats: vec![counter; 1 << 13],
+            ctx: 1 << 8,
+            lead: 1 << 8,
+            nibble: 0,
+        }
     }
 }
 
@@ -42,5 +49,36 @@ impl<C: Counter> CtxModel for PrefixModel13<C> {
         }
         let mask = self.lead - 1;
         self.ctx = self.nibble | self.lead | (usize!(hash) & mask);
+    }
+}
+
+impl<C: Counter> PrefixModel13<C> {
+    pub fn freeze(&self) -> StaticPrefixModel13 {
+        let stats = self.stats.iter().map(|c| c.p()).collect::<Vec<u16>>();
+        StaticPrefixModel13 { stats, ctx: 1 << 8, lead: 1 << 8, nibble: 0 }
+    }
+}
+
+impl<C: Counter> FreezeModel for PrefixModel13<C> {
+    type Frozen = StaticPrefixModel13;
+
+    fn freeze(&self) -> Self::Frozen {
+        let stats = self.stats.iter().map(|c| c.p()).collect::<Vec<u16>>();
+        StaticPrefixModel13 { stats, ctx: 1 << 8, lead: 1 << 8, nibble: 0 }
+    }
+}
+
+impl StaticModel for StaticPrefixModel13 {
+    fn write(&self) -> Vec<u8> {
+        self.stats.iter().flat_map(|&s| s.to_le_bytes()).collect()
+    }
+
+    fn read(data: &[u8]) -> Self {
+        let stats = data
+            .chunks_exact(2)
+            .take(1 << 13)
+            .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+            .collect::<Vec<u16>>();
+        StaticPrefixModel13 { stats, ctx: 1 << 8, lead: 1 << 8, nibble: 0 }
     }
 }

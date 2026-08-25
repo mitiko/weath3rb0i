@@ -1,5 +1,7 @@
-use crate::models::{Counter, CtxModel};
+use crate::models::{Counter, CtxModel, FreezeModel, StaticModel};
 use crate::usize;
+
+pub type StaticPrefixModel16 = PrefixModel16<u16>;
 
 /// order-1 byte tree, 16-bit context
 /// ```text
@@ -20,7 +22,11 @@ pub struct PrefixModel16<C: Counter> {
 
 impl<C: Counter> PrefixModel16<C> {
     pub fn new(counter: C) -> Self {
-        Self { stats: vec![counter; 1 << 16], ctx: 1 << 8, lead: 1 << 8 }
+        Self {
+            stats: vec![counter; 1 << 16],
+            ctx: 1 << 8,
+            lead: 1 << 8,
+        }
     }
 }
 
@@ -40,5 +46,29 @@ impl<C: Counter> CtxModel for PrefixModel16<C> {
         }
         let mask = self.lead - 1;
         self.ctx = self.lead | (usize!(hash) & mask);
+    }
+}
+
+impl<C: Counter> FreezeModel for PrefixModel16<C> {
+    type Frozen = StaticPrefixModel16;
+
+    fn freeze(&self) -> StaticPrefixModel16 {
+        let stats = self.stats.iter().map(|c| c.p()).collect::<Vec<u16>>();
+        StaticPrefixModel16 { stats, ctx: 1 << 8, lead: 1 << 8 }
+    }
+}
+
+impl StaticModel for StaticPrefixModel16 {
+    fn write(&self) -> Vec<u8> {
+        self.stats.iter().flat_map(|&s| s.to_le_bytes()).collect()
+    }
+
+    fn read(data: &[u8]) -> Self {
+        let stats = data
+            .chunks_exact(2)
+            .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+            .take(1 << 16)
+            .collect::<Vec<u16>>();
+        StaticPrefixModel16 { stats, ctx: 1 << 8, lead: 1 << 8 }
     }
 }

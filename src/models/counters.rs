@@ -33,6 +33,15 @@ impl Counter for Counter4 {
     }
 }
 
+/// static probability
+impl Counter for u16 {
+    fn p(&self) -> u16 {
+        *self
+    }
+
+    fn update(&mut self, _bit: u8) {}
+}
+
 impl Analytics for Counter4 {
     fn log(&mut self) -> serde_json::Value {
         serde_json::json!({
