@@ -50,11 +50,13 @@ pub fn split_args(args: &str) -> Vec<&str> {
 mod bindings {
     use super::{WasmHistory, WasmModel};
     use crate::models::CtxModelRunner;
+    use crate::Analytics; // log and metadata on the runner
     use wasm_bindgen::prelude::*;
 
     #[wasm_bindgen]
     pub struct Runner {
         inner: CtxModelRunner<WasmHistory, WasmModel>,
+        at: usize, // bits encoded so far, which is where the state currently stands
     }
 
     #[wasm_bindgen]
@@ -64,11 +66,36 @@ mod bindings {
         pub fn new(model: &str, history: &str, buf: &[u8]) -> Result<Runner, String> {
             let model = WasmModel::parse(model.to_string())?;
             let history = WasmHistory::parse(history.to_string(), buf)?;
-            Ok(Self { inner: CtxModelRunner::new(history, model) })
+            Ok(Self { inner: CtxModelRunner::new(history, model), at: 0 })
         }
 
-        pub fn run(&mut self, buf: &[u8]) -> Vec<u16> {
-            self.inner.run(buf)
+        /// The bit the model is about to code, and so the position its state describes.
+        pub fn at(&self) -> usize {
+            self.at
+        }
+
+        /// Encode forward to an absolute bit position, returning only the new predictions.
+        /// Running backwards is not possible, so the caller rebuilds instead.
+        pub fn run_to(&mut self, buf: &[u8], bit: usize) -> Vec<u16> {
+            let end = bit.min(buf.len() * 8);
+            let mut probs = Vec::with_capacity(end.saturating_sub(self.at));
+            while self.at < end {
+                let byte = buf[self.at >> 3];
+                let bit = (byte >> (7 - (self.at & 7))) & 1;
+                probs.push(self.inner.run_bit(bit));
+                self.at += 1;
+            }
+            probs
+        }
+
+        /// The model and history state entering the bit at `at`.
+        pub fn analytics(&mut self) -> String {
+            self.inner.log().to_string()
+        }
+
+        /// The shape of that state, for labelling the tree.
+        pub fn metadata(&self) -> String {
+            self.inner.metadata().to_string()
         }
     }
 }

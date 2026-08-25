@@ -17,3 +17,16 @@ impl History for u32 {
         *self
     }
 }
+
+impl crate::Analytics for u32 {
+    fn log(&mut self) -> serde_json::Value {
+        serde_json::json!({ "h": *self })
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({
+            "type": "history/Raw",
+            "description": "The raw last 32 bits, unhashed",
+        })
+    }
+}

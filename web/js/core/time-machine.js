@@ -12,6 +12,7 @@ import { emit } from './bus.js';
 export class JsonlMachine {
   constructor(file) {
     this.metadata = null;
+    this.hint = 'not indexed yet, try again in a moment';
     this.lines = 0;
     this.loaded = 0;
     this.total = file.size;

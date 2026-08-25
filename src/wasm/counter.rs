@@ -1,4 +1,5 @@
 use crate::models::*;
+use crate::Analytics;
 
 #[derive(Copy, Clone)]
 pub enum WasmCounter {
@@ -26,6 +27,20 @@ impl WasmCounter {
         match name {
             "Counter4" => Ok(WasmCounter::Counter4(Counter4::new())),
             _ => Err(format!("could not parse counter: {name} from '{dsl}'")),
+        }
+    }
+}
+
+impl Analytics for WasmCounter {
+    fn log(&mut self) -> serde_json::Value {
+        match self {
+            WasmCounter::Counter4(c) => c.log(),
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        match self {
+            WasmCounter::Counter4(c) => c.metadata(),
         }
     }
 }

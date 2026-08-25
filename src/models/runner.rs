@@ -10,18 +10,23 @@ impl<H: History, M: CtxModel> CtxModelRunner<H, M> {
         Self { history, model }
     }
 
+    /// One bit, returning what the model predicted before seeing it.
+    pub fn run_bit(&mut self, bit: u8) -> u16 {
+        let p = self.model.predict();
+
+        self.model.adapt(bit);
+        self.history.update(bit);
+        self.model.set_ctx(self.history.hash());
+
+        p
+    }
+
     /// Keeps its state, so consecutive buffers continue one run.
     pub fn run(&mut self, buf: &[u8]) -> Vec<u16> {
         let mut probs = Vec::with_capacity(buf.len() * 8);
         for &byte in buf {
             unroll_for!(bit in byte, {
-                let p = self.model.predict();
-
-                self.model.adapt(bit);
-                self.history.update(bit);
-                self.model.set_ctx(self.history.hash());
-
-                probs.push(p);
+                probs.push(self.run_bit(bit));
             });
         }
         probs

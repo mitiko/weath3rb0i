@@ -4,9 +4,9 @@
 
 import { costRange } from '../analyzer.js';
 import { emit, on } from './bus.js';
+import { Checkpoints } from './checkpoints.js';
 import { source } from './source.js';
 import { stream } from './stream.js';
-import { loadWasm } from './wasm.js';
 
 // bytes per slice handed to the runner, so the page can paint between them
 const CHUNK = 1 << 15;
@@ -61,15 +61,14 @@ export class Model {
     emit('model:done', this);
   }
 
-  // Run a model built in the browser rather than reading one off disk. The runner keeps
-  // its state, so consecutive slices continue one run and the page stays alive between.
+  /** Start a model built in the browser. Nothing is run until `runTo`. */
   async build(modelSpec, historySpec) {
-    const { Runner } = await loadWasm();
     const bytes = source.bytes.subarray(0, source.layout.done);
     if (!bytes.length) throw new Error('load a source file first');
 
+    this.state?.close?.();
     // throws with the parse error from rust, which the panel shows
-    const runner = new Runner(modelSpec, historySpec, bytes);
+    this.state = await Checkpoints.open(modelSpec, historySpec);
 
     this.name = `${modelSpec} over ${historySpec}`;
     this.probs = new Uint16Array(bytes.length * 8);
@@ -79,21 +78,29 @@ export class Model {
     this.entropy = 0;
     this.complete = false;
     emit('model:grow', this);
+  }
 
-    try {
-      for (let at = 0; at < bytes.length; at += CHUNK) {
-        const end = Math.min(at + CHUNK, bytes.length);
-        this.probs.set(runner.run(bytes.subarray(at, end)), at * 8);
-        this.loaded = end * 8;
-        this.advance();
-        await new Promise(requestAnimationFrame);
-      }
-    } finally {
-      runner.free();
+  // Encode up to `bit`, in slices so the page keeps painting. Going backwards replays from
+  // the start, which is why the frontier resets with it.
+  async runTo(bit) {
+    const end = Math.min(bit, this.probs.length);
+    if (end < this.state.position) {
+      this.loaded = 0;
+      this.nProbs = 0;
+      this.entropy = 0;
     }
 
-    this.complete = true;
-    emit('model:done', this);
+    while (this.state.position < end) {
+      const next = Math.min(this.state.position + CHUNK * 8, end);
+      const { from, probs } = this.state.advance(next);
+      this.probs.set(probs, from);
+      this.loaded = this.state.position;
+      this.advance();
+      await new Promise(requestAnimationFrame);
+    }
+
+    this.complete = this.loaded >= this.probs.length;
+    emit(this.complete ? 'model:done' : 'model:grow', this);
   }
 
   advance() {

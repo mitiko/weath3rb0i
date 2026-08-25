@@ -1,5 +1,5 @@
 use super::WasmModel;
-use crate::{history::*, models::*};
+use crate::{history::*, models::*, Analytics};
 
 pub enum WasmHistory {
     Raw(u32),
@@ -66,6 +66,24 @@ impl WasmHistory {
                 )))
             }
             _ => Err(format!("could not parse history: {name} from '{dsl}'")),
+        }
+    }
+}
+
+impl Analytics for WasmHistory {
+    fn log(&mut self) -> serde_json::Value {
+        match self {
+            WasmHistory::Raw(h) => h.log(),
+            WasmHistory::AC(h) => h.log(),
+            WasmHistory::Huff(h) => h.log(),
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        match self {
+            WasmHistory::Raw(h) => h.metadata(),
+            WasmHistory::AC(h) => h.metadata(),
+            WasmHistory::Huff(h) => h.metadata(),
         }
     }
 }

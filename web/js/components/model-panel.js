@@ -7,14 +7,15 @@ import { on } from '../core/bus.js';
 import { commas, fixed3 } from '../core/helpers.js';
 import { model } from '../core/model.js';
 import { source } from '../core/source.js';
+import { view } from '../core/view.js';
 
-const FAMILIES = [
-  ['PM', 'unaligned'],
-  ['BytePM', 'byte aligned'],
-  ['NibblePM', 'nibble aligned'],
-  ['BitPM', 'bit aligned'],
+const MODELS = [
+  ['PM5', 'order-0 nibble tree, 5 bits'],
+  ['PM8', 'order-0 byte tree, 8 bits'],
+  ['PM9', 'order-0 nibble tree, 9 bits'],
+  ['PM13', 'order-2 nibble tree, 13 bits'],
+  ['PM16', 'order-1 byte tree, 16 bits'],
 ];
-const WIDTHS = [4, 7, 8, 12, 16];
 const COUNTERS = ['Counter4'];
 const HISTORIES = ['Raw', 'AC', 'Huff'];
 
@@ -26,18 +27,16 @@ export class ModelPanel extends HTMLElement {
   connectedCallback() {
     this.innerHTML = `
       <h2>model</h2>
-      <label>prefix model <select class="family">
-        ${opts(FAMILIES.map((f) => f[0]), FAMILIES.map((f) => f[1]))}</select></label>
-      <label>context bits <select class="width">${opts(WIDTHS)}</select></label>
+      <label>prefix model <select class="model">
+        ${opts(MODELS.map((m) => m[0]), MODELS.map((m) => m[1]))}</select></label>
       <label>counter <select class="counter">${opts(COUNTERS)}</select></label>
 
       <h2>history</h2>
       <label>kind <select class="history">${opts(HISTORIES)}</select></label>
       <div class="ac-args" hidden>
         <label>ac bits <input class="ac-bits" type="number" value="12" min="1" max="32"></label>
-        <label>inner model <select class="ac-family">
-          ${opts(FAMILIES.map((f) => f[0]), FAMILIES.map((f) => f[1]))}</select></label>
-        <label>inner bits <select class="ac-width">${opts(WIDTHS)}</select></label>
+        <label>inner model <select class="ac-model">
+          ${opts(MODELS.map((m) => m[0]), MODELS.map((m) => m[1]))}</select></label>
       </div>
       <div class="huff-args" hidden>
         <label>huff size <input class="huff" type="number" value="11" min="1" max="16"></label>
@@ -47,7 +46,8 @@ export class ModelPanel extends HTMLElement {
       <h2>spec</h2>
       <textarea class="spec" rows="3" spellcheck="false"></textarea>
       <div class="row-buttons">
-        <button class="run">Run</button>
+        <button class="run" title="encode up to the anchored position">Run</button>
+        <button class="run-all" title="encode the whole file">Run all</button>
         <button class="sync">Reset to selects</button>
       </div>
       <p class="sub status"></p>`;
@@ -61,7 +61,8 @@ export class ModelPanel extends HTMLElement {
     for (const sel of this.querySelectorAll('select, input')) {
       sel.addEventListener('change', () => this.sync(), { signal });
     }
-    this.querySelector('.run').addEventListener('click', () => this.run(), { signal });
+    this.querySelector('.run').addEventListener('click', () => this.run(false), { signal });
+    this.querySelector('.run-all').addEventListener('click', () => this.run(true), { signal });
     this.querySelector('.sync').addEventListener('click', () => this.sync(), { signal });
     on('model:done', () => this.report(), signal);
 
@@ -84,27 +85,43 @@ export class ModelPanel extends HTMLElement {
     this.querySelector('.ac-args').hidden = kind !== 'AC';
     this.querySelector('.huff-args').hidden = kind !== 'Huff';
 
-    const model = `${pick('.family')}${pick('.width')}(${pick('.counter')})`;
+    const model = `${pick('.model')}(${pick('.counter')})`;
     const history = kind === 'AC'
-      ? `AC(${pick('.ac-bits')}, ${pick('.ac-family')}${pick('.ac-width')}(${pick('.counter')}))`
+      ? `AC(${pick('.ac-bits')}, ${pick('.ac-model')}(${pick('.counter')}))`
       : kind === 'Huff' ? `Huff(${pick('.huff')}, ${pick('.rem')})` : 'Raw';
 
     this.spec.value = `${model}\n${history}`;
   }
 
-  async run() {
+  // `all` runs the whole file. Otherwise it runs to the anchor, continuing from where the
+  // model stands, or replaying from the start when the anchor is behind it.
+  async run(all) {
     if (!source.layout.done) return this.note('load a source file first');
+    if (!all && view.anchor === null) {
+      alert('Click a character in the text to pick a position to run to.');
+      return this.note('no position selected');
+    }
+
     const [modelSpec, historySpec] = this.specs();
-    this.note(`running ${modelSpec} over ${historySpec}...`);
+    const target = all ? source.layout.done * 8 : view.anchor;
     try {
-      await model.build(modelSpec, historySpec);
+      if (model.name !== `${modelSpec} over ${historySpec}`) {
+        await model.build(modelSpec, historySpec);
+      }
+      const behind = target < model.state.position;
+      this.note(behind ? 'replaying from the start...' : 'running...');
+      await model.runTo(target);
+      this.report();
     } catch (err) {
       this.note(String(err.message || err));
     }
   }
 
   report() {
-    this.note(`${commas(Math.round(model.entropy / 8))} B, ratio ${fixed3(model.cr)}`);
+    const at = model.state ? model.state.position : 0;
+    const kept = model.state ? model.state.taken.size : 0;
+    this.note(`${commas(Math.round(model.entropy / 8))} B, ratio ${fixed3(model.cr)}`
+      + ` - at bit ${commas(at)}, ${kept} checkpoint${kept === 1 ? '' : 's'}`);
   }
 
   note(msg) {

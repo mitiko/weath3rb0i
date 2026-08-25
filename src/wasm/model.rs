@@ -1,5 +1,6 @@
 use super::WasmCounter;
 use crate::models::*;
+use crate::Analytics;
 
 pub enum WasmModel {
     PM5(PrefixModel5<WasmCounter>),
@@ -56,6 +57,28 @@ impl WasmModel {
             "PM13" => Ok(WasmModel::PM13(PrefixModel13::new(counter))),
             "PM16" => Ok(WasmModel::PM16(PrefixModel16::new(counter))),
             _ => Err(format!("could not parse model: {name} from '{dsl}'")),
+        }
+    }
+}
+
+impl Analytics for WasmModel {
+    fn log(&mut self) -> serde_json::Value {
+        match self {
+            WasmModel::PM5(m) => m.log(),
+            WasmModel::PM8(m) => m.log(),
+            WasmModel::PM9(m) => m.log(),
+            WasmModel::PM13(m) => m.log(),
+            WasmModel::PM16(m) => m.log(),
+        }
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        match self {
+            WasmModel::PM5(m) => m.metadata(),
+            WasmModel::PM8(m) => m.metadata(),
+            WasmModel::PM9(m) => m.metadata(),
+            WasmModel::PM13(m) => m.metadata(),
+            WasmModel::PM16(m) => m.metadata(),
         }
     }
 }

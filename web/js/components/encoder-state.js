@@ -33,7 +33,7 @@ export class EncoderState extends HTMLElement {
 
     const machine = model.state;
     if (!machine) {
-      this.tree.innerHTML = '<p class="sub">no state file loaded</p>';
+      this.tree.innerHTML = '<p class="sub">no model running and no state file loaded</p>';
       return;
     }
 
@@ -44,7 +44,7 @@ export class EncoderState extends HTMLElement {
 
     this.tree.innerHTML = json
       ? nodeHtml(null, json, machine.metadata, true)
-      : '<p class="sub">not indexed yet, try again in a moment</p>';
+      : `<p class="sub">${machine.hint}</p>`;
   }
 }
 

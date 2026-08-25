@@ -72,3 +72,5 @@ impl StaticModel for StaticPrefixModel16 {
         StaticPrefixModel16 { stats, ctx: 1 << 8, lead: 1 << 8 }
     }
 }
+
+impl_prefix_analytics!(PrefixModel16, "order-1 byte tree, 16-bit context");

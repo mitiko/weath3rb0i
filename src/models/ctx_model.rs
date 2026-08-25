@@ -30,6 +30,21 @@ impl<T: CtxModel> AdaptiveModel for RawModel<T> {
     }
 }
 
+impl<T: CtxModel + crate::Analytics> crate::Analytics for RawModel<T> {
+    fn log(&mut self) -> serde_json::Value {
+        serde_json::json!({ "model": self.model.log(), "h": self.history })
+    }
+
+    fn metadata(&self) -> serde_json::Value {
+        serde_json::json!({
+            "type": "model/RawModel",
+            "description": "A context model carrying its own raw history",
+            "children": { "model": self.model.metadata() },
+            "vars": { "h": "u32" },
+        })
+    }
+}
+
 impl<T: CtxModel> RawModel<T> {
     pub fn new(model: T) -> Self {
         let mut m = Self { model, history: 0 };

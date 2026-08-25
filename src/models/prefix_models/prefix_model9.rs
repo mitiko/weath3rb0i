@@ -75,3 +75,5 @@ impl StaticModel for StaticPrefixModel9 {
         StaticPrefixModel9 { stats, ctx: 1 << 4, lead: 1 << 4, nibble: 0 }
     }
 }
+
+impl_prefix_analytics!(PrefixModel9, "order-0 nibble tree, 9-bit context");
