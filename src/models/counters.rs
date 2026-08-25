@@ -42,10 +42,10 @@ impl Analytics for Counter4 {
         })
     }
 
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "counter/Counter4",
-            "description": "16-bit adaptive counter with rounding and renormalization",
+            "description": "16-bit counter with rounding and renormalization",
             "vars": { "data": "[u16; 2]" },
             // counter specific
             "size": 4,

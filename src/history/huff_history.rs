@@ -81,7 +81,7 @@ impl Analytics for HuffHistory {
     }
 
     // TODO: make generic over huff size and rem huff size
-    fn metadata() -> serde_json::Value {
+    fn metadata(&self) -> serde_json::Value {
         serde_json::json!({
             "type": "history/HuffHistory",
             "description": "Stores history in Huffman compressed bitstream. Full bytes use Huff tree, partial bytes use special Huff tree.",
