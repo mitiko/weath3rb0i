@@ -1,5 +1,7 @@
-use crate::models::{Counter, CtxModel};
+use crate::models::{Counter, CtxModel, FreezeModel, StaticModel};
 use crate::usize;
+
+pub type StaticPrefixModel8 = PrefixModel8<u16>;
 
 /// order-0 byte tree, 8-bit context
 /// ```text
@@ -40,5 +42,29 @@ impl<C: Counter> CtxModel for PrefixModel8<C> {
         }
         let mask = self.lead - 1;
         self.ctx = self.lead | (usize!(hash) & mask);
+    }
+}
+
+impl<C: Counter> FreezeModel for PrefixModel8<C> {
+    type Frozen = StaticPrefixModel8;
+
+    fn freeze(&self) -> Self::Frozen {
+        let stats = self.stats.iter().map(|c| c.p()).collect::<Vec<u16>>();
+        StaticPrefixModel8 { stats, ctx: 1, lead: 1 }
+    }
+}
+
+impl StaticModel for StaticPrefixModel8 {
+    fn write(&self) -> Vec<u8> {
+        self.stats.iter().flat_map(|&s| s.to_le_bytes()).collect()
+    }
+
+    fn read(data: &[u8]) -> Self {
+        let stats = data
+            .chunks_exact(2)
+            .take(1 << 8)
+            .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+            .collect::<Vec<u16>>();
+        StaticPrefixModel8 { stats, ctx: 1, lead: 1 }
     }
 }
