@@ -9,7 +9,7 @@ pub trait CtxModel {
 
 // helper struct to convert ctx models into adaptive models
 // brings its own u32 history
-struct RawModel<T: CtxModel> {
+pub struct RawModel<T: CtxModel> {
     model: T,
     history: u32,
 }
@@ -27,5 +27,13 @@ impl<T: CtxModel> AdaptiveModel for RawModel<T> {
 
     fn adapt(&mut self, bit: u8) {
         self.model.adapt(bit);
+    }
+}
+
+impl<T: CtxModel> RawModel<T> {
+    pub fn new(model: T) -> Self {
+        let mut m = Self { model, history: 0 };
+        m.model.set_ctx(m.history);
+        m
     }
 }
