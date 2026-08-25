@@ -4,7 +4,7 @@
 import { on } from '../core/bus.js';
 import { setTab, view } from '../core/view.js';
 
-const TABS = ['source', 'state', 'analysis', 'about'];
+const TABS = ['source', 'model', 'state', 'analysis', 'about'];
 
 export class DockTabs extends HTMLElement {
   connectedCallback() {

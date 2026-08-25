@@ -22,6 +22,7 @@
 
 /* only the panels tagged with the dock's current tab are shown */
 #dock > [data-tab] { display: none; }
+#dock[data-tab=model] > [data-tab=model],
 #dock[data-tab=state] > [data-tab=state],
 #dock[data-tab=analysis] > [data-tab=analysis],
 #dock[data-tab=about] > [data-tab=about] { display: block; }

@@ -8,6 +8,7 @@ import './cr-input.js';
 import './dock-tabs.js';
 import './encoder-state.js';
 import './heat-map.js';
+import './model-panel.js';
 import './scan-footer.js';
 import './search-box.js';
 import './source-panel.js';

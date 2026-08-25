@@ -1,0 +1,47 @@
+/* The model builder: label on the left, control on the right, one row each. */
+
+x-model-panel label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .35rem;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+x-model-panel select,
+x-model-panel input {
+  width: 11rem;
+  font: 12px var(--mono);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 1px 3px;
+  background: #fff;
+}
+
+x-model-panel .spec {
+  width: 100%;
+  resize: vertical;
+  font: 11.5px/1.5 var(--mono);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: .3rem;
+  margin-bottom: .5rem;
+}
+
+x-model-panel .row-buttons { display: flex; flex-wrap: wrap; gap: .4rem; }
+
+x-model-panel button {
+  font: 12px var(--mono);
+  padding: .3rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+}
+x-model-panel button:hover { background: #f2f2f6; }
+
+x-model-panel .status { margin: .5rem 0 0; }
