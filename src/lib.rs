@@ -7,13 +7,11 @@ pub mod helpers;
 pub mod history;
 pub mod macros;
 pub mod models;
+pub mod wasm;
 
 mod hashmap;
 mod mixers;
 mod state_table;
-
-#[cfg(target_arch = "wasm32")]
-pub mod wasm;
 
 pub trait Analytics {
     fn log(&mut self) -> serde_json::Value;

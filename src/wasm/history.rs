@@ -27,18 +27,9 @@ impl History for WasmHistory {
 
 impl WasmHistory {
     pub fn parse(dsl: String, buf: &[u8]) -> Result<Self, String> {
-        let name = dsl.split('(').next().unwrap_or("");
-        let params = dsl
-            .split('(')
-            .nth(1)
-            .unwrap_or("")
-            .split(')')
-            .next()
-            .unwrap_or("")
-            .to_string()
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .collect::<Vec<_>>();
+        // top level split, so a nested model stays one argument
+        let (name, args) = super::parse_call(&dsl);
+        let params = super::split_args(args);
 
         match name {
             "Raw" => Ok(WasmHistory::Raw(0)),

@@ -103,11 +103,11 @@ impl CtxModel for WasmModel {
 
 impl WasmModel {
     pub fn parse(dsl: String) -> Result<WasmModel, String> {
-        let name = dsl.split('(').next().unwrap_or("");
-        let rem = dsl.split('(').nth(1).unwrap_or("");
-        let params = rem.split(')').next().unwrap_or("").to_string();
+        let (name, args) = super::parse_call(&dsl);
+        let params = super::split_args(args);
 
-        let counter = WasmCounter::parse(params)?;
+        let counter_param = params.get(0).ok_or("missing counter parameter for model")?;
+        let counter = WasmCounter::parse(counter_param.to_string())?;
 
         match name {
             "PM4" => Ok(WasmModel::PM4(PrefixModel4::new(counter))),
