@@ -1,11 +1,10 @@
 pub mod ac_hash;
 pub mod counters;
 pub mod ctx_model;
-pub mod frozen;
 pub mod prefix_models;
 pub mod runner;
 
-pub use self::{counters::*, ctx_model::*, frozen::*, prefix_models::*, runner::*};
+pub use self::{counters::*, ctx_model::*, prefix_models::*, runner::*};
 pub use crate::state_table::*;
 
 pub trait Model {
@@ -33,18 +32,26 @@ impl<T: AdaptiveModel> Model for T {
     }
 }
 
-pub trait StaticModel {
+pub trait SerializableModel {
     fn write(&self) -> Vec<u8>;
     fn read(data: &[u8]) -> Self;
 }
 
-pub trait FreezeModel {
-    type Frozen: StaticModel;
+pub trait FreezeModel : AdaptiveModel {
+    type Frozen: SerializableModel;
 
+    fn train(&mut self, data: &[u8]) {
+        for byte in data {
+            unroll_for!(bit in byte, {
+                self.adapt(bit);
+                self.update(bit);
+            });
+        }
+    }
     fn freeze(&self) -> Self::Frozen;
 }
 
-use crate::mixers::opinion_mixer2::OpinionMixer2;
+use crate::{mixers::opinion_mixer2::OpinionMixer2, unroll_for};
 pub struct BestOfTwoModel<T, U>
 where
     T: Model,

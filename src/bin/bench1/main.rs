@@ -19,10 +19,17 @@ macro_rules! best_of3 {
             0
         };
         let (csize, time) = (0..3)
-            .map(|_| compress($buf, $history, $model).unwrap())
+            .map(|_| compress_ctx($buf, $history, $model).unwrap())
             .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
             .unwrap();
         println!("{:<22} csize: {:>9}, time: {:?}", $label, csize + additional_bytes, time);
+    };
+    ($buf:expr, $label:expr, $model:expr) => {
+        let (csize, time) = (0..3)
+            .map(|_| compress($buf, $model).unwrap())
+            .min_by(|(_, t1), (_, t2)| t1.cmp(t2))
+            .unwrap();
+        println!("{:<22} csize: {:>9}, time: {:?}", $label, csize, time);
     };
 }
 
@@ -38,79 +45,98 @@ fn main() -> Result<()> {
     // counter: linear, exp, FSM
     // model: pm5, pm8, pm9, pm13, pm16
 
-    best_of3!(&buf, "[h=raw, m=pm5,  c=lc4]", 0, PrefixModel5::new(Counter4::new()));
-    best_of3!(&buf, "[h=raw, m=pm8,  c=lc4]", 0, PrefixModel8::new(Counter4::new()));
-    best_of3!(&buf, "[h=raw, m=pm9,  c=lc4]", 0, PrefixModel9::new(Counter4::new()));
-    best_of3!(&buf, "[h=raw, m=pm13, c=lc4]", 0, PrefixModel13::new(Counter4::new()));
-    best_of3!(&buf, "[h=raw, m=pm16, c=lc4]", 0, PrefixModel16::new(Counter4::new()));
-    best_of3!(&buf, "[h=raw, m=pm5,  c=gc5]", 0, PrefixModel5::new(GC5::new()));
-    best_of3!(&buf, "[h=raw, m=pm8,  c=gc5]", 0, PrefixModel8::new(GC5::new()));
-    best_of3!(&buf, "[h=raw, m=pm9,  c=gc5]", 0, PrefixModel9::new(GC5::new()));
-    best_of3!(&buf, "[h=raw, m=pm13, c=gc5]", 0, PrefixModel13::new(GC5::new()));
-    best_of3!(&buf, "[h=raw, m=pm16, c=gc5]", 0, PrefixModel16::new(GC5::new()));
-    best_of3!(&buf, "[h=raw, m=pm5,  c=gc9]", 0, PrefixModel5::new(GC9::new()));
-    best_of3!(&buf, "[h=raw, m=pm8,  c=gc9]", 0, PrefixModel8::new(GC9::new()));
-    best_of3!(&buf, "[h=raw, m=pm9,  c=gc9]", 0, PrefixModel9::new(GC9::new()));
-    best_of3!(&buf, "[h=raw, m=pm13, c=gc9]", 0, PrefixModel13::new(GC9::new()));
-    best_of3!(&buf, "[h=raw, m=pm16, c=gc9]", 0, PrefixModel16::new(GC9::new()));
-    best_of3!(&buf, "[h=raw, m=pm5,  c=fsm]", 0, PrefixModel5::new(FSM0::new()));
-    best_of3!(&buf, "[h=raw, m=pm8,  c=fsm]", 0, PrefixModel8::new(FSM0::new()));
-    best_of3!(&buf, "[h=raw, m=pm9,  c=fsm]", 0, PrefixModel9::new(FSM0::new()));
-    best_of3!(&buf, "[h=raw, m=pm13, c=fsm]", 0, PrefixModel13::new(FSM0::new()));
-    best_of3!(&buf, "[h=raw, m=pm16, c=fsm]", 0, PrefixModel16::new(FSM0::new()));
+    best_of3!(&buf, "[h=raw, m=pm5,  c=lc4]", PrefixModel5::new(Counter4::new()));
+    best_of3!(&buf, "[h=raw, m=pm8,  c=lc4]", PrefixModel8::new(Counter4::new()));
+    best_of3!(&buf, "[h=raw, m=pm9,  c=lc4]", PrefixModel9::new(Counter4::new()));
+    best_of3!(&buf, "[h=raw, m=pm13, c=lc4]", PrefixModel13::new(Counter4::new()));
+    best_of3!(&buf, "[h=raw, m=pm16, c=lc4]", PrefixModel16::new(Counter4::new()));
+    best_of3!(&buf, "[h=raw, m=pm5,  c=gc5]", PrefixModel5::new(GC5::new()));
+    best_of3!(&buf, "[h=raw, m=pm8,  c=gc5]", PrefixModel8::new(GC5::new()));
+    best_of3!(&buf, "[h=raw, m=pm9,  c=gc5]", PrefixModel9::new(GC5::new()));
+    best_of3!(&buf, "[h=raw, m=pm13, c=gc5]", PrefixModel13::new(GC5::new()));
+    best_of3!(&buf, "[h=raw, m=pm16, c=gc5]", PrefixModel16::new(GC5::new()));
+    best_of3!(&buf, "[h=raw, m=pm5,  c=gc9]", PrefixModel5::new(GC9::new()));
+    best_of3!(&buf, "[h=raw, m=pm8,  c=gc9]", PrefixModel8::new(GC9::new()));
+    best_of3!(&buf, "[h=raw, m=pm9,  c=gc9]", PrefixModel9::new(GC9::new()));
+    best_of3!(&buf, "[h=raw, m=pm13, c=gc9]", PrefixModel13::new(GC9::new()));
+    best_of3!(&buf, "[h=raw, m=pm16, c=gc9]", PrefixModel16::new(GC9::new()));
+    best_of3!(&buf, "[h=raw, m=pm5,  c=fsm]", PrefixModel5::new(FSM0::new()));
+    best_of3!(&buf, "[h=raw, m=pm8,  c=fsm]", PrefixModel8::new(FSM0::new()));
+    best_of3!(&buf, "[h=raw, m=pm9,  c=fsm]", PrefixModel9::new(FSM0::new()));
+    best_of3!(&buf, "[h=raw, m=pm13, c=fsm]", PrefixModel13::new(FSM0::new()));
+    best_of3!(&buf, "[h=raw, m=pm16, c=fsm]", PrefixModel16::new(FSM0::new()));
 
     let h = HuffHistory::new(&buf, 16, 16);
-    best_of3!(&buf, "[h=huff, m=pm5,  c=lc4]", h.clone(), PrefixModel5::new(Counter4::new()));
-    best_of3!(&buf, "[h=huff, m=pm8,  c=lc4]", h.clone(), PrefixModel8::new(Counter4::new()));
-    best_of3!(&buf, "[h=huff, m=pm9,  c=lc4]", h.clone(), PrefixModel9::new(Counter4::new()));
-    best_of3!(&buf, "[h=huff, m=pm13, c=lc4]", h.clone(), PrefixModel13::new(Counter4::new()));
-    best_of3!(&buf, "[h=huff, m=pm16, c=lc4]", h.clone(), PrefixModel16::new(Counter4::new()));
-    best_of3!(&buf, "[h=huff, m=pm5,  c=gc5]", h.clone(), PrefixModel5::new(GC5::new()));
-    best_of3!(&buf, "[h=huff, m=pm8,  c=gc5]", h.clone(), PrefixModel8::new(GC5::new()));
-    best_of3!(&buf, "[h=huff, m=pm9,  c=gc5]", h.clone(), PrefixModel9::new(GC5::new()));
-    best_of3!(&buf, "[h=huff, m=pm13, c=gc5]", h.clone(), PrefixModel13::new(GC5::new()));
-    best_of3!(&buf, "[h=huff, m=pm16, c=gc5]", h.clone(), PrefixModel16::new(GC5::new()));
-    best_of3!(&buf, "[h=huff, m=pm5,  c=gc9]", h.clone(), PrefixModel5::new(GC9::new()));
-    best_of3!(&buf, "[h=huff, m=pm8,  c=gc9]", h.clone(), PrefixModel8::new(GC9::new()));
-    best_of3!(&buf, "[h=huff, m=pm9,  c=gc9]", h.clone(), PrefixModel9::new(GC9::new()));
-    best_of3!(&buf, "[h=huff, m=pm13, c=gc9]", h.clone(), PrefixModel13::new(GC9::new()));
-    best_of3!(&buf, "[h=huff, m=pm16, c=gc9]", h.clone(), PrefixModel16::new(GC9::new()));
-    best_of3!(&buf, "[h=huff, m=pm5,  c=fsm]", h.clone(), PrefixModel5::new(FSM0::new()));
-    best_of3!(&buf, "[h=huff, m=pm8,  c=fsm]", h.clone(), PrefixModel8::new(FSM0::new()));
-    best_of3!(&buf, "[h=huff, m=pm9,  c=fsm]", h.clone(), PrefixModel9::new(FSM0::new()));
-    best_of3!(&buf, "[h=huff, m=pm13, c=fsm]", h.clone(), PrefixModel13::new(FSM0::new()));
-    best_of3!(&buf, "[h=huff, m=pm16, c=fsm]", h.clone(), PrefixModel16::new(FSM0::new()));
+    best_of3!(&buf, "[h=huff, m=pm5,  c=lc4]", h.clone(), CtxPrefixModel5::new(Counter4::new()));
+    best_of3!(&buf, "[h=huff, m=pm8,  c=lc4]", h.clone(), CtxPrefixModel8::new(Counter4::new()));
+    best_of3!(&buf, "[h=huff, m=pm9,  c=lc4]", h.clone(), CtxPrefixModel9::new(Counter4::new()));
+    best_of3!(&buf, "[h=huff, m=pm13, c=lc4]", h.clone(), CtxPrefixModel13::new(Counter4::new()));
+    best_of3!(&buf, "[h=huff, m=pm16, c=lc4]", h.clone(), CtxPrefixModel16::new(Counter4::new()));
+    best_of3!(&buf, "[h=huff, m=pm5,  c=gc5]", h.clone(), CtxPrefixModel5::new(GC5::new()));
+    best_of3!(&buf, "[h=huff, m=pm8,  c=gc5]", h.clone(), CtxPrefixModel8::new(GC5::new()));
+    best_of3!(&buf, "[h=huff, m=pm9,  c=gc5]", h.clone(), CtxPrefixModel9::new(GC5::new()));
+    best_of3!(&buf, "[h=huff, m=pm13, c=gc5]", h.clone(), CtxPrefixModel13::new(GC5::new()));
+    best_of3!(&buf, "[h=huff, m=pm16, c=gc5]", h.clone(), CtxPrefixModel16::new(GC5::new()));
+    best_of3!(&buf, "[h=huff, m=pm5,  c=gc9]", h.clone(), CtxPrefixModel5::new(GC9::new()));
+    best_of3!(&buf, "[h=huff, m=pm8,  c=gc9]", h.clone(), CtxPrefixModel8::new(GC9::new()));
+    best_of3!(&buf, "[h=huff, m=pm9,  c=gc9]", h.clone(), CtxPrefixModel9::new(GC9::new()));
+    best_of3!(&buf, "[h=huff, m=pm13, c=gc9]", h.clone(), CtxPrefixModel13::new(GC9::new()));
+    best_of3!(&buf, "[h=huff, m=pm16, c=gc9]", h.clone(), CtxPrefixModel16::new(GC9::new()));
+    best_of3!(&buf, "[h=huff, m=pm5,  c=fsm]", h.clone(), CtxPrefixModel5::new(FSM0::new()));
+    best_of3!(&buf, "[h=huff, m=pm8,  c=fsm]", h.clone(), CtxPrefixModel8::new(FSM0::new()));
+    best_of3!(&buf, "[h=huff, m=pm9,  c=fsm]", h.clone(), CtxPrefixModel9::new(FSM0::new()));
+    best_of3!(&buf, "[h=huff, m=pm13, c=fsm]", h.clone(), CtxPrefixModel13::new(FSM0::new()));
+    best_of3!(&buf, "[h=huff, m=pm16, c=fsm]", h.clone(), CtxPrefixModel16::new(FSM0::new()));
 
     let model = PrefixModel8::new(Counter4::new());
-    let mut model = FrozenModel::new(RawModel::new(model));
-    model.train(&buf);
+    let model = model.freeze();
+    // let mut model = FrozenModel::new(RawModel::new(model));
+    // model.train(&buf);
     let ac = ACHistory::new(15, model);
 
-    best_of3!(&buf, "[h=ac, m=pm5,  c=lc4]", ac.clone(), PrefixModel5::new(Counter4::new()));
-    best_of3!(&buf, "[h=ac, m=pm8,  c=lc4]", ac.clone(), PrefixModel8::new(Counter4::new()));
-    best_of3!(&buf, "[h=ac, m=pm9,  c=lc4]", ac.clone(), PrefixModel9::new(Counter4::new()));
-    best_of3!(&buf, "[h=ac, m=pm13, c=lc4]", ac.clone(), PrefixModel13::new(Counter4::new()));
-    best_of3!(&buf, "[h=ac, m=pm16, c=lc4]", ac.clone(), PrefixModel16::new(Counter4::new()));
-    best_of3!(&buf, "[h=ac, m=pm5,  c=gc5]", ac.clone(), PrefixModel5::new(GC5::new()));
-    best_of3!(&buf, "[h=ac, m=pm8,  c=gc5]", ac.clone(), PrefixModel8::new(GC5::new()));
-    best_of3!(&buf, "[h=ac, m=pm9,  c=gc5]", ac.clone(), PrefixModel9::new(GC5::new()));
-    best_of3!(&buf, "[h=ac, m=pm13, c=gc5]", ac.clone(), PrefixModel13::new(GC5::new()));
-    best_of3!(&buf, "[h=ac, m=pm16, c=gc5]", ac.clone(), PrefixModel16::new(GC5::new()));
-    best_of3!(&buf, "[h=ac, m=pm5,  c=gc9]", ac.clone(), PrefixModel5::new(GC9::new()));
-    best_of3!(&buf, "[h=ac, m=pm8,  c=gc9]", ac.clone(), PrefixModel8::new(GC9::new()));
-    best_of3!(&buf, "[h=ac, m=pm9,  c=gc9]", ac.clone(), PrefixModel9::new(GC9::new()));
-    best_of3!(&buf, "[h=ac, m=pm13, c=gc9]", ac.clone(), PrefixModel13::new(GC9::new()));
-    best_of3!(&buf, "[h=ac, m=pm16, c=gc9]", ac.clone(), PrefixModel16::new(GC9::new()));
-    best_of3!(&buf, "[h=ac, m=pm5,  c=fsm]", ac.clone(), PrefixModel5::new(FSM0::new()));
-    best_of3!(&buf, "[h=ac, m=pm8,  c=fsm]", ac.clone(), PrefixModel8::new(FSM0::new()));
-    best_of3!(&buf, "[h=ac, m=pm9,  c=fsm]", ac.clone(), PrefixModel9::new(FSM0::new()));
-    best_of3!(&buf, "[h=ac, m=pm13, c=fsm]", ac.clone(), PrefixModel13::new(FSM0::new()));
-    best_of3!(&buf, "[h=ac, m=pm16, c=fsm]", ac.clone(), PrefixModel16::new(FSM0::new()));
+    best_of3!(&buf, "[h=ac, m=pm5,  c=lc4]", ac.clone(), CtxPrefixModel5::new(Counter4::new()));
+    best_of3!(&buf, "[h=ac, m=pm8,  c=lc4]", ac.clone(), CtxPrefixModel8::new(Counter4::new()));
+    best_of3!(&buf, "[h=ac, m=pm9,  c=lc4]", ac.clone(), CtxPrefixModel9::new(Counter4::new()));
+    best_of3!(&buf, "[h=ac, m=pm13, c=lc4]", ac.clone(), CtxPrefixModel13::new(Counter4::new()));
+    best_of3!(&buf, "[h=ac, m=pm16, c=lc4]", ac.clone(), CtxPrefixModel16::new(Counter4::new()));
+    best_of3!(&buf, "[h=ac, m=pm5,  c=gc5]", ac.clone(), CtxPrefixModel5::new(GC5::new()));
+    best_of3!(&buf, "[h=ac, m=pm8,  c=gc5]", ac.clone(), CtxPrefixModel8::new(GC5::new()));
+    best_of3!(&buf, "[h=ac, m=pm9,  c=gc5]", ac.clone(), CtxPrefixModel9::new(GC5::new()));
+    best_of3!(&buf, "[h=ac, m=pm13, c=gc5]", ac.clone(), CtxPrefixModel13::new(GC5::new()));
+    best_of3!(&buf, "[h=ac, m=pm16, c=gc5]", ac.clone(), CtxPrefixModel16::new(GC5::new()));
+    best_of3!(&buf, "[h=ac, m=pm5,  c=gc9]", ac.clone(), CtxPrefixModel5::new(GC9::new()));
+    best_of3!(&buf, "[h=ac, m=pm8,  c=gc9]", ac.clone(), CtxPrefixModel8::new(GC9::new()));
+    best_of3!(&buf, "[h=ac, m=pm9,  c=gc9]", ac.clone(), CtxPrefixModel9::new(GC9::new()));
+    best_of3!(&buf, "[h=ac, m=pm13, c=gc9]", ac.clone(), CtxPrefixModel13::new(GC9::new()));
+    best_of3!(&buf, "[h=ac, m=pm16, c=gc9]", ac.clone(), CtxPrefixModel16::new(GC9::new()));
+    best_of3!(&buf, "[h=ac, m=pm5,  c=fsm]", ac.clone(), CtxPrefixModel5::new(FSM0::new()));
+    best_of3!(&buf, "[h=ac, m=pm8,  c=fsm]", ac.clone(), CtxPrefixModel8::new(FSM0::new()));
+    best_of3!(&buf, "[h=ac, m=pm9,  c=fsm]", ac.clone(), CtxPrefixModel9::new(FSM0::new()));
+    best_of3!(&buf, "[h=ac, m=pm13, c=fsm]", ac.clone(), CtxPrefixModel13::new(FSM0::new()));
+    best_of3!(&buf, "[h=ac, m=pm16, c=fsm]", ac.clone(), CtxPrefixModel16::new(FSM0::new()));
 
     Ok(())
 }
 
-fn compress(
+fn compress(buf: &[u8], mut model: impl Model) -> Result<(u64, Duration)> {
+    let mut ac = ArithmeticCoder::new_coder();
+    let mut writer = ACStats::new();
+
+    let timer = Instant::now();
+    for byte in buf {
+        unroll_for!(bit in byte, {
+            let p = model.predict();
+            model.update(bit);
+            ac.encode(bit, p, &mut writer)?;
+        });
+    }
+    ac.flush(&mut writer)?;
+    let time = timer.elapsed();
+
+    Ok((writer.result(), time))
+}
+
+fn compress_ctx(
     buf: &[u8],
     mut history: impl History,
     mut model: impl CtxModel,

@@ -28,6 +28,18 @@ pub fn cmp(file1: &str, file2: &str) -> Result<()> {
     Ok(())
 }
 
+pub fn get_len(input_file: std::path::PathBuf) -> (BufReader<File>, u64) {
+    let f = File::open(input_file).unwrap();
+    let len = f.metadata().unwrap().len();
+    (BufReader::new(f), len)
+}
+
+pub fn read_u64(reader: &mut BufReader<File>) -> Result<u64> {
+    let mut len_buf = [0; 8];
+    reader.read_exact(&mut len_buf)?;
+    Ok(u64::from_be_bytes(len_buf))
+}
+
 pub fn histogram(buf: &[u8]) -> Vec<u32> {
     let mut res = vec![0; 256];
     for &byte in buf {

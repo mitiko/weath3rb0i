@@ -1,19 +1,11 @@
 use std::io::{BufReader, BufWriter, Read, Write};
 use std::time::Instant;
-use std::{env, fs, fs::File, path::PathBuf};
+use std::{env, fs::File, path::PathBuf};
 
-use weath3rb0i::{
-    entropy_coding::{
-        arithmetic_coder::ArithmeticCoder,
-        io::{ACReader, ACWriter},
-    },
-    models::Model,
-};
+use weath3rb0i::helpers::{cmp, get_len, read_u64};
+use weath3rb0i::{entropy_coding::*, models::*, unroll_for};
 
-const MAGIC_STR: &[u8; 4] = b"w30i";
-const MAGIC_NUM: u32 = u32::from_be_bytes(*MAGIC_STR);
-
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum Action {
     Compress,
     Decompress,
@@ -22,63 +14,41 @@ enum Action {
 
 fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        print_usage_and_exit("Invokation doesn't match usage! Provide 2 arguments.");
+    if args.len() != 4 {
+        print_usage_and_exit("Invokation doesn't match usage!");
     }
-    let path = PathBuf::from(&args[2]);
     let action = match args[1].as_str() {
         "c" => Action::Compress,
         "d" => Action::Decompress,
         "t" => Action::Test,
         _ => print_usage_and_exit("Unrecognized option -> <action>!"),
     };
+    let in_path = PathBuf::from(&args[2]);
+    let out_path = PathBuf::from(&args[3]);
 
-    if !path.is_file() && !path.is_dir() {
-        panic!("Path must be a file or a directory!");
-    }
-
-    if path.is_dir() {
-        for file in fs::read_dir(path)? {
-            let file_path = file?.path();
-            if file_path.is_file() {
-                run(file_path, action)?;
-            }
-        }
-    } else if path.is_file() {
-        run(path, action)?;
-    }
+    run(in_path, out_path, action)?;
 
     Ok(())
 }
 
-fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
-    assert!(file_path.is_file());
-
-    let out_path = {
-        let mut out_path = std::env::current_dir()?;
-        out_path.push(file_path.file_name().unwrap());
-
-        match action {
-            Action::Compress | Action::Test => out_path.set_extension("bin"),
-            Action::Decompress => out_path.set_extension("orig"),
-        };
-
-        out_path
-    };
+fn run(in_path: PathBuf, out_path: PathBuf, action: Action) -> std::io::Result<()> {
+    assert!(in_path.is_file());
 
     let timer = Instant::now();
     match action {
         Action::Compress => {
-            compress(file_path, out_path)?;
+            compress(in_path, out_path)?;
             println!("Compression took: {:?}", timer.elapsed());
         }
         Action::Decompress => {
-            decompress(file_path, out_path)?;
+            decompress(in_path, out_path)?;
             println!("Decompression took: {:?}", timer.elapsed());
         }
         Action::Test => {
-            run(file_path, Action::Compress)?;
-            run(out_path, Action::Decompress)?;
+            let orig_path = in_path.clone().with_added_extension("orig");
+            run(in_path.clone(), out_path.clone(), Action::Compress)?;
+            run(out_path, orig_path.clone(), Action::Decompress)?;
+            cmp(&in_path.to_string_lossy(), &orig_path.to_string_lossy())?;
         }
     }
 
@@ -87,24 +57,19 @@ fn run(file_path: PathBuf, action: Action) -> std::io::Result<()> {
 
 fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut writer = BufWriter::new(File::create(output_file)?);
-    let reader = {
-        let f = File::open(input_file)?;
-        let len = f.metadata()?.len();
+    let (mut reader, len) = get_len(input_file);
+    writer.write_all(&len.to_be_bytes())?;
 
-        writer.write_all(MAGIC_STR)?;
-        writer.write_all(&len.to_be_bytes())?;
-        BufReader::new(f)
-    };
     let mut writer = ACWriter::new(writer);
     let mut ac = ArithmeticCoder::new_coder();
-    let mut model = init_model();
+    let mut model = init_model(&mut reader);
 
     for byte in reader.bytes().map(|byte| byte.unwrap()) {
-        for bit in (0..8).rev().map(|i| (byte >> i) & 1) {
+        unroll_for!(bit in byte, {
             let p = model.predict();
             model.update(bit);
             ac.encode(bit, p, &mut writer)?;
-        }
+        });
     }
 
     ac.flush(&mut writer)?;
@@ -114,18 +79,11 @@ fn compress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
 fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> {
     let mut reader = BufReader::new(File::open(input_file)?);
     let mut writer = BufWriter::new(File::create(output_file)?);
+    let len = read_u64(&mut reader)?;
 
-    let len = {
-        let mut len_buf = [0; std::mem::size_of::<u32>() + std::mem::size_of::<u64>()];
-        reader.read_exact(&mut len_buf)?;
-
-        let magic_num = u32::from_be_bytes(len_buf[..4].try_into().unwrap());
-        assert_eq!(magic_num, MAGIC_NUM, "Magic numbers don't match up - file wasn't compressed with (this version of) weath3rb0i!");
-        u64::from_be_bytes(len_buf[4..].try_into().unwrap())
-    };
+    let mut model = read_model(&mut reader);
     let mut reader = ACReader::new(reader);
     let mut ac = ArithmeticCoder::new_decoder(&mut reader)?;
-    let mut model = init_model();
 
     for _ in 0..len {
         let mut byte = 0;
@@ -142,13 +100,12 @@ fn decompress(input_file: PathBuf, output_file: PathBuf) -> std::io::Result<()> 
     Ok(())
 }
 
-fn init_model() -> impl Model {
-    use weath3rb0i::models::*;
-    // BestOfTwoModel::new(Order0::new(), Order1::new())
-    // BestOfTwoModel::new(Order0Entropy::new(), Order0::new())
-    // BestOfTwoModel::new(Order1::new(), Order0Entropy::new())
-    // OrderNEntropy::new(11, 3, ACHistory::new(8, StationaryModel::for_book1()))
-    RawModel::new(PrefixModel8::new(Counter4::new()))
+fn init_model(_reader: &mut impl Read) -> impl Model {
+    PrefixModel8::new(Counter4::new())
+}
+
+fn read_model(_reader: &mut impl Read) -> impl Model {
+    PrefixModel8::new(Counter4::new())
 }
 
 fn print_usage_and_exit(msg: &str) -> ! {
@@ -159,5 +116,3 @@ fn print_usage_and_exit(msg: &str) -> ! {
     println!("\n{}", msg);
     std::process::exit(1);
 }
-
-// TODO: Add tests
