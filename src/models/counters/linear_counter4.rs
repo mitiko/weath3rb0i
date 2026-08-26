@@ -1,9 +1,5 @@
-use crate::{u16, Analytics};
-
-pub trait Counter: Sized + Clone {
-    fn p(&self) -> u16;
-    fn update(&mut self, bit: u8);
-}
+use super::Counter;
+use crate::{Analytics, u16};
 
 #[derive(Copy, Clone)]
 pub struct Counter4 {
@@ -31,15 +27,6 @@ impl Counter for Counter4 {
         }
         self.data[usize::from(bit)] += 1;
     }
-}
-
-/// static probability
-impl Counter for u16 {
-    fn p(&self) -> u16 {
-        *self
-    }
-
-    fn update(&mut self, _bit: u8) {}
 }
 
 impl Analytics for Counter4 {
