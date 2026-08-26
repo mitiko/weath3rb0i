@@ -34,14 +34,10 @@ default = []
 unsafe_conversions = []
 
 [[bin]]
-name = "order0"
-[[bin]]
 name = "ac-over-huffman"
-[[bin]]
-name = "cmp"
-[[bin]]
-name = "ordern"
 [[bin]]
 name = "entropy-hashing-ac"
 [[bin]]
 name = "entropy-hashing-huff"
+[[bin]]
+name = "bench1"

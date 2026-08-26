@@ -6,10 +6,11 @@ use crate::{
     u8, Analytics,
 };
 
+#[derive(Clone)]
 pub struct ACHistory<M: Model> {
     pos: usize,
     bits: u64,
-    probs: RotatingBuffer<u16, 64>,
+    probs: RotatingBuffer<u16, 1024>,
     max_bits: u8,
     compressed_bits_count: usize,
     model: M,
@@ -17,10 +18,11 @@ pub struct ACHistory<M: Model> {
 
 impl<M: Model> ACHistory<M> {
     pub fn new(max_bits: u8, model: M) -> Self {
+        const HALF: u16 = 1 << 15;
         Self {
             pos: 0,
             bits: 0,
-            probs: RotatingBuffer::init(1 << 15),
+            probs: RotatingBuffer::init(HALF),
             max_bits,
             compressed_bits_count: 0,
             model,

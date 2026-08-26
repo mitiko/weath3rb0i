@@ -14,6 +14,7 @@ pub type StaticPrefixModel13 = PrefixModel13<u16>;
 /// 1_01ef_ghij_klmn
 /// 1_1efg_hijk_lmno
 /// ```
+#[derive(Clone)]
 pub struct PrefixModel13<C: Counter> {
     stats: Vec<C>,
     ctx: usize,

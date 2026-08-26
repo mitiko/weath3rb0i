@@ -6,6 +6,7 @@ use crate::{
 
 use super::History;
 
+#[derive(Clone)]
 pub struct HuffHistory {
     pos: u64,
     bits: u64,

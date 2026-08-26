@@ -90,9 +90,16 @@ impl entropy_coding::arithmetic_coder::ACWrite for ACStats {
     }
 }
 
+#[derive(Clone)]
 pub struct RotatingBuffer<T, const N: usize> {
     buf: [T; N],
     pos: usize,
+}
+
+impl<T, const N: usize> RotatingBuffer<T, N> {
+    pub fn len(&self) -> usize {
+        N
+    }
 }
 
 impl<T, const N: usize> Index<usize> for RotatingBuffer<T, N> {

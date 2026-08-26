@@ -9,6 +9,7 @@ pub trait CtxModel {
 
 // helper struct to convert ctx models into adaptive models
 // brings its own u32 history
+#[derive(Clone)]
 pub struct RawModel<T: CtxModel> {
     model: T,
     history: u32,
