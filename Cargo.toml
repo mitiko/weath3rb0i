@@ -32,12 +32,3 @@ strip = "none"
 [features]
 default = []
 unsafe_conversions = []
-
-[[bin]]
-name = "ac-over-huffman"
-[[bin]]
-name = "entropy-hashing-ac"
-[[bin]]
-name = "entropy-hashing-huff"
-[[bin]]
-name = "bench1"
