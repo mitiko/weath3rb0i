@@ -15,8 +15,8 @@ pub type StaticPrefixModel8 = PrefixModel8<u16>;
 /// ```
 #[derive(Clone)]
 pub struct PrefixModel8<C: Counter> {
-    stats: Vec<C>,
-    ctx: usize,
+    pub stats: Vec<C>,
+    pub ctx: usize,
 }
 
 impl<C: Counter> PrefixModel8<C> {
@@ -79,9 +79,9 @@ impl SerializableModel for StaticPrefixModel8 {
 /// ```
 #[derive(Clone)]
 pub struct CtxPrefixModel8<C: Counter> {
-    stats: Vec<C>,
-    ctx: usize,
-    lead: usize,
+    pub stats: Vec<C>,
+    pub ctx: usize,
+    pub lead: usize,
 }
 
 impl<C: Counter> CtxPrefixModel8<C> {
