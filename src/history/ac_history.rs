@@ -139,6 +139,82 @@ impl<M: Model> History for ACHistoryMSB<M> {
     }
 }
 
+/// An entropy-coded history that uses LSB-first order for the current
+/// partial byte and MSB-first order for all preceding complete bytes.
+///
+/// The byte boundary determines where the ordering changes: bits in the
+/// current incomplete byte are read from newest to oldest, while complete
+/// bytes before it are read MSB-first.
+#[derive(Clone)]
+pub struct ACHistoryByteBoundary<M: Model> {
+    pos: usize,
+    bits: u64,
+    probs: RotatingBuffer<u16, 64>,
+    processed_bits: usize,
+    model: M,
+}
+
+impl<M: Model> ACHistoryByteBoundary<M> {
+    pub fn new(model: M) -> Self {
+        const HALF: u16 = 1 << 15;
+        Self {
+            pos: 0,
+            bits: 0,
+            probs: RotatingBuffer::init(HALF),
+            processed_bits: 0,
+            model,
+        }
+    }
+}
+
+/// Return the index in the rotating history for the `ordinal`th bit in the
+/// LSB-partial/MSB-previous-bytes view of the history.
+#[inline]
+fn history_index_lsb_msb(ordinal: usize, partial_bits: usize) -> usize {
+    if ordinal < partial_bits {
+        return ordinal;
+    }
+    let previous = ordinal - partial_bits;
+    let byte = previous / 8;
+    let bit = previous % 8;
+    partial_bits + byte * 8 + 7 - bit
+}
+
+impl<M: Model> History for ACHistoryByteBoundary<M> {
+    fn update(&mut self, bit: u8) {
+        let p = self.model.predict();
+        self.model.update(bit);
+        self.probs.push(p);
+
+        self.bits = (self.bits << 1) | u64::from(bit);
+        self.pos += 1;
+        self.processed_bits = 0;
+    }
+
+    fn hash(&mut self, max_bits: u8) -> u32 {
+        let mut ac = ArithmeticCoder::new_coder();
+        let mut writer = EntropyWriter::new(max_bits);
+        let partial_bits = self.pos % 8;
+
+        for ordinal in 0..self.pos.min(64) {
+            let index = history_index_lsb_msb(ordinal, partial_bits);
+            // With an unaligned history, the next complete MSB-first byte
+            // can begin before the 64-bit raw window.
+            if index >= 64 {
+                break;
+            }
+            let bit = u8!((self.bits >> index) & 1);
+            let p = self.probs[index];
+            if ac.encode(bit, p, &mut writer).is_err() {
+                self.processed_bits = ordinal + 1;
+                break;
+            }
+        }
+
+        writer.state.wrapping_shr(32 - writer.idx as u32)
+    }
+}
+
 #[derive(Clone, Debug)]
 struct EntropyWriter {
     state: u32,
@@ -192,7 +268,7 @@ impl ACWrite for EntropyWriter {
 #[cfg(test)]
 mod tests {
     #[test]
-    fn history_indices_are_msb_first_by_byte() {
+    fn history_index_msb_partial() {
         // One bit in the current byte, followed by two complete preceding
         // bytes: current, then 8..1, then 16..9.
         let indices = (0..17)
@@ -212,9 +288,36 @@ mod tests {
     }
 
     #[test]
-    fn complete_current_byte_uses_zero_partial_bits() {
+    fn history_index_msb_aligned() {
         let indices = (0..17)
             .map(|i| super::history_index_msb(i, 0))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            indices,
+            vec![7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 23]
+        );
+    }
+
+    #[test]
+    fn history_index_lsb_msb_partial() {
+        let indices = (0..17)
+            .map(|i| super::history_index_lsb_msb(i, 1))
+            .collect::<Vec<_>>();
+        assert_eq!(
+            indices,
+            vec![0, 8, 7, 6, 5, 4, 3, 2, 1, 16, 15, 14, 13, 12, 11, 10, 9]
+        );
+
+        let indices = (0..10)
+            .map(|i| super::history_index_lsb_msb(i, 2))
+            .collect::<Vec<_>>();
+        assert_eq!(indices, vec![0, 1, 9, 8, 7, 6, 5, 4, 3, 2]);
+    }
+
+    #[test]
+    fn history_index_lsb_msb_aligned() {
+        let indices = (0..17)
+            .map(|i| super::history_index_lsb_msb(i, 0))
             .collect::<Vec<_>>();
         assert_eq!(
             indices,
