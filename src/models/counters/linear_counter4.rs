@@ -1,5 +1,5 @@
 use super::Counter;
-use crate::{Analytics, u16};
+use crate::{u16, Analytics};
 
 #[derive(Copy, Clone)]
 pub struct Counter4 {

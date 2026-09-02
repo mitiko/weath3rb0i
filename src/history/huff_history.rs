@@ -58,7 +58,7 @@ impl History for HuffHistory {
         self.pos += 1;
     }
 
-    fn hash(&mut self) -> u32 {
+    fn hash(&mut self, _max_bits: u8) -> u32 {
         let alignment = self.pos & 7;
         if alignment == 0 {
             let byte = u8!(self.bits & 255);
@@ -77,7 +77,7 @@ impl Analytics for HuffHistory {
     // TODO: add more properties
     fn log(&mut self) -> serde_json::Value {
         serde_json::json!({
-            "h": self.hash()
+            "h": self.hash(0)
         })
     }
 
