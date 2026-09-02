@@ -1,7 +1,8 @@
 pub mod ac_history;
+pub mod ac_history_skip;
 pub mod huff_history;
 
-pub use self::{ac_history::*, huff_history::*};
+pub use self::{ac_history::*, ac_history_skip::*, huff_history::*};
 
 pub trait History {
     fn update(&mut self, bit: u8);

@@ -2,7 +2,7 @@ use std::{fs, io};
 use weath3rb0i::{
     entropy_coding::ArithmeticCoder,
     helpers::ACStats,
-    history::{ACHistory, ACHistoryMSB, History},
+    history::{ACHistory, History, HistoryBitOrder},
     models::{
         counters::*, CtxModel, CtxPrefixModel13, CtxPrefixModel16, CtxPrefixModel8, FreezeModel,
         PrefixModel8,
@@ -10,80 +10,93 @@ use weath3rb0i::{
     unroll_for, usize,
 };
 
+/*
+| model     | LSB    | MSB    | Boundary |
+|-----------|--------|--------|----------|
+| tree 8    | 457308 | 422957 | 444776   |
+| suffix 8  | 461637 | 411411 | 434803   |
+| tree 13   | 365566 | 311173 | 335762   |
+| suffix 13 | 362180 | 304601 | 329846   |
+| tree 16   | 322759 | 279366 | 292386   |
+| suffix 16 | 313162 | 269544 | 284930   |
+*/
+
 fn main() -> io::Result<()> {
     let buf = fs::read("/Users/mitiko/_data/calgary/book1")?;
 
+    println!("training inner model...");
     let mut model = PrefixModel8::new(Counter4::new());
     model.train(&buf);
     let inner = model.freeze();
 
-    let enc_tree = run_lsb(CtxPrefixModel8::new(Counter4::new()), inner.clone(), &buf);
-    let enc_tree_msb = run(CtxPrefixModel8::new(Counter4::new()), inner.clone(), &buf);
-    let enc_suffix = run_lsb(SlidingWindow5::new(), inner.clone(), &buf);
-    let enc_suffix_msb = run(SlidingWindow5::new(), inner.clone(), &buf);
-
-    println!("8 tree:   {enc_tree}    {enc_tree_msb}");
-    println!("8 suffix: {enc_suffix}    {enc_suffix_msb}");
-
-    let enc_tree = run_lsb(CtxPrefixModel13::new(Counter4::new()), inner.clone(), &buf);
-    let enc_tree_msb = run(CtxPrefixModel13::new(Counter4::new()), inner.clone(), &buf);
-    let enc_suffix = run_lsb(SlidingWindow10::new(), inner.clone(), &buf);
-    let enc_suffix_msb = run(SlidingWindow10::new(), inner.clone(), &buf);
-
-    println!("13 tree:   {enc_tree}    {enc_tree_msb}");
-    println!("13 suffix: {enc_suffix}    {enc_suffix_msb}");
-
-    let enc_tree = run_lsb(CtxPrefixModel16::new(Counter4::new()), inner.clone(), &buf);
-    let enc_tree_msb = run(CtxPrefixModel16::new(Counter4::new()), inner.clone(), &buf);
-    let enc_suffix = run_lsb(SlidingWindow13::new(), inner.clone(), &buf);
-    let enc_suffix_msb = run(SlidingWindow13::new(), inner.clone(), &buf);
-
-    println!("16 tree:   {enc_tree}    {enc_tree_msb}");
-    println!("16 suffix: {enc_suffix}    {enc_suffix_msb}");
+    println!(
+        "{:<12} {:>12} {:>12} {:>12}",
+        "model", "LSB", "MSB", "Boundary"
+    );
+    let tree8 = run(CtxPrefixModel8::new(Counter4::new()), inner.clone(), &buf);
+    print_row("tree 8", tree8);
+    let suffix8 = run(SlidingWindow5::new(), inner.clone(), &buf);
+    print_row("suffix 8", suffix8);
+    let tree13 = run(CtxPrefixModel13::new(Counter4::new()), inner.clone(), &buf);
+    print_row("tree 13", tree13);
+    let suffix13 = run(SlidingWindow10::new(), inner.clone(), &buf);
+    print_row("suffix 13", suffix13);
+    let tree16 = run(CtxPrefixModel16::new(Counter4::new()), inner.clone(), &buf);
+    print_row("tree 16", tree16);
+    let suffix16 = run(SlidingWindow13::new(), inner.clone(), &buf);
+    print_row("suffix 16", suffix16);
 
     Ok(())
 }
 
-fn run_lsb(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
-    let mut ac = ArithmeticCoder::new_coder();
-    let mut stats = ACStats::new();
-    let mut history = ACHistory::new(inner);
-    for byte in buf.iter() {
-        unroll_for!(bit in byte, {
-            _ = ac.encode(bit, model.predict(), &mut stats);
-            model.adapt(bit);
-            history.update(bit);
-            model.set_ctx(history.hash(15));
-        });
-    }
-    stats.result()
+fn print_row(name: &str, values: [u64; 3]) {
+    println!(
+        "{:<12} {:>12} {:>12} {:>12}",
+        name, values[0], values[1], values[2]
+    );
 }
 
-fn run(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
-    let mut ac = ArithmeticCoder::new_coder();
-    let mut stats = ACStats::new();
-    let mut history = ACHistoryMSB::new(inner);
-    for byte in buf.iter() {
-        unroll_for!(bit in byte, {
-            _ = ac.encode(bit, model.predict(), &mut stats);
-            model.adapt(bit);
-            history.update(bit);
-            model.set_ctx(history.hash(15));
-        });
+fn run<M: CtxModel + Clone>(model: M, inner: PrefixModel8<u16>, buf: &[u8]) -> [u64; 3] {
+    let mut results = [0; 3];
+    for (index, ordering) in [
+        HistoryBitOrder::LSB,
+        HistoryBitOrder::MSB,
+        HistoryBitOrder::Boundary,
+    ]
+    .iter()
+    .copied()
+    .enumerate()
+    {
+        let mut model = model.clone();
+        let mut ac = ArithmeticCoder::new_coder();
+        let mut stats = ACStats::new();
+        let mut history = ACHistory::new(inner.clone(), ordering);
+        for byte in buf.iter() {
+            unroll_for!(bit in byte, {
+                _ = ac.encode(bit, model.predict(), &mut stats);
+                model.adapt(bit);
+                history.update(bit);
+                model.set_ctx(history.hash(15));
+            });
+        }
+        results[index] = stats.result();
     }
-    stats.result()
+    results
 }
 
+#[derive(Clone)]
 struct SlidingWindow5 {
     stats: Vec<Counter4>,
     ctx: usize,
     align: u32,
 }
+#[derive(Clone)]
 struct SlidingWindow10 {
     stats: Vec<Counter4>,
     ctx: usize,
     align: u32,
 }
+#[derive(Clone)]
 struct SlidingWindow13 {
     stats: Vec<Counter4>,
     ctx: usize,

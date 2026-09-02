@@ -1,6 +1,6 @@
 use std::{fs, io};
 use weath3rb0i::{
-    history::{ACHistory, History},
+    history::{ACHistory, History, HistoryBitOrder},
     models::{counters::*, AdaptiveModel, CtxModel, CtxPrefixModel8, FreezeModel, PrefixModel8},
     unroll_for,
 };
@@ -23,7 +23,7 @@ fn main() -> io::Result<()> {
     inner.train(&buf);
     let inner = inner.freeze();
 
-    let mut history = ACHistory::new(inner);
+    let mut history = ACHistory::new(inner, HistoryBitOrder::LSB);
     let mut model = CtxPrefixModel8::new(Counter4::new());
     for byte in buf.iter() {
         unroll_for!(bit in byte, {

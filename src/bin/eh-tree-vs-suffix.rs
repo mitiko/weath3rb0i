@@ -2,7 +2,7 @@ use std::{fs, io};
 use weath3rb0i::{
     entropy_coding::ArithmeticCoder,
     helpers::ACStats,
-    history::{ACHistory, History},
+    history::{ACHistory, History, HistoryBitOrder},
     models::{
         counters::*, CtxModel, CtxPrefixModel13, CtxPrefixModel16, CtxPrefixModel8, FreezeModel,
         PrefixModel8,
@@ -41,7 +41,7 @@ fn main() -> io::Result<()> {
 fn run(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
     let mut ac = ArithmeticCoder::new_coder();
     let mut stats = ACStats::new();
-    let mut history = ACHistory::new(inner);
+    let mut history = ACHistory::new(inner, HistoryBitOrder::LSB);
     for byte in buf.iter() {
         unroll_for!(bit in byte, {
             _ = ac.encode(bit, model.predict(), &mut stats);
