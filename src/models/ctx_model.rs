@@ -23,7 +23,7 @@ impl<T: CtxModel> AdaptiveModel for RawModel<T> {
     fn update(&mut self, bit: u8) {
         use crate::history::History;
         self.history.update(bit);
-        self.model.set_ctx(self.history.hash());
+        self.model.set_ctx(self.history.hash(32));
     }
 
     fn adapt(&mut self, bit: u8) {

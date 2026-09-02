@@ -4,8 +4,8 @@ use weath3rb0i::{
     helpers::ACStats,
     history::{ACHistory, History},
     models::{
-        counters::*, AdaptiveModel, CtxModel, CtxPrefixModel13, CtxPrefixModel16, CtxPrefixModel8,
-        FreezeModel, PrefixModel8,
+        counters::*, CtxModel, CtxPrefixModel13, CtxPrefixModel16, CtxPrefixModel8, FreezeModel,
+        PrefixModel8,
     },
     unroll_for, usize,
 };
@@ -41,13 +41,13 @@ fn main() -> io::Result<()> {
 fn run(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
     let mut ac = ArithmeticCoder::new_coder();
     let mut stats = ACStats::new();
-    let mut history = ACHistory::new(15, inner);
+    let mut history = ACHistory::new(inner);
     for byte in buf.iter() {
         unroll_for!(bit in byte, {
             _ = ac.encode(bit, model.predict(), &mut stats);
             model.adapt(bit);
             history.update(bit);
-            model.set_ctx(history.hash());
+            model.set_ctx(history.hash(15));
         });
     }
     stats.result()

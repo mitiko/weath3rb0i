@@ -47,13 +47,13 @@ fn main() -> io::Result<()> {
 fn run_lsb(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
     let mut ac = ArithmeticCoder::new_coder();
     let mut stats = ACStats::new();
-    let mut history = ACHistory::new(15, inner);
+    let mut history = ACHistory::new(inner);
     for byte in buf.iter() {
         unroll_for!(bit in byte, {
             _ = ac.encode(bit, model.predict(), &mut stats);
             model.adapt(bit);
             history.update(bit);
-            model.set_ctx(history.hash());
+            model.set_ctx(history.hash(15));
         });
     }
     stats.result()
@@ -62,13 +62,13 @@ fn run_lsb(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u6
 fn run(mut model: impl CtxModel, inner: PrefixModel8<u16>, buf: &[u8]) -> u64 {
     let mut ac = ArithmeticCoder::new_coder();
     let mut stats = ACStats::new();
-    let mut history = ACHistoryMSB::new(15, inner);
+    let mut history = ACHistoryMSB::new(inner);
     for byte in buf.iter() {
         unroll_for!(bit in byte, {
             _ = ac.encode(bit, model.predict(), &mut stats);
             model.adapt(bit);
             history.update(bit);
-            model.set_ctx(history.hash());
+            model.set_ctx(history.hash(15));
         });
     }
     stats.result()

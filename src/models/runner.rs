@@ -19,7 +19,7 @@ impl<H: History, M: CtxModel> CtxModelRunner<H, M> {
 
                 self.model.adapt(bit);
                 self.history.update(bit);
-                self.model.set_ctx(self.history.hash());
+                self.model.set_ctx(self.history.hash(32));
 
                 probs.push(p);
             });
