@@ -37,7 +37,7 @@ pub trait SerializableModel {
     fn read(data: &[u8]) -> Self;
 }
 
-pub trait FreezeModel : AdaptiveModel {
+pub trait FreezeModel: AdaptiveModel {
     type Frozen: SerializableModel;
 
     fn train(&mut self, data: &[u8]) {

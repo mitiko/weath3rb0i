@@ -1,12 +1,12 @@
-pub mod linear_counter4;
-pub mod geometric;
 pub mod fsm0;
+pub mod geometric;
+pub mod linear_counter4;
 
 use crate::{u16, Analytics};
 
-pub use linear_counter4::*;
-pub use geometric::*;
 pub use fsm0::*;
+pub use geometric::*;
+pub use linear_counter4::*;
 
 pub trait Counter: Sized + Clone {
     fn p(&self) -> u16;
