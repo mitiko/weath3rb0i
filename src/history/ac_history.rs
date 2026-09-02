@@ -10,7 +10,7 @@ use crate::{
 pub struct ACHistory<M: Model> {
     pos: usize,
     bits: u64,
-    probs: RotatingBuffer<u16, 1024>,
+    probs: RotatingBuffer<u16, 64>,
     max_bits: u8,
     compressed_bits_count: usize,
     model: M,
