@@ -446,8 +446,24 @@ pub fn log2(p: u16) -> P12 {
     // log2(p) = floor(log2(p)) + log2(1 + n / base)
     // then scale n / base to the table's 12-bit fractional index
     let whole = u16!(15 - p.leading_zeros());
-    let n = u32::from(p - (1 << whole)) << 12;
-    P12((whole << 12) + LOG2_TABLE[usize!(n >> whole)])
+    let n = u32::from(p - (1 << whole));
+    // Round to the nearest table bucket instead of always rounding down.
+    let scaled = n << 12;
+    let index = scaled >> whole;
+    if index == 1 << 12 {
+        // Rounding can carry the mantissa into the next power of two.
+        return P12((u32::from(whole) + 1 << 12) as u16);
+    }
+    let remainder = scaled & ((1 << whole) - 1);
+    let a = u32::from(LOG2_TABLE[usize!(index)]);
+    let b = if index == 4095 {
+        1 << 12
+    } else {
+        u32::from(LOG2_TABLE[usize!(index + 1)])
+    };
+    let fraction = a + (((b - a) * remainder + (1 << (whole - 1))) >> whole);
+    let result = (u32::from(whole) << 12) + fraction;
+    P12(result as u16)
 }
 
 #[cfg(test)]
@@ -462,7 +478,7 @@ pub mod tests {
 
     #[test]
     pub fn test_log2() {
-        const EPSILON: f64 = 100.0 / (1 << 12) as f64;
+        const EPSILON: f64 = 1.0 / (1 << 12) as f64;
 
         let mut count = 0;
         for x in 1..=u16::MAX {
@@ -473,8 +489,7 @@ pub mod tests {
                 count += 1;
             }
         }
-        // P12::MIN is 1 rather than the mathematically exact zero.
-        assert!(u16::MAX - count < 1);
+        assert_eq!(count, u16::MAX as usize);
     }
 
     #[test]
