@@ -1,5 +1,8 @@
-use std::{num::NonZeroU16, ops::{Add, Div, Mul, Sub}};
 use crate::{u16, u32};
+use std::{
+    num::NonZeroU16,
+    ops::{Add, Div, Mul, Sub},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct P12(u16); // 0-16 with 12-bit prec
@@ -27,20 +30,28 @@ impl From<u16> for P12 {
     fn from(value: u16) -> Self {
         let x = value >> 3;
         let z = (x >> 1) + (x & 1);
-        if z == 0 { P12(1) } else { P12(z) }
+        if z == 0 {
+            P12(1)
+        } else {
+            P12(z)
+        }
     }
 }
 
 impl From<P12> for f64 {
     fn from(value: P12) -> Self {
-        if value == P12::MAX { return 16.0; }
+        if value == P12::MAX {
+            return 16.0;
+        }
         f64::from(value.0) / f64::from(1 << 12)
     }
 }
 
 impl From<P12> for u32 {
     fn from(value: P12) -> Self {
-        if value == P12::MAX { return 16 << 12; }
+        if value == P12::MAX {
+            return 16 << 12;
+        }
         u32::from(value.0)
     }
 }
@@ -54,7 +65,11 @@ impl Mul<u16> for P12 {
         let x = u32::from(self) * u32::from(rhs);
         let x = x >> 15;
         let z = u16!((x >> 1) + (x & 1));
-        if z == 0 { P12::MIN } else { P12(z) }
+        if z == 0 {
+            P12::MIN
+        } else {
+            P12(z)
+        }
     }
 }
 
@@ -65,7 +80,9 @@ impl Div for P12 {
         let a = u32::from(self) * (1 << 12);
         let b = u32::from(rhs);
         let d = a / b;
-        if d == 16 << 12 { return P12::MAX; }
+        if d == 16 << 12 {
+            return P12::MAX;
+        }
         P12(u16!(d))
     }
 }
@@ -76,7 +93,9 @@ impl Sub for P12 {
     fn sub(self, rhs: Self) -> Self::Output {
         let a = u32::from(self);
         let b = u32::from(rhs);
-        if a <= b { return P12::MIN; }
+        if a <= b {
+            return P12::MIN;
+        }
         P12(u16!(a - b))
     }
 }
@@ -101,7 +120,9 @@ impl Add for P24 {
     type Output = P24;
 
     fn add(self, rhs: Self) -> Self::Output {
-        if self == P24::MAX || rhs == P24::MAX { return P24::MAX; }
+        if self == P24::MAX || rhs == P24::MAX {
+            return P24::MAX;
+        }
         P24(self.0 + rhs.0)
     }
 }
@@ -116,7 +137,9 @@ impl Add for P12 {
 
 impl From<P24> for u64 {
     fn from(value: P24) -> Self {
-        if value == P24::MAX { return 256 << 12; }
+        if value == P24::MAX {
+            return 256 << 12;
+        }
         u64::from(value.0)
     }
 }
@@ -128,7 +151,9 @@ impl Div for P24 {
         let a = u64::from(self) * (1 << 24);
         let b = u64::from(rhs);
         let d = a / b;
-        if d == 256 << 24 { return P24::MAX; }
+        if d == 256 << 24 {
+            return P24::MAX;
+        }
         P24(u32!(d))
     }
 }
@@ -148,25 +173,63 @@ impl TryFrom<P24> for u16 {
 
 // treats u16 as integer
 pub fn log2(p: u16) -> P12 {
-    if p == 0 { panic!("log2 undefined for 0"); }
-    if p == 1 { return P12::MIN; }
-    if p == 65535 { return P12::MAX; }
-    if p == 2 { return P12::ONE; }
-    if p == 3 { return P12(6492); }
-    if p == 4 { return P12::TWO; }
-    if p == 8 { return P12(3 << 12); }
-    if p == 16 { return P12::FOUR; }
-    if p == 32 { return P12(5 << 12); }
-    if p == 64 { return P12(6 << 12); }
-    if p == 128 { return P12(7 << 12); }
-    if p == 256 { return P12::HALF; }
-    if p == 512 { return P12(9 << 12); }
-    if p == 1024 { return P12(10 << 12); }
-    if p == 2048 { return P12(11 << 12); }
-    if p == 4096 { return P12(12 << 12); }
-    if p == 8192 { return P12(13 << 12); }
-    if p == 16384 { return P12(14 << 12); }
-    if p == 32768 { return P12(15 << 12); }
+    if p == 0 {
+        panic!("log2 undefined for 0");
+    }
+    if p == 1 {
+        return P12::MIN;
+    }
+    if p == 65535 {
+        return P12::MAX;
+    }
+    if p == 2 {
+        return P12::ONE;
+    }
+    if p == 3 {
+        return P12(6492);
+    }
+    if p == 4 {
+        return P12::TWO;
+    }
+    if p == 8 {
+        return P12(3 << 12);
+    }
+    if p == 16 {
+        return P12::FOUR;
+    }
+    if p == 32 {
+        return P12(5 << 12);
+    }
+    if p == 64 {
+        return P12(6 << 12);
+    }
+    if p == 128 {
+        return P12(7 << 12);
+    }
+    if p == 256 {
+        return P12::HALF;
+    }
+    if p == 512 {
+        return P12(9 << 12);
+    }
+    if p == 1024 {
+        return P12(10 << 12);
+    }
+    if p == 2048 {
+        return P12(11 << 12);
+    }
+    if p == 4096 {
+        return P12(12 << 12);
+    }
+    if p == 8192 {
+        return P12(13 << 12);
+    }
+    if p == 16384 {
+        return P12(14 << 12);
+    }
+    if p == 32768 {
+        return P12(15 << 12);
+    }
     return P12(13);
 }
 
