@@ -9,9 +9,9 @@ const HALF: u16 = 1 << 15;
 
 impl Mixer2 for ConfidenceMixer2 {
     fn mix(&self, p1: u16, p2: u16) -> u16 {
-        let diff1 = if p1 >= HALF { p1 - HALF } else { HALF - p1 };
-        let diff2 = if p2 >= HALF { p2 - HALF } else { HALF - p2 };
-        return if diff1 >= diff2 { p1 } else { p2 };
+        let d1 = p1.abs_diff(HALF);
+        let d2 = p2.abs_diff(HALF);
+        return if d1 >= d2 { p1 } else { p2 };
     }
 
     fn update(&mut self, _bit: u8) {}
