@@ -2,6 +2,7 @@
 name = "weath3rb0i"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.96.1"
 authors = ["Dimitar Rusev <mitikodev@gmail.com>"]
 description = "CM text compressor"
 repository = "https://github.com/mitiko/weath3rb0i/"
