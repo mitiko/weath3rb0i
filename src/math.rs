@@ -444,26 +444,26 @@ pub fn log2(p: u16) -> P12 {
 
     // Let base = 2^whole. Then p = base + n, where 0 <= n < base:
     // log2(p) = floor(log2(p)) + log2(1 + n / base)
-    // then scale n / base to the table's 12-bit fractional index
     let whole = u16!(15 - p.leading_zeros());
     let n = u32::from(p - (1 << whole));
-    // Round to the nearest table bucket instead of always rounding down.
-    let scaled = n << 12;
-    let index = scaled >> whole;
-    if index == 1 << 12 {
-        // Rounding can carry the mantissa into the next power of two.
-        return P12((u32::from(whole) + 1 << 12) as u16);
+    let mask = (1 << whole) - 1;
+
+    // index = floor(n / base * 4096)
+    let index = (n << 12) >> whole;
+    let rem = (n << 12) & mask;
+
+    // no lookup when close to 2.0
+    if index == 4096 || index == 4095 {
+        return P12((whole + 1) << 12);
     }
-    let remainder = scaled & ((1 << whole) - 1);
+
+    // interpolate
     let a = u32::from(LOG2_TABLE[usize!(index)]);
-    let b = if index == 4095 {
-        1 << 12
-    } else {
-        u32::from(LOG2_TABLE[usize!(index + 1)])
-    };
-    let fraction = a + (((b - a) * remainder + (1 << (whole - 1))) >> whole);
-    let result = (u32::from(whole) << 12) + fraction;
-    P12(result as u16)
+    let b = u32::from(LOG2_TABLE[usize!(index + 1)]);
+    // f = a + (b-a) * remainder / base
+    let x = ((b - a) * rem) >> (whole - 1);
+    let f = a + (x >> 1) + (x & 1);
+    P12((whole << 12) + u16!(f))
 }
 
 #[cfg(test)]
@@ -484,7 +484,6 @@ pub mod tests {
         for x in 1..=u16::MAX {
             let p = f64::from(log2(x));
             let y = f64::from(x).log2();
-            // debug_assert!((y - p).abs() <= EPSILON, "log2({}) = {}, expected {} (diff = {} > {})", x, p, y, (y - p).abs(), EPSILON);
             if (y - p).abs() <= EPSILON {
                 count += 1;
             }
