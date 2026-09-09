@@ -23,7 +23,7 @@ impl Mixer2 for ConfidenceMixer2 {
 
 impl Mixer2 for MeanMixer2 {
     fn mix(&self, p1: u16, p2: u16) -> u16 {
-        let x = p1 + p2;
+        let x = p1.saturating_add(p2);
         (x / 2) + (x & 1)
     }
 
@@ -57,6 +57,7 @@ impl Mixer2 for EntropyWeightMixer2 {
         let w1 = P12::ONE / h1;
         let w2 = P12::ONE / h2;
         // TODO: P11 with 0-32 range will have 32-bit div instead of 64-bit
+        // TODO: P12 / P12 -> P24
         let p = (w1 * p1 + w2 * p2) / (w1 + w2);
         return u16::try_from(p).unwrap();
     }

@@ -1,5 +1,8 @@
 use crate::{u16, u32, usize};
-use std::{num::NonZeroU16, ops::{Add, Div, Mul, Shl, Sub}};
+use std::{
+    num::NonZeroU16,
+    ops::{Add, Div, Mul, Shl, Sub},
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct P12(u16); // 0-16 with 12-bit prec
@@ -77,7 +80,7 @@ impl Div for P12 {
         let a = u32::from(self) * (1 << 12);
         let b = u32::from(rhs);
         let d = a / b;
-        if d == 16 << 12 {
+        if d >= 16 << 12 {
             return P12::MAX;
         }
         P12(u16!(d))

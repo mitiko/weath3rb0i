@@ -7,10 +7,10 @@ pub mod helpers;
 pub mod history;
 pub mod macros;
 pub mod math;
+pub mod mixers;
 pub mod models;
 
 mod hashmap;
-mod mixers;
 mod state_table;
 
 pub trait Analytics {
