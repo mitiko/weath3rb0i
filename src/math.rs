@@ -184,10 +184,15 @@ pub mod tests {
     pub fn test_log2() {
         const EPSILON: f64 = 1.0 / (1 << 12) as f64;
 
+        let mut count = 0;
         for x in 1..=u16::MAX {
             let p = f64::from(log2(x));
             let y = f64::from(x).log2();
-            assert!((y - p).abs() < EPSILON);
+            // debug_assert!((y - p).abs() <= EPSILON, "log2({}) = {}, expected {} (diff = {} > {})", x, p, y, (y - p).abs(), EPSILON);
+            if (y - p).abs() <= EPSILON {
+                count += 1;
+            }
         }
+        assert_eq!(count, u16::MAX);
     }
 }
