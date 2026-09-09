@@ -7,6 +7,7 @@ pub mod helpers;
 pub mod history;
 pub mod macros;
 pub mod models;
+pub mod math;
 
 mod hashmap;
 mod mixers;

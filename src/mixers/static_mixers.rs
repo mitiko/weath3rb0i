@@ -1,9 +1,13 @@
+use crate::math;
+use crate::math::P12;
+use crate::math::P24;
 use crate::mixers::Mixer2;
 use crate::u16;
 
 pub struct ConfidenceMixer2;
 pub struct MeanMixer2;
 pub struct AbsWeightMixer2;
+pub struct EntropyWeightMixer2;
 
 const HALF: u16 = 1 << 15;
 
@@ -35,6 +39,26 @@ impl Mixer2 for AbsWeightMixer2 {
         }
         let sum = u32::from(p1) * w1 + u32::from(p2) * w2;
         u16!(sum / (w1 + w2))
+    }
+
+    fn update(&mut self, _bit: u8) {}
+}
+
+impl Mixer2 for EntropyWeightMixer2 {
+    fn mix(&self, p1: u16, p2: u16) -> u16 {
+        // w = 1 / H(P)
+        // H(P) = -P*log2(P) - (1-P)*log2(1-P)
+        // H(p) = -p/65536*log2(p/65536) - (1-p/65536)*log2(1-p/65536)
+        // H(p) = -p/65536*(log2(p)-16) - (1-p/65536)*(log2(65536-p)-16)
+        // H(p) = -p/65536*log2(p) + p/65536*16 - (1-p/65536)*log2(65536-p) + (1-p/65536)*16
+        // H(p) = 16 - p/65536*log2(p) - (1-p/65536)*log2(65536-p) -> P12
+        let h1 = P12::MAX - math::log2(p1) * p1 - math::log2(65535 - p1 + 1) * (65535 - p1 + 1);
+        let h2 = P12::MAX - math::log2(p2) * p2 - math::log2(65535 - p2 + 1) * (65535 - p2 + 1);
+        let w1 = P12::ONE / h1;
+        let w2 = P12::ONE / h2;
+        // TODO: P11 with 0-32 range will have 32-bit div instead of 64-bit
+        let p = (w1 * p1 + w2 * p2) / (w1 + w2);
+        return u16::try_from(p).unwrap();
     }
 
     fn update(&mut self, _bit: u8) {}
