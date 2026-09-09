@@ -51,31 +51,37 @@ pub trait FreezeModel: AdaptiveModel {
     fn freeze(&self) -> Self::Frozen;
 }
 
-use crate::{mixers::opinion_mixer2::OpinionMixer2, unroll_for};
-pub struct BestOfTwoModel<T, U>
+use crate::{
+    mixers::{static_mixers::ConfidenceMixer2, Mixer2},
+    unroll_for,
+};
+pub struct Composite2<M1, M2, X>
 where
-    T: Model,
-    U: Model,
+    M1: Model,
+    M2: Model,
+    X: Mixer2,
 {
-    m1: T,
-    m2: U,
-    mixer: OpinionMixer2,
+    m1: M1,
+    m2: M2,
+    mixer: X,
 }
 
-impl<T, U> BestOfTwoModel<T, U>
+impl<M1, M2, X> Composite2<M1, M2, X>
 where
-    T: Model,
-    U: Model,
+    M1: Model,
+    M2: Model,
+    X: Mixer2,
 {
-    pub fn new(m1: T, m2: U) -> Self {
-        Self { m1, m2, mixer: OpinionMixer2 }
+    pub fn new(m1: M1, m2: M2, mixer: X) -> Self {
+        Self { m1, m2, mixer }
     }
 }
 
-impl<T, U> Model for BestOfTwoModel<T, U>
+impl<M1, M2, X> Model for Composite2<M1, M2, X>
 where
-    T: Model,
-    U: Model,
+    M1: Model,
+    M2: Model,
+    X: Mixer2,
 {
     fn predict(&self) -> u16 {
         self.mixer.mix(self.m1.predict(), self.m2.predict())
@@ -84,5 +90,6 @@ where
     fn update(&mut self, bit: u8) {
         self.m1.update(bit);
         self.m2.update(bit);
+        self.mixer.update(bit);
     }
 }
